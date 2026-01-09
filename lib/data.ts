@@ -12,31 +12,31 @@ const features = [
   {
     icon: "/Icons/Professional Potrails.svg",
     title: "Professional Portraits",
-    description: "Get Studio-Quality And Professional Photos That Enhance Your Identity And Elevate.",
+    description: "Corporate Headshots and Professional Photos That Enhance Your LinkedIn And Resume.",
   },
   {
     icon: "/Icons/Social Media Content.svg",
     title: "Social Media Content",
-    description: "Engaging And Visual Images For Instagram, Facebook, And Twitter Every Day.",
+    description: "Engaging And Unique Images For Instagram, Facebook, And Twitter Every Day.",
   },
   {
-    icon: "/Icons/50+ Unique Themes.svg",
+    icon: "/Icons/UniqueThemes.svg",
     title: "50+ Unique Themes",
-    description: "Create Your Photos In Any Narrative - Beach Landscape, Motorcycle, Or City.",
+    description: "Create Your Photos In Any Location - Desert, Underwater, Mountains, Or City.",
   },
   {
     icon: "/Icons/Instant Generation.svg",
     title: "Instant Generation",
-    description: "Fast NeatAI-API Images Are Instantly Lit! Wait Sale - No Irritating Requests.",
+    description: "Your Realistic Images Are Ready In Just One Click - No Waiting Required.",
   },
   {
     icon: "/Icons/Anytime, Anywhere.svg",
     title: "Anytime, Anywhere",
-    description: "Never Go Faded Or Healthy On Whenever With A - Anytime-, Heeds Or Chains.",
+    description: "Hard To Travel In Reality? Go Anywhere With AI - Airplane, Space, Or Ocean.",
   },
   {
     icon: "/Icons/Highly Realistic.svg",
     title: "Highly Realistic",
-    description: "A Increases Technology That Observes Images So Realistic, They're Hard To Distinguish.",
+    description: "AI-Powered Technology That Creates Images So Realistic They're Hard To Distinguish.",
   },
 ];
