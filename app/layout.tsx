@@ -30,11 +30,20 @@ export const metadata: Metadata = {
     title: "Personify - Level Up Your Personal Brand",
     description: "Skip The Photoshoot Hassle! We Generate Highly Realistic Images Of You Anywhere.",
     siteName: "Personify",
+    images: [
+      {
+        url: "/favicon/android-chrome-512x512.png",
+        width: 512,
+        height: 512,
+        alt: "Personify Logo",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Personify - Level Up Your Personal Brand",
     description: "Skip The Photoshoot Hassle! We Generate Highly Realistic Images Of You Anywhere.",
+    images: ["/favicon/android-chrome-512x512.png"],
   },
   icons: {
     icon: "/favicon/favicon.ico",
