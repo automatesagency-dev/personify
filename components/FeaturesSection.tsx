@@ -1,10 +1,49 @@
 
-import { features } from "@/lib/data"
 import Card from "./feacture-section/Card"
 import { Typography } from "./ui/typography/Typography"
+import { getBaseUrl } from "@/lib/utils"
 
-export const FeaturesSection = () => {
+interface Feature {
+   title: string;
+   description: string;
+   icon: string;
+}
 
+const getFeatures = async (): Promise<Feature[]> => {
+   try {
+      const query = `
+      query {
+        features {
+          icon
+          title
+          description
+        }
+      }
+    `;
+
+      const res = await fetch(`${getBaseUrl()}/api/graphql`, {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ query }),
+         next: { revalidate: 10 }
+      });
+
+      if (!res.ok) {
+         throw new Error('Failed to fetch data');
+      }
+
+      const { data } = await res.json();
+      return data.features;
+   } catch (error) {
+      console.error("Error fetching features:", error);
+      return [];
+   }
+}
+
+export const FeaturesSection = async () => {
+   const features = await getFeatures();
 
    return (
       <section className="pb-20 px-6 bg-white dark:bg-zinc-950">

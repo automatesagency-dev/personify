@@ -1,9 +1,41 @@
-import { photos } from "@/lib/data"
+
 import { PhotoGallery } from "./hero-section/PhotoGallery"
 import { Subscribe } from "./hero-section/Subscribe"
 import { Typography } from "./ui/typography/Typography"
+import { getBaseUrl } from "@/lib/utils"
 
-export const HeroSection = () => {
+const getPhotos = async (): Promise<string[]> => {
+   try {
+      const query = `
+       query {
+         photos
+       }
+     `;
+
+      const res = await fetch(`${getBaseUrl()}/api/graphql`, {
+         method: 'POST',
+         headers: {
+            'Content-Type': 'application/json',
+         },
+         body: JSON.stringify({ query }),
+         next: { revalidate: 10 }
+      });
+
+      if (!res.ok) {
+         throw new Error('Failed to fetch photos');
+      }
+
+      const { data } = await res.json();
+      return data.photos;
+   } catch (error) {
+      console.error("Error fetching photos:", error);
+      return [];
+   }
+}
+
+export const HeroSection = async () => {
+   const photos = await getPhotos();
+
    return (
       <section className="relative pt-26 md:pt-32 pb-20 px-6 overflow-hidden bg-linear-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-zinc-950 dark:via-zinc-900 dark:to-zinc-950 rounded-b-4xl">
          {/* Gradient Overlay */}
