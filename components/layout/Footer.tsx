@@ -11,9 +11,9 @@ export const Footer = () => {
                         <span className="text-xl font-questrial font-bold letter-spacing-[2px]">Personify</span>
                     </div>
                     <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center">
-                        AI-Powered Personal Branding Tool Makers
+                        AI-Powered Personal Branding That Makes
                         <br />
-                        You Without Age Coming Ever
+                        You Stand Out. Coming Soon.
                     </p>
                     <p className="text-xs text-zinc-500 dark:text-zinc-500">
                         © 2026 Personify - All Rights Reserved

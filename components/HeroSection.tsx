@@ -18,7 +18,7 @@ export const HeroSection = () => {
             <Typography variant="subHeading" className="text-4xl md:text-6xl mb-2 md:mb-6">with Stunning AI Photos</Typography>
             <PhotoGallery photos={photos} />
             <Typography variant="paragraph" className="max-w-2xl mx-auto mb-8">
-               No Photoshoot Hassle? No Problem! We Generate Highly Realistic Images Of You Anywhere—In An Office, By Seas, Or Photoshoot! Takes Your Social Media To The Next Level.
+               Skip The Photoshoot Hassle! We Generate Highly Realistic Images Of You Anywhere. Office, Beach, Studio Photoshoot... You Name It. Take Your Social Media To The Next Level.
             </Typography>
             <Subscribe />
             <Typography variant="muted">
