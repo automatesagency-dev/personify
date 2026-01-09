@@ -1,8 +1,8 @@
-
 import { PhotoGallery } from "./hero-section/PhotoGallery"
 import { Subscribe } from "./hero-section/Subscribe"
 import { Typography } from "./ui/typography/Typography"
-import { getBaseUrl } from "@/lib/utils"
+import { execute, parse } from 'graphql'
+import { schema } from "@/lib/schema"
 
 const getPhotos = async (): Promise<string[]> => {
    try {
@@ -12,21 +12,17 @@ const getPhotos = async (): Promise<string[]> => {
        }
      `;
 
-      const res = await fetch(`${getBaseUrl()}/api/graphql`, {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({ query }),
-         next: { revalidate: 10 }
+      const result = await execute({
+         schema,
+         document: parse(query)
       });
 
-      if (!res.ok) {
-         throw new Error('Failed to fetch photos');
+      if (result.errors) {
+         console.error("GraphQL Errors:", result.errors);
+         return [];
       }
 
-      const { data } = await res.json();
-      return data.photos;
+      return (result.data as any)?.photos || [];
    } catch (error) {
       console.error("Error fetching photos:", error);
       return [];

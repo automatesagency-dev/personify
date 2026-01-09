@@ -1,7 +1,8 @@
 
 import Card from "./feacture-section/Card"
 import { Typography } from "./ui/typography/Typography"
-import { getBaseUrl } from "@/lib/utils"
+import { execute, parse } from 'graphql'
+import { schema } from "@/lib/schema"
 
 interface Feature {
    title: string;
@@ -21,21 +22,17 @@ const getFeatures = async (): Promise<Feature[]> => {
       }
     `;
 
-      const res = await fetch(`${getBaseUrl()}/api/graphql`, {
-         method: 'POST',
-         headers: {
-            'Content-Type': 'application/json',
-         },
-         body: JSON.stringify({ query }),
-         next: { revalidate: 10 }
+      const result = await execute({
+         schema,
+         document: parse(query)
       });
 
-      if (!res.ok) {
-         throw new Error('Failed to fetch data');
+      if (result.errors) {
+         console.error("GraphQL Errors:", result.errors);
+         return [];
       }
 
-      const { data } = await res.json();
-      return data.features;
+      return (result.data as any)?.features || [];
    } catch (error) {
       console.error("Error fetching features:", error);
       return [];
