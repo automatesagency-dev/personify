@@ -1,0 +1,66 @@
+// This is your Prisma schema file
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  persona    Persona?
+  generations Generation[]
+}
+
+// Persona model
+model Persona {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  bio             String?
+  industry        String?
+  targetAudience  String?
+  brandTone       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personaImages   PersonaImage[]
+}
+
+// Persona Images model
+model PersonaImage {
+  id        String   @id @default(uuid())
+  personaId String
+  imageUrl  String
+  createdAt DateTime @default(now())
+  
+  // Relations
+  persona   Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+}
+
+// Generation model (for both images and text)
+model Generation {
+  id            String   @id @default(uuid())
+  userId        String
+  type          String   // 'image' or 'text'
+  prompt        String
+  model         String   // e.g., 'dall-e-3', 'gpt-4'
+  result        String?  // URL for images, text for text generations
+  status        String   @default("pending") // 'pending', 'completed', 'failed'
+  errorMessage  String?
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

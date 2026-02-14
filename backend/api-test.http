@@ -1,0 +1,146 @@
+### ========================================
+### PERSONIFY API TESTS
+### ========================================
+
+### Variables (UPDATE THE TOKEN AFTER LOGIN!)
+@baseUrl = http://localhost:5000/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNjJhNWMwMC04MDMzLTQ4MzEtYjY1ZS1mY2JlNjg1Y2M5YjEiLCJpYXQiOjE3NzA4MjUyMTQsImV4cCI6MTc3MTQzMDAxNH0.C239VhDZWf0mno3yL2qBWzdiDRY2csbdAl29wIhGUU0
+### ========================================
+
+### Health Check
+GET {{baseUrl}}/health
+
+### Database Test
+GET {{baseUrl}}/db-test
+
+
+### ========================================
+### AUTHENTICATION
+### ========================================
+
+### Register New User
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "email": "sagar2@personify.com",
+  "password": "password123",
+  "name": "Sagar Krishnan"
+}
+
+### Login (COPY THE TOKEN FROM RESPONSE!)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "sagar@personify.com",
+  "password": "password123"
+}
+
+### Get Current User (Protected Route)
+GET {{baseUrl}}/auth/me
+Authorization: Bearer {{token}}
+
+
+### ========================================
+### PERSONA MANAGEMENT
+### ========================================
+
+### Create Persona
+POST {{baseUrl}}/persona
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bio": "I'm a tech content creator focusing on AI and web development. Passionate about building innovative products.",
+  "industry": "Technology & Software Development",
+  "targetAudience": "Developers, tech enthusiasts, and startup founders aged 18-40",
+  "brandTone": "Educational, friendly, innovative, and approachable"
+}
+
+### Get Persona
+GET {{baseUrl}}/persona
+Authorization: Bearer {{token}}
+
+### Update Persona (same endpoint as create)
+POST {{baseUrl}}/persona
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "bio": "Updated bio - Tech entrepreneur and AI enthusiast",
+  "industry": "AI & Machine Learning",
+  "targetAudience": "Tech professionals and entrepreneurs",
+  "brandTone": "Professional yet approachable"
+}
+
+### Delete Persona
+DELETE {{baseUrl}}/persona
+Authorization: Bearer {{token}}
+
+
+### ========================================
+### PERSONA IMAGES
+### ========================================
+
+### Upload Persona Image
+### NOTE: For file upload, see instructions below
+POST {{baseUrl}}/persona/images
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+
+------WebKitFormBoundary7MA4YWxkTrZu0gW
+Content-Disposition: form-data; name="image"; filename="profile.jpg"
+Content-Type: image/jpeg
+
+< ./path/to/your/image.jpg
+------WebKitFormBoundary7MA4YWxkTrZu0gW--
+
+### Delete Persona Image (replace IMAGE_ID with actual ID)
+DELETE {{baseUrl}}/persona/images/IMAGE_ID_HERE
+Authorization: Bearer {{token}}
+
+
+### ========================================
+### AI GENERATION
+### ========================================
+
+### Generate Image with DALL-E
+POST {{baseUrl}}/generate/image
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prompt": "A professional headshot of a tech entrepreneur in a modern office",
+  "model": "dall-e-3"
+}
+
+### Generate Text with GPT
+POST {{baseUrl}}/generate/text
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "prompt": "Write a LinkedIn post about the future of AI in software development",
+  "model": "gpt-4"
+}
+
+### Get All Generations
+GET {{baseUrl}}/generate
+Authorization: Bearer {{token}}
+
+### Get Image Generations Only
+GET {{baseUrl}}/generate?type=image
+Authorization: Bearer {{token}}
+
+### Get Text Generations Only
+GET {{baseUrl}}/generate?type=text
+Authorization: Bearer {{token}}
+
+### Get Specific Generation (replace ID)
+GET {{baseUrl}}/generate/GENERATION_ID_HERE
+Authorization: Bearer {{token}}
+
+### Delete Generation (replace ID)
+DELETE {{baseUrl}}/generate/GENERATION_ID_HERE
+Authorization: Bearer {{token}}
