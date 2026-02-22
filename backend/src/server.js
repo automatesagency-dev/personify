@@ -16,7 +16,7 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? process.env.https://personify-frontend-wpr7.onrender.com
+    ? 'https://personify-frontend-wpr7.onrender.com'
     : ['http://localhost:5173', 'http://localhost:5174'],
   credentials: true
 }));
