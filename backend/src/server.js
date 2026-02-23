@@ -7,6 +7,7 @@ const { testOpenAIConnection } = require('./config/ai');
 const authRoutes = require('./routes/authRoutes');
 const personaRoutes = require('./routes/personaRoutes');
 const generationRoutes = require('./routes/generationRoutes');
+const passwordResetRoutes = require('./routes/passwordResetRoutes'); 
 
 dotenv.config();
 
@@ -16,8 +17,8 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? 'https://personify-frontend-wpr7.onrender.com'
-    : ['http://localhost:5173', 'http://localhost:5174'],
+    ? process.env.FRONTEND_URL 
+    : true,
   credentials: true
 }));
 app.use(express.json());
@@ -50,6 +51,9 @@ app.get('/api/db-test', async (req, res) => {
 
 // Auth routes
 app.use('/api/auth', authRoutes);
+
+// Password reset routes
+app.use('/api/auth', passwordResetRoutes);
 
 // Persona routes
 app.use('/api/persona', personaRoutes);
