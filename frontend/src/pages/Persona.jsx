@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Layout from '../components/Layout';
 import { personaAPI } from '../services/api';
 
@@ -15,6 +15,7 @@ export default function Persona() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     loadPersona();
@@ -66,6 +67,71 @@ export default function Persona() {
       });
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleFileSelect = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    await uploadImages(files);
+  };
+
+  const handleDrop = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    await uploadImages(files);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const uploadImages = async (files) => {
+    setUploading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      // Upload each file
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+          setMessage({ type: 'error', text: 'Only image files are allowed' });
+          continue;
+        }
+
+        // Validate file size (5MB max)
+        if (file.size > 5 * 1024 * 1024) {
+          setMessage({ type: 'error', text: 'Image must be less than 5MB' });
+          continue;
+        }
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        await personaAPI.uploadImage(formData);
+      }
+
+      setMessage({ type: 'success', text: 'Images uploaded successfully!' });
+      await loadPersona();
+      
+      setTimeout(() => {
+        setMessage({ type: '', text: '' });
+      }, 3000);
+    } catch (error) {
+      setMessage({ 
+        type: 'error', 
+        text: error.response?.data?.error || 'Failed to upload images' 
+      });
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -156,10 +222,38 @@ export default function Persona() {
             ))}
           </div>
 
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-4">
-            <p className="text-yellow-500 text-sm">
-              ⚠️ Image upload is currently only available via Postman. Use the upload endpoint to add images.
-            </p>
+          {/* Upload Area */}
+          <div
+            onDrop={handleDrop}
+            onDragOver={handleDragOver}
+            className="border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-brand-pink transition cursor-pointer bg-black/20"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            {uploading ? (
+              <div className="text-white">
+                <div className="animate-spin text-4xl mb-4">⏳</div>
+                <p>Uploading images...</p>
+              </div>
+            ) : (
+              <>
+                <div className="text-5xl mb-4">📸</div>
+                <p className="text-white font-semibold mb-2">
+                  Click to upload or drag and drop
+                </p>
+                <p className="text-gray-400 text-sm">
+                  PNG, JPG, GIF up to 5MB
+                </p>
+              </>
+            )}
           </div>
         </div>
 

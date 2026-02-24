@@ -62,14 +62,28 @@ app.use('/api/persona', personaRoutes);
 app.use('/api/generate', generationRoutes);
 
 // Start server
-app.listen(PORT, async () => {
+const server = app.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   await testConnection();
   await testOpenAIConnection();
+  console.log('✅ Server is ready and listening...');
+});
+
+// Error handling
+server.on('error', (error) => {
+  console.error('❌ Server error:', error);
+  if (error.code === 'EADDRINUSE') {
+    console.error(`Port ${PORT} is already in use!`);
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('❌ Unhandled Rejection:', reason);
 });
 
 // Graceful shutdown
 process.on('SIGINT', async () => {
+  console.log('\nShutting down gracefully...');
   await prisma.$disconnect();
   process.exit(0);
 });
