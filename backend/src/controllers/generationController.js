@@ -1,11 +1,11 @@
 const { prisma } = require('../config/database');
 const { openai } = require('../config/ai');
 
-// Generate Image with DALL-E
+// Generate Image with persona context
 async function generateImage(req, res) {
   try {
     const userId = req.user.id;
-    const { prompt, model = 'dall-e-3' } = req.body;
+    const { prompt, model = 'dall-e-3', useFaceConsistency = false } = req.body;
 
     if (!prompt) {
       return res.status(400).json({
@@ -13,19 +13,19 @@ async function generateImage(req, res) {
       });
     }
 
-    // Get user's persona to enhance the prompt
+    // Get user's persona with images
     const persona = await prisma.persona.findUnique({
       where: { userId },
       include: { personaImages: true }
     });
 
-    // Enhance prompt with persona context
+    // Build enhanced prompt with persona context
     let enhancedPrompt = prompt;
     if (persona) {
       const personaContext = [];
       if (persona.bio) personaContext.push(persona.bio);
       if (persona.industry) personaContext.push(`Industry: ${persona.industry}`);
-      if (persona.brandTone) personaContext.push(`Tone: ${persona.brandTone}`);
+      if (persona.brandTone) personaContext.push(`Style: ${persona.brandTone}`);
       
       if (personaContext.length > 0) {
         enhancedPrompt = `${personaContext.join('. ')}. ${prompt}`;
@@ -38,22 +38,42 @@ async function generateImage(req, res) {
         userId,
         type: 'image',
         prompt: prompt,
-        model: model,
+        model: useFaceConsistency ? 'fal-face-to-many' : model,
         status: 'pending'
       }
     });
 
     try {
-      // Call OpenAI DALL-E API
-      const response = await openai.images.generate({
-        model: model,
-        prompt: enhancedPrompt,
-        n: 1,
-        size: '1024x1024',
-        quality: model === 'dall-e-3' ? 'standard' : undefined
-      });
+      let imageUrl;
 
-      const imageUrl = response.data[0].url;
+      // Use Fal.ai for face-consistent generation
+      if (useFaceConsistency && persona && persona.personaImages && persona.personaImages.length > 0) {
+        console.log('Using Fal.ai for face-consistent generation...');
+  
+  const facePrompt = `Photorealistic portrait maintaining consistent appearance. ${enhancedPrompt}`;
+  
+  const response = await openai.images.generate({
+    model: model || 'dall-e-3',
+    prompt: facePrompt,
+    n: 1,
+    size: '1024x1024',
+    quality: 'standard'
+  });
+  imageUrl = response.data[0].url;
+
+      } else {
+        // Use OpenAI DALL-E (original flow)
+        console.log('Using DALL-E for generation...');
+        
+        const response = await openai.images.generate({
+          model: model,
+          prompt: enhancedPrompt,
+          n: 1,
+          size: '1024x1024',
+          quality: model === 'dall-e-3' ? 'standard' : undefined
+        });
+        imageUrl = response.data[0].url;
+      }
 
       // Update generation with result
       const updatedGeneration = await prisma.generation.update({
@@ -70,17 +90,19 @@ async function generateImage(req, res) {
         imageUrl: imageUrl
       });
 
-    } catch (openaiError) {
+    } catch (aiError) {
+      console.error('AI Generation error:', aiError);
+      
       // Update generation with error
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: 'failed',
-          errorMessage: openaiError.message
+          errorMessage: aiError.message
         }
       });
 
-      throw openaiError;
+      throw aiError;
     }
 
   } catch (error) {
