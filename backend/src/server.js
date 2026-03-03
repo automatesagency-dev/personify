@@ -4,6 +4,7 @@ const dotenv = require('dotenv');
 const path = require('path');
 const { prisma, testConnection } = require('./config/database');
 const { testOpenAIConnection } = require('./config/ai');
+const { testFalConnection } = require('./config/fal');
 const authRoutes = require('./routes/authRoutes');
 const personaRoutes = require('./routes/personaRoutes');
 const generationRoutes = require('./routes/generationRoutes');
@@ -68,6 +69,7 @@ const server = app.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
   await testConnection();
   await testOpenAIConnection();
+  await testFalConnection();
   console.log('✅ Server is ready and listening...');
 });
 

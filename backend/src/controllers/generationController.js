@@ -1,11 +1,19 @@
 const { prisma } = require('../config/database');
 const { openai } = require('../config/ai');
+const { fal } = require('../config/fal');
 
-// Generate Image with persona context
+// =====================================
+// Generate Image
+// =====================================
 async function generateImage(req, res) {
   try {
     const userId = req.user.id;
-    const { prompt, model = 'dall-e-3', useFaceConsistency = false } = req.body;
+    const {
+      prompt,
+      model = 'dall-e-3',
+      useFaceConsistency = false,
+      faceModel = 'nano-banana-2'
+    } = req.body;
 
     if (!prompt) {
       return res.status(400).json({
@@ -13,32 +21,33 @@ async function generateImage(req, res) {
       });
     }
 
-    // Get user's persona with images
+    // Get persona
     const persona = await prisma.persona.findUnique({
       where: { userId },
       include: { personaImages: true }
     });
 
-    // Build enhanced prompt with persona context
+    // Enhance prompt with persona
     let enhancedPrompt = prompt;
+
     if (persona) {
       const personaContext = [];
       if (persona.bio) personaContext.push(persona.bio);
       if (persona.industry) personaContext.push(`Industry: ${persona.industry}`);
       if (persona.brandTone) personaContext.push(`Style: ${persona.brandTone}`);
-      
+
       if (personaContext.length > 0) {
         enhancedPrompt = `${personaContext.join('. ')}. ${prompt}`;
       }
     }
 
-    // Create pending generation record
+    // Create pending generation
     const generation = await prisma.generation.create({
       data: {
         userId,
         type: 'image',
         prompt: prompt,
-        model: useFaceConsistency ? 'fal-face-to-many' : model,
+        model: useFaceConsistency ? `fal-${faceModel}` : model,
         status: 'pending'
       }
     });
@@ -46,25 +55,85 @@ async function generateImage(req, res) {
     try {
       let imageUrl;
 
-      // Use Fal.ai for face-consistent generation
-      if (useFaceConsistency && persona && persona.personaImages && persona.personaImages.length > 0) {
-        console.log('Using Fal.ai for face-consistent generation...');
-  
-  const facePrompt = `Photorealistic portrait maintaining consistent appearance. ${enhancedPrompt}`;
-  
-  const response = await openai.images.generate({
-    model: model || 'dall-e-3',
-    prompt: facePrompt,
-    n: 1,
-    size: '1024x1024',
-    quality: 'standard'
-  });
-  imageUrl = response.data[0].url;
+      // =====================================
+      // FACE CONSISTENT GENERATION
+      // =====================================
+      if (
+        useFaceConsistency &&
+        persona &&
+        persona.personaImages &&
+        persona.personaImages.length > 0
+      ) {
+        console.log(`🎨 Using Fal.ai ${faceModel}...`);
+
+        const personaImage = persona.personaImages[0];
+        const backendUrl =
+          process.env.BACKEND_URL || 'http://localhost:5000';
+        const imageUrlPath = `${backendUrl}${personaImage.imageUrl}`;
+
+        console.log('📸 Persona image:', imageUrlPath);
+        console.log('✍️ Prompt:', enhancedPrompt);
+
+        let result;
+
+        try {
+          if (faceModel === 'nano-banana-2') {
+            result = await fal.subscribe('fal-ai/nano-banana-2/edit', {
+              input: {
+                image_url: [imageUrlPath],
+                prompt: enhancedPrompt,
+                image_size: 'square_hd',
+                num_inference_steps: 28,
+                guidance_scale: 3.5,
+                num_images: 1,
+                enable_safety_checker: true
+              },
+              logs: true,
+              onQueueUpdate: (update) =>
+                console.log('⏳ Queue:', update.status)
+            });
+
+          } else if (faceModel === 'bytedance-seedream') {
+            result = await fal.subscribe(
+              'fal-ai/bytedance/seedream/v4.5/edit',
+              {
+                input: {
+                  image_url: [imageUrlPath],
+                  prompt: enhancedPrompt,
+                  num_inference_steps: 25,
+                  guidance_scale: 7.5,
+                  num_images: 1
+                },
+                logs: true,
+                onQueueUpdate: (update) =>
+                  console.log('⏳ Queue:', update.status)
+              }
+            );
+
+          } else {
+            throw new Error(`Unsupported face model: ${faceModel}`);
+          }
+
+          if (result.images && result.images.length > 0) {
+            imageUrl = result.images[0].url;
+            console.log('✅ Fal.ai generation successful');
+          } else {
+            throw new Error('Fal.ai did not return any images');
+          }
+
+        } catch (falError) {
+          console.error('❌ Fal.ai error:', falError.message);
+          console.error('❌ Fal.ai error status:', falError.status);
+          console.error('❌ Fal.ai error body:', JSON.stringify(falError.body, null, 2));
+          throw falError;
+        }
 
       } else {
-        // Use OpenAI DALL-E (original flow)
-        console.log('Using DALL-E for generation...');
-        
+        // =====================================
+        // STANDARD DALL-E FLOW
+        // =====================================
+        console.log('🖼 Using DALL-E...');
+
         const response = await openai.images.generate({
           model: model,
           prompt: enhancedPrompt,
@@ -72,10 +141,11 @@ async function generateImage(req, res) {
           size: '1024x1024',
           quality: model === 'dall-e-3' ? 'standard' : undefined
         });
+
         imageUrl = response.data[0].url;
       }
 
-      // Update generation with result
+      // Save result
       const updatedGeneration = await prisma.generation.update({
         where: { id: generation.id },
         data: {
@@ -87,13 +157,12 @@ async function generateImage(req, res) {
       res.status(201).json({
         message: 'Image generated successfully',
         generation: updatedGeneration,
-        imageUrl: imageUrl
+        imageUrl
       });
 
     } catch (aiError) {
-      console.error('AI Generation error:', aiError);
-      
-      // Update generation with error
+      console.error('AI Generation error:', aiError.message);
+
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
@@ -114,52 +183,53 @@ async function generateImage(req, res) {
   }
 }
 
-// Generate Text with GPT
+// =====================================
+// Generate Text
+// =====================================
 async function generateText(req, res) {
   try {
     const userId = req.user.id;
     const { prompt, model = 'gpt-4' } = req.body;
 
     if (!prompt) {
-      return res.status(400).json({
-        error: 'Prompt is required'
-      });
+      return res.status(400).json({ error: 'Prompt is required' });
     }
 
-    // Get user's persona to enhance the prompt
     const persona = await prisma.persona.findUnique({
       where: { userId }
     });
 
-    // Build system message with persona context
     let systemMessage = 'You are a helpful AI assistant.';
+
     if (persona) {
       const personaContext = [];
       if (persona.bio) personaContext.push(persona.bio);
       if (persona.industry) personaContext.push(`Industry: ${persona.industry}`);
-      if (persona.targetAudience) personaContext.push(`Target audience: ${persona.targetAudience}`);
-      if (persona.brandTone) personaContext.push(`Brand tone: ${persona.brandTone}`);
-      
+      if (persona.targetAudience)
+        personaContext.push(`Target audience: ${persona.targetAudience}`);
+      if (persona.brandTone)
+        personaContext.push(`Brand tone: ${persona.brandTone}`);
+
       if (personaContext.length > 0) {
-        systemMessage = `You are a content creator with this profile: ${personaContext.join('. ')}. Create content that matches this persona.`;
+        systemMessage = `You are a content creator with this profile: ${personaContext.join(
+          '. '
+        )}. Create content that matches this persona.`;
       }
     }
 
-    // Create pending generation record
     const generation = await prisma.generation.create({
       data: {
         userId,
         type: 'text',
-        prompt: prompt,
-        model: model,
+        prompt,
+        model,
         status: 'pending'
       }
     });
 
     try {
-      // Call OpenAI Chat API
       const response = await openai.chat.completions.create({
-        model: model,
+        model,
         messages: [
           { role: 'system', content: systemMessage },
           { role: 'user', content: prompt }
@@ -170,7 +240,6 @@ async function generateText(req, res) {
 
       const generatedText = response.choices[0].message.content;
 
-      // Update generation with result
       const updatedGeneration = await prisma.generation.update({
         where: { id: generation.id },
         data: {
@@ -185,17 +254,16 @@ async function generateText(req, res) {
         text: generatedText
       });
 
-    } catch (openaiError) {
-      // Update generation with error
+    } catch (err) {
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: 'failed',
-          errorMessage: openaiError.message
+          errorMessage: err.message
         }
       });
 
-      throw openaiError;
+      throw err;
     }
 
   } catch (error) {
@@ -207,7 +275,9 @@ async function generateText(req, res) {
   }
 }
 
-// Get user's generation history
+// =====================================
+// Get History
+// =====================================
 async function getGenerations(req, res) {
   try {
     const userId = req.user.id;
@@ -224,13 +294,9 @@ async function getGenerations(req, res) {
       take: parseInt(limit)
     });
 
-    res.json({
-      count: generations.length,
-      generations
-    });
+    res.json({ count: generations.length, generations });
 
   } catch (error) {
-    console.error('Get generations error:', error);
     res.status(500).json({
       error: 'Failed to get generations',
       message: error.message
@@ -238,7 +304,9 @@ async function getGenerations(req, res) {
   }
 }
 
-// Get single generation by ID
+// =====================================
+// Get Single
+// =====================================
 async function getGenerationById(req, res) {
   try {
     const userId = req.user.id;
@@ -248,23 +316,17 @@ async function getGenerationById(req, res) {
       where: { id }
     });
 
-    if (!generation) {
-      return res.status(404).json({
-        error: 'Generation not found'
-      });
-    }
+    if (!generation)
+      return res.status(404).json({ error: 'Generation not found' });
 
-    // Check if generation belongs to user
-    if (generation.userId !== userId) {
+    if (generation.userId !== userId)
       return res.status(403).json({
         error: 'You do not have permission to view this generation'
       });
-    }
 
     res.json({ generation });
 
   } catch (error) {
-    console.error('Get generation error:', error);
     res.status(500).json({
       error: 'Failed to get generation',
       message: error.message
@@ -272,7 +334,9 @@ async function getGenerationById(req, res) {
   }
 }
 
-// Delete generation
+// =====================================
+// Delete
+// =====================================
 async function deleteGeneration(req, res) {
   try {
     const userId = req.user.id;
@@ -282,29 +346,19 @@ async function deleteGeneration(req, res) {
       where: { id }
     });
 
-    if (!generation) {
-      return res.status(404).json({
-        error: 'Generation not found'
-      });
-    }
+    if (!generation)
+      return res.status(404).json({ error: 'Generation not found' });
 
-    // Check if generation belongs to user
-    if (generation.userId !== userId) {
+    if (generation.userId !== userId)
       return res.status(403).json({
         error: 'You do not have permission to delete this generation'
       });
-    }
 
-    await prisma.generation.delete({
-      where: { id }
-    });
+    await prisma.generation.delete({ where: { id } });
 
-    res.json({
-      message: 'Generation deleted successfully'
-    });
+    res.json({ message: 'Generation deleted successfully' });
 
   } catch (error) {
-    console.error('Delete generation error:', error);
     res.status(500).json({
       error: 'Failed to delete generation',
       message: error.message
