@@ -20,6 +20,7 @@ model User {
   updatedAt             DateTime @updatedAt
   persona               Persona?
   generations           Generation[]
+  founderPage           FounderPage?
 }
 
 // Persona model
@@ -57,4 +58,27 @@ model Generation {
   errorMessage  String?
   createdAt     DateTime @default(now())
   user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model FounderPage {
+  id          String   @id @default(uuid())
+  userId      String   @unique
+  username    String   @unique
+  template    String   @default("visionary") // 'visionary', 'storyteller', 'expert', 'creator'
+  published   Boolean  @default(false)
+  
+  // JSON fields for flexibility
+  design      Json?    // {titleFont, bodyFont, primaryColor, secondaryColor}
+  basicInfo   Json?    // {name, title, tagline, about1, about2, heroImageUrl, logoUrl}
+  contact     Json?    // {email, phone, location, social1, social2, ctaText, ctaDescription}
+  services    Json?    // [{id, title, description}, ...]
+  portfolio   Json?    // {images: [{id, url}, ...]}
+  featured    Json?    // [{id, title, subtitle, year, imageUrl}, ...]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([username])
 }

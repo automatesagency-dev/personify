@@ -8,7 +8,8 @@ const { testFalConnection } = require('./config/fal');
 const authRoutes = require('./routes/authRoutes');
 const personaRoutes = require('./routes/personaRoutes');
 const generationRoutes = require('./routes/generationRoutes');
-const passwordResetRoutes = require('./routes/passwordResetRoutes'); 
+const passwordResetRoutes = require('./routes/passwordResetRoutes');
+const founderPageRoutes = require('./routes/founderPageRoutes');
 
 dotenv.config();
 
@@ -63,6 +64,8 @@ app.use('/api/persona', personaRoutes);
 
 // Generation routes
 app.use('/api/generate', generationRoutes);
+
+app.use('/api/founder-page', founderPageRoutes);
 
 // Start server
 const server = app.listen(PORT, async () => {
