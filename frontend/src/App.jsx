@@ -15,6 +15,7 @@ import Generate from './pages/Generate';
 import History from './pages/History';
 import Settings from './pages/Settings';
 import FounderPage from './pages/FounderPage';
+import PublicFounderPage from './pages/PublicFounderPage';
 
 function App() {
   return (
@@ -28,6 +29,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
           <Route path="/password-reset-success" element={<PasswordResetSuccess />} />
+          <Route path="/:username" element={<PublicFounderPage />} />
           
           {/* Protected routes */}
           <Route 
