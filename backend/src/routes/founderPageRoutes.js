@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware'); // ✅ FIXED
+const { authenticateUser } = require('../middleware/authMiddleware'); 
 const {
   getFounderPage,
   upsertFounderPage,

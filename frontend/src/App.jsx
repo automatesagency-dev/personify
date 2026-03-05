@@ -14,6 +14,7 @@ import Persona from './pages/Persona';
 import Generate from './pages/Generate';
 import History from './pages/History';
 import Settings from './pages/Settings';
+import FounderPage from './pages/FounderPage';
 
 function App() {
   return (
@@ -73,6 +74,15 @@ function App() {
               </ProtectedRoute>
             } 
           />
+
+          <Route
+            path="/founder-page"
+            element={
+            <ProtectedRoute>
+              <FounderPage />
+            </ProtectedRoute>
+            }
+           /> 
 
           {/* Redirect onboarding to persona */}
           <Route path="/onboarding" element={<Navigate to="/persona" replace />} />

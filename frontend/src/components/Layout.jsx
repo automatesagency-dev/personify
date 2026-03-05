@@ -60,6 +60,19 @@ export default function Layout({ children }) {
               </Link>
             );
           })}
+
+          <Link
+            to="/founder-page"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              location.pathname === '/founder-page'
+                ? 'bg-white/10 text-white'
+                : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <span className="text-xl">✨</span>
+            <span>Founder Page</span>
+            <span className="ml-auto bg-green-500 text-white text-xs px-2 py-0.5 rounded">NEW</span>
+          </Link>
         </nav>
 
         {/* User Profile */}
