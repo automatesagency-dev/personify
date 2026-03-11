@@ -3,7 +3,7 @@ import axios from 'axios';
 // Use correct backend URL for production
 const API_BASE_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:5000/api'
-  : 'https://personifytest-production.up.railway.app';
+  : 'https://personifytest-production.up.railway.app/api';
 
 console.log('API Base URL:', API_BASE_URL);
 
