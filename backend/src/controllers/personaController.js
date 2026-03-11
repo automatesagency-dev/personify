@@ -166,13 +166,16 @@ async function deletePersonaImage(req, res) {
     }
 
     // Delete file from filesystem
-    const filePath = path.join(__dirname, '../../', image.url);
-    try {
-      await fs.unlink(filePath);
-    } catch (fileError) {
-      console.error('Error deleting file:', fileError);
-      // Continue even if file deletion fails
+const imagePath = image.url || image.imageUrl;
+if (imagePath) {
+  const filePath = path.join(__dirname, '../../', imagePath);
+  try {
+    await fs.unlink(filePath);
+  } catch (fileError) {
+    console.error('Error deleting file:', fileError);
+    // Continue even if file deletion fails
     }
+  }
 
     // Delete from database
     await prisma.personaImage.delete({
@@ -210,14 +213,17 @@ async function deletePersona(req, res) {
     }
 
     // Delete all image files
-    for (const image of persona.personaImages) {
-      const filePath = path.join(__dirname, '../../', image.url);
-      try {
-        await fs.unlink(filePath);
-      } catch (fileError) {
-        console.error('Error deleting file:', fileError);
-      }
+for (const image of persona.personaImages) {
+  const imagePath = image.url || image.imageUrl;
+  if (imagePath) {
+    const filePath = path.join(__dirname, '../../', imagePath);
+    try {
+      await fs.unlink(filePath);
+    } catch (fileError) {
+      console.error('Error deleting file:', fileError);
     }
+  }
+}
 
     // Delete persona (cascade will delete images)
     await prisma.persona.delete({
