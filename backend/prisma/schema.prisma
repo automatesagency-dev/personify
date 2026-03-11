@@ -41,7 +41,7 @@ model Persona {
 model PersonaImage {
   id        String   @id @default(uuid())
   personaId String
-  imageUrl  String
+  url       String
   createdAt DateTime @default(now())
   persona   Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
 }
