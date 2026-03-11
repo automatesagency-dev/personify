@@ -69,7 +69,7 @@ async function generateImage(req, res) {
         const personaImage = persona.personaImages[0];
         const backendUrl =
           process.env.BACKEND_URL || 'http://localhost:5000';
-        const imageUrlPath = `${backendUrl}${personaImage.imageUrl}`;
+        const imageUrlPath = `${backendUrl}${personaImage.Url}`;
 
         console.log('📸 Persona image:', imageUrlPath);
         console.log('✍️ Prompt:', enhancedPrompt);
