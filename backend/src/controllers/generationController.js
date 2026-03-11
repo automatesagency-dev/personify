@@ -59,22 +59,31 @@ async function generateImage(req, res) {
       // FACE CONSISTENT GENERATION
       // =====================================
       if (
-        useFaceConsistency &&
-        persona &&
-        persona.personaImages &&
-        persona.personaImages.length > 0
-      ) {
-        console.log(`🎨 Using Fal.ai ${faceModel}...`);
+  useFaceConsistency &&
+  persona &&
+  persona.personaImages &&
+  persona.personaImages.length > 0
+) {
+  console.log(`🎨 Using Fal.ai ${faceModel}...`);
 
-        const personaImage = persona.personaImages[0];
-        const backendUrl =
-          process.env.BACKEND_URL || 'http://localhost:5000';
-        const imageUrlPath = `${backendUrl}${personaImage.Url}`;
+  const personaImage = persona.personaImages[0];
+  const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
+  
+  // Support both 'url' and 'imageUrl' for backward compatibility
+  const imagePath = personaImage.url || personaImage.imageUrl;
+  
+  if (!imagePath) {
+    return res.status(400).json({
+      error: 'Persona image path not found. Please re-upload your persona images.'
+    });
+  }
+  
+  const imageUrlPath = `${backendUrl}${imagePath}`;
 
-        console.log('📸 Persona image:', imageUrlPath);
-        console.log('✍️ Prompt:', enhancedPrompt);
+  console.log('📸 Persona image:', imageUrlPath);
+  console.log('✍️ Prompt:', enhancedPrompt);
 
-        let result;
+  let result;
 
         try {
           if (faceModel === 'nano-banana-2') {
