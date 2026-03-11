@@ -71,6 +71,7 @@ async function generateImage(req, res) {
   
   // Support both 'url' and 'imageUrl' for backward compatibility
   const imagePath = personaImage.imageUrl;
+  console.log('🔗 Full image URL:', imageUrlPath);
   
   if (!imagePath) {
     return res.status(400).json({
