@@ -121,7 +121,7 @@ async function uploadPersonaImage(req, res) {
     const personaImage = await prisma.personaImage.create({
       data: {
         personaId: persona.id,
-        imageUrl
+        url: imageUrl
       }
     });
 
@@ -166,7 +166,7 @@ async function deletePersonaImage(req, res) {
     }
 
     // Delete file from filesystem
-    const filePath = path.join(__dirname, '../../', image.imageUrl);
+    const filePath = path.join(__dirname, '../../', image.url);
     try {
       await fs.unlink(filePath);
     } catch (fileError) {
@@ -211,7 +211,7 @@ async function deletePersona(req, res) {
 
     // Delete all image files
     for (const image of persona.personaImages) {
-      const filePath = path.join(__dirname, '../../', image.imageUrl);
+      const filePath = path.join(__dirname, '../../', image.url);
       try {
         await fs.unlink(filePath);
       } catch (fileError) {
