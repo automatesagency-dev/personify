@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { generationAPI, personaAPI } from '../services/api';
@@ -17,13 +17,25 @@ export default function Generate() {
   const [usageStats, setUsageStats] = useState({ used: 0, limit: 10 });
   const [useFaceConsistency, setUseFaceConsistency] = useState(false);
   const [faceModel, setFaceModel] = useState('nano-banana-2');
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  const [retryMessage, setRetryMessage] = useState('');
 
-  useEffect(() => {
-    loadPersona();
-  }, []);
+  const loadUsageStats = useCallback(async () => {
+    try {
+      const response = await generationAPI.getAll();
+      const generations = response.data.generations || [];
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
 
-  useEffect(() => {
-    loadUsageStats();
+      const todayGenerations = generations.filter(
+        (g) => new Date(g.createdAt) >= today && g.type === type
+      );
+
+      const limit = type === 'image' ? 10 : 50;
+      setUsageStats({ used: todayGenerations.length, limit });
+    } catch (err) {
+      console.error("Usage stats error:", err);
+    }
   }, [type]);
 
   const loadPersona = async () => {
@@ -35,35 +47,21 @@ export default function Generate() {
     }
   };
 
-  const loadUsageStats = async () => {
-    try {
-      const response = await generationAPI.getAll();
-      const generations = response.data.generations || [];
+  useEffect(() => {
+    loadPersona();
+    loadUsageStats();
+  }, [loadUsageStats]);
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      const todayGenerations = generations.filter(
-        (g) => new Date(g.createdAt) >= today && g.type === type
-      );
-
-      const limit = type === 'image' ? 10 : 50;
-      setUsageStats({ used: todayGenerations.length, limit });
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const handleGenerate = async () => {
+  const handleGenerate = async (retryCount = 0) => {
     if (!prompt.trim()) return;
 
     setGenerating(true);
     setError('');
     setResult(null);
+    setRetryAttempt(retryCount);
 
     try {
       let response;
-
       if (type === 'image') {
         response = await generationAPI.generateImage({
           prompt,
@@ -71,32 +69,52 @@ export default function Generate() {
           useFaceConsistency,
           faceModel
         });
-
-        setResult({
-          type: 'image',
-          url: response.data.imageUrl
-        });
+        setResult({ type: 'image', url: response.data.imageUrl });
       } else {
-        response = await generationAPI.generateText({
-          prompt,
-          model
-        });
-
-        setResult({
-          type: 'text',
-          text: response.data.text
-        });
+        response = await generationAPI.generateText({ prompt, model });
+        setResult({ type: 'text', text: response.data.text });
       }
 
       await loadUsageStats();
+      setRetryAttempt(0);
+      setRetryMessage('');
     } catch (err) {
-      setError(
-        err.response?.data?.error ||
-          err.message ||
-          'Failed to generate'
-      );
+      const errorStatus = err.response?.status;
+      const errorMessage = err.response?.data?.error || err.message;
+      
+      const isServiceOverload = errorStatus === 500 || errorStatus === 503 || 
+                                errorMessage.includes('service') || 
+                                errorMessage.includes('traffic') ||
+                                errorMessage.includes('Downstream');
+
+      if (isServiceOverload && retryCount < 3) {
+        const modelName = useFaceConsistency 
+          ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
+          : model.toUpperCase();
+        
+        setRetryMessage(`${modelName} is busy. Retrying... (Attempt ${retryCount + 1}/3)`);
+        await new Promise(resolve => setTimeout(resolve, 3000));
+        
+        // Return the recursive call to prevent the finally block from firing early
+        return handleGenerate(retryCount + 1); 
+      } else if (isServiceOverload) {
+        const modelName = useFaceConsistency 
+          ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
+          : model.toUpperCase();
+        
+        setError(
+          `We're sorry! ${modelName} is temporarily overloaded due to high demand. ` +
+          `Most users succeed on the second attempt. Please try again in a few moments. ` +
+          `If this persists, contact support@personify.com`
+        );
+      } else {
+        setError(errorMessage || 'Failed to generate content');
+      }
     } finally {
+      // This will only run when the final attempt in the recursion chain completes
       setGenerating(false);
+      setRetryAttempt(0);
+      setRetryMessage('');
     }
   };
 
@@ -104,360 +122,183 @@ export default function Generate() {
     setPrompt('');
     setResult(null);
     setError('');
+    setRetryAttempt(0);
   };
 
   return (
     <Layout>
       <div className="p-8 max-w-7xl mx-auto">
-        {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">
-            Generate Content
-          </h1>
-          <p className="text-gray-400">
-            Create AI-powered images and text using your persona
-          </p>
+          <h1 className="text-3xl font-semibold text-white mb-2">Generate Content</h1>
+          <p className="text-gray-400">Create AI-powered images and text using your persona</p>
         </div>
 
-        {/* No Persona Warning */}
         {!persona && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6">
-            <p className="text-yellow-500 text-sm">
-              ⚠️ You haven't created a persona yet. Your generations won't include personalized context.
-            </p>
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 text-yellow-500 text-sm">
+            ⚠️ You haven't created a persona yet. Your generations won't include personalized context.
           </div>
         )}
 
-        {/* Type Selection Toggle - Image/Text */}
         <div className="flex gap-4 mb-8">
           <button
-            onClick={() => {
-              setType('image');
-              setModel('dall-e-3');
-              setUseFaceConsistency(false);
-              setResult(null);
-            }}
+            onClick={() => { setType('image'); setModel('dall-e-3'); setUseFaceConsistency(false); setResult(null); }}
             disabled={generating}
-            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${
-              type === 'image'
-                ? 'border-white bg-white/5'
-                : 'border-gray-700 bg-black/20 hover:border-gray-600'
-            }`}
+            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'image' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
           >
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">🎨</span>
               <h3 className="text-xl font-semibold text-white">Image Generation</h3>
             </div>
-            <p className="text-sm text-gray-400">
-              Create stunning AI-generated images personalized to your brand identity and visual style
-            </p>
           </button>
 
           <button
-            onClick={() => {
-              setType('text');
-              setModel('gpt-4');
-              setResult(null);
-            }}
+            onClick={() => { setType('text'); setModel('gpt-4'); setResult(null); }}
             disabled={generating}
-            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${
-              type === 'text'
-                ? 'border-white bg-white/5'
-                : 'border-gray-700 bg-black/20 hover:border-gray-600'
-            }`}
+            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'text' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
           >
             <div className="flex items-center gap-3 mb-2">
               <span className="text-3xl">✍️</span>
               <h3 className="text-xl font-semibold text-white">Text Generation</h3>
             </div>
-            <p className="text-sm text-gray-400">
-              Generate compelling written content that matches your unique voice, tone, and audience preferences
-            </p>
           </button>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-6">
-          {/* Left Column - Generation Form (2/3 width) */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Prompt Input */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-white text-lg">✏️</span>
-                <label className="text-white font-medium">Your Prompt</label>
-              </div>
+              <label className="text-white font-medium block mb-3">Your Prompt</label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 rows={4}
-                className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition resize-none"
-                placeholder={
-                  type === 'image'
-                    ? 'Describe what you want to create... Your persona will automatically enhance this prompt with your brand identity and style.'
-                    : 'e.g., Write a LinkedIn post about AI innovation'
-                }
+                className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white outline-none focus:border-brand-pink transition resize-none"
+                placeholder={type === 'image' ? 'Describe your image...' : 'Write a post about...'}
                 disabled={generating}
               />
             </div>
 
-            {/* Preview/Result Section */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
               <h3 className="text-white font-semibold mb-4">Preview</h3>
               
+              {generating && !result && (
+                <div className="aspect-video bg-black/40 rounded-lg flex flex-col items-center justify-center border border-gray-700">
+                  <div className="relative w-16 h-16 mb-4">
+                    <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
+                    <div className="absolute inset-0 border-4 border-brand-pink rounded-full border-t-transparent animate-spin"></div>
+                  </div>
+                  <p className="text-white font-medium mb-1">{retryMessage || 'Generating your content...'}</p>
+                  {retryAttempt > 0 && <p className="text-yellow-400 text-xs">Retry attempt {retryAttempt}/3</p>}
+                </div>
+              )}
+              
               {result ? (
-                <div>
+                <div className="space-y-4">
                   {result.type === 'image' ? (
-                    <div>
-                      <img
-                        src={result.url}
-                        alt="Generated"
-                        className="w-full rounded-lg mb-4"
-                      />
-                      <div className="space-y-2">
-                        <a
-                          href={result.url}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200 transition text-center"
-                        >
+                    <>
+                      <img src={result.url} alt="Generated" className="w-full rounded-lg" />
+                      <div className="flex gap-4">
+                        <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3 rounded-lg font-semibold text-center hover:bg-gray-200">
                           Download Image
                         </a>
-                        
-                        <a
-                          href={result.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="block w-full bg-white/10 hover:bg-white/20 text-white py-3 rounded-lg font-semibold transition text-center"
-                        >
+                        <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-white/10 text-white py-3 rounded-lg font-semibold text-center hover:bg-white/20">
                           Open Full Size
                         </a>
                       </div>
-                    </div>
+                    </>
                   ) : (
-                    <div>
-                      <div className="bg-black/40 rounded-lg p-6 mb-4 max-h-96 overflow-y-auto">
-                        <p className="text-gray-300 text-sm whitespace-pre-wrap">
-                          {result.text}
-                        </p>
+                    <>
+                      <div className="bg-black/40 rounded-lg p-6 max-h-96 overflow-y-auto text-gray-300 whitespace-pre-wrap">
+                        {result.text}
                       </div>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText(result.text);
-                          alert('Copied to clipboard!');
-                        }}
-                        className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200 transition"
-                      >
+                      <button onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }} className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200">
                         📋 Copy to Clipboard
                       </button>
-                    </div>
+                    </>
                   )}
                 </div>
-              ) : (
-                <div className="aspect-video bg-black/40 rounded-lg flex items-center justify-center border border-gray-700">
+              ) : !generating && (
+                <div className="aspect-video bg-black/40 rounded-lg flex items-center justify-center border border-gray-700 text-gray-500">
                   <div className="text-center">
-                    <span className="text-6xl mb-4 block">🖼️</span>
-                    <p className="text-gray-500 text-sm">
-                      Your generated content will appear here.
-                    </p>
+                    <span className="text-4xl mb-2 block">🖼️</span>
+                    <p>Your content will appear here</p>
                   </div>
                 </div>
               )}
 
-              {/* Today's Usage */}
               <div className="mt-6 pt-6 border-t border-gray-700">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-gray-400">Today's Usage</span>
-                  <span className="text-white font-semibold">
-                    {usageStats.used}/{usageStats.limit}
-                  </span>
+                  <span className="text-white font-semibold">{usageStats.used}/{usageStats.limit}</span>
                 </div>
-                <div className="w-full bg-gray-700 rounded-full h-2 mb-2">
-                  <div
-                    className="bg-brand-pink h-2 rounded-full transition-all"
-                    style={{ width: `${(usageStats.used / usageStats.limit) * 100}%` }}
-                  ></div>
+                <div className="w-full bg-gray-700 h-2 rounded-full">
+                  <div className="bg-brand-pink h-2 rounded-full transition-all" style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}></div>
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-400">Estimated Time</span>
-                  <span className="text-white font-semibold">15s</span>
-                </div>
+                <p className="text-xs text-gray-400 mt-2">
+                  {type === 'image' 
+                    ? '⏱️ Images may take up to 2 minutes to generate' 
+                    : '⏱️ Text generation typically takes 5-15 seconds'}
+                </p>
               </div>
             </div>
 
-            {/* Generate Button */}
             <div className="flex gap-4">
               <button
-                onClick={handleGenerate}
+                onClick={() => handleGenerate(0)}
                 disabled={generating || !prompt.trim()}
-                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-50 transition"
               >
-                {generating ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span>
-                    Generating...
-                  </span>
-                ) : (
-                  `Generate with AI`
-                )}
+                {generating ? 'Processing...' : 'Generate with AI'}
               </button>
-              
-              {result && (
-                <button
-                  onClick={handleReset}
-                  className="px-8 py-4 bg-white/10 hover:bg-white/20 text-white rounded-xl font-semibold transition"
-                >
-                  New Generation
-                </button>
-              )}
+              {result && <button onClick={handleReset} className="px-8 py-4 bg-white/10 text-white rounded-xl hover:bg-white/20 transition">New Generation</button>}
             </div>
 
-            {/* Error Message */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-lg text-sm">
-                {error}
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                <p className="text-red-400 font-semibold mb-1">Generation Failed</p>
+                <p className="text-red-300 text-sm leading-relaxed">{error}</p>
               </div>
             )}
           </div>
 
-          {/* Right Column - AI Model Selection (1/3 width) */}
           <div className="space-y-6">
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <div className="flex items-center gap-2 mb-4">
-                <span className="text-white text-lg">✨</span>
-                <label className="text-white font-medium">AI Model</label>
-              </div>
-              
-              {/* Show model dropdown for images when face consistency is OFF */}
+              <label className="text-white font-medium block mb-4">✨ AI Model Selection</label>
               {type === 'image' ? (
-                <>
-                  {!useFaceConsistency ? (
-                    <>
-                      <select
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        disabled={generating}
-                        className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition mb-4"
-                      >
-                        <option value="dall-e-3">DALL-E 3</option>
-                        <option value="dall-e-2">DALL-E 2</option>
-                        <option value="gemini-imagen" disabled>Gemini Imagen (Coming Soon)</option>
-                        <option value="claude-imagen" disabled>Claude Vision (Coming Soon)</option>
-                      </select>
-                      <p className="text-xs text-gray-500 mb-4">
-                        Select your preferred AI model for image generation
-                      </p>
-                    </>
-                  ) : (
-                    <div className="bg-brand-pink/10 border border-brand-pink/30 rounded-lg p-4 mb-4">
-                      <p className="text-brand-pink text-sm font-medium mb-1">
-                        Using {faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5'}
-                      </p>
-                      <p className="text-brand-pink/80 text-xs">
-                        Face-consistent generation with your persona images
-                      </p>
-                    </div>
+                <div className="space-y-4">
+                  {!useFaceConsistency && (
+                    <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white">
+                      <option value="dall-e-3">DALL-E 3</option>
+                      <option value="dall-e-2">DALL-E 2</option>
+                    </select>
                   )}
-
-                  {/* Face Consistency Toggle - ONLY for images */}
                   <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <span className="text-xl">✨</span>
-                      <h3 className="font-semibold text-blue-400">Face Consistency</h3>
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-white font-medium">Face Consistency</span>
+                      <input 
+                        type="checkbox" 
+                        checked={useFaceConsistency} 
+                        onChange={(e) => setUseFaceConsistency(e.target.checked)} 
+                        disabled={generating}
+                        className="w-5 h-5 accent-brand-pink cursor-pointer"
+                      />
                     </div>
-                    <div className="flex items-center justify-between mb-3">
-                      <div>
-                        <p className="text-white font-medium mb-1">Use My Face</p>
-                        <p className="text-sm text-gray-400">
-                          Generate images that actually look like you
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={useFaceConsistency}
-                          onChange={(e) => setUseFaceConsistency(e.target.checked)}
-                          disabled={generating}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-pink rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-pink"></div>
-                      </label>
-                    </div>
-
-                    {/* Face Model Selection - Only show when toggle is ON */}
                     {useFaceConsistency && (
-                      <div className="mb-3">
-                        <label className="block text-sm font-medium text-white mb-2">
-                          Face Model
-                        </label>
-                        <select
-                          value={faceModel}
-                          onChange={(e) => setFaceModel(e.target.value)}
-                          disabled={generating}
-                          className="w-full px-4 py-2 bg-black/40 border border-gray-700 rounded-lg text-white text-sm focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
-                        >
-                          <option value="nano-banana-2">Nano Banana 2 (Best Quality)</option>
-                          <option value="bytedance-seedream">ByteDance SeeDream v4.5</option>
-                        </select>
-                      </div>
+                      <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} className="w-full mt-3 bg-black/40 border border-gray-700 p-2 rounded text-sm text-white">
+                        <option value="nano-banana-2">Nano Banana 2 (HQ)</option>
+                        <option value="bytedance-seedream">ByteDance SeeDream</option>
+                      </select>
                     )}
-
-                    {useFaceConsistency && (
-                      <p className="text-xs text-blue-300">
-                        💡 Make sure you've uploaded reference images in your Persona page
-                      </p>
-                    )}
+                    <p className="text-[10px] text-blue-300 mt-2 italic">Requires persona photos</p>
                   </div>
-                </>
+                </div>
               ) : (
-                /* Text generation models */
-                <>
-                  <select
-                    value={model}
-                    onChange={(e) => setModel(e.target.value)}
-                    disabled={generating}
-                    className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
-                  >
-                    <option value="gpt-4">GPT-4</option>
-                    <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gemini-pro" disabled>Gemini Pro (Coming Soon)</option>
-                    <option value="claude-3.5" disabled>Claude 3.5 (Coming Soon)</option>
-                  </select>
-                  <p className="text-xs text-gray-500 mt-2">
-                    Select your preferred AI model for text generation
-                  </p>
-                </>
+                <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white">
+                  <option value="gpt-4">GPT-4</option>
+                  <option value="gpt-4o">GPT-4o</option>
+                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
+                </select>
               )}
             </div>
-
-            {/* Tips Section */}
-            {!result && !generating && (
-              <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-6">
-                <h3 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
-                  <span className="text-xl">💡</span>
-                  Tips for better results:
-                </h3>
-                <ul className="space-y-2 text-sm text-blue-300">
-                  {type === 'image' ? (
-                    <>
-                      <li>• Be specific about style, mood, and composition</li>
-                      <li>• Include details like lighting, colors, and perspective</li>
-                      <li>• Mention art styles (photorealistic, cartoon, sketch)</li>
-                      {useFaceConsistency && (
-                        <li>• Upload clear, front-facing photos for best face matching</li>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <li>• Specify the format (blog post, tweet, email)</li>
-                      <li>• Mention the desired tone and length</li>
-                      <li>• Include key points you want covered</li>
-                    </>
-                  )}
-                </ul>
-              </div>
-            )}
           </div>
         </div>
       </div>
