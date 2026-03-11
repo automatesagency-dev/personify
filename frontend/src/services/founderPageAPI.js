@@ -5,7 +5,7 @@ const getBackendUrl = () => {
   if (window.location.hostname === 'localhost') {
     return 'http://localhost:5000';
   }
-  return 'https://personify-backend-k04y.onrender.com';
+  return 'https://personifytest-production.up.railway.app';
 };
 
 const API_BASE_URL = `${getBackendUrl()}/api`;
