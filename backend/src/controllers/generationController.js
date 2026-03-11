@@ -70,7 +70,7 @@ async function generateImage(req, res) {
   const backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
   
   // Support both 'url' and 'imageUrl' for backward compatibility
-  const imagePath = personaImage.imageUrl || personaImage.url;
+  const imagePath = personaImage.imageUrl;
   
   if (!imagePath) {
     return res.status(400).json({

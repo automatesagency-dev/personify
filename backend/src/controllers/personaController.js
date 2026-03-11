@@ -121,7 +121,7 @@ async function uploadPersonaImage(req, res) {
     const personaImage = await prisma.personaImage.create({
       data: {
         personaId: persona.id,
-        url: imageUrl
+        imageUrl: imageUrl
       }
     });
 
