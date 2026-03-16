@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { uploadToR2, deleteFromR2 } = require('../config/r2');
 
 // =====================================
 // Get User's Founder Page

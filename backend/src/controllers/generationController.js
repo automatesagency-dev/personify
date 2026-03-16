@@ -67,25 +67,15 @@ async function generateImage(req, res) {
         console.log(`🎨 Using Fal.ai ${faceModel}...`);
 
         const personaImage = persona.personaImages[0];
-        let backendUrl = process.env.BACKEND_URL || 'http://localhost:5000';
-        
-        // Ensure backendUrl has protocol
-        if (!backendUrl.startsWith('http://') && !backendUrl.startsWith('https://')) {
-          backendUrl = `https://${backendUrl}`;
-        }
-        
-        // Get image path
-        const imagePath = personaImage.imageUrl;
-        
-        if (!imagePath) {
+        const imageUrlPath = personaImage.imageUrl;
+
+        if (!imageUrlPath) {
           return res.status(400).json({
-            error: 'Persona image path not found. Please re-upload your persona images.'
+            error: 'Persona image not found. Please re-upload your persona images.'
           });
         }
-        
-        // Construct full URL
-        const imageUrlPath = `${backendUrl}${imagePath}`;
 
+        // imageUrl is already a full R2 URL (e.g., https://pub-xxxxx.r2.dev/...)
         console.log('📸 Persona image URL:', imageUrlPath);
         console.log('✍️ Prompt:', enhancedPrompt);
 

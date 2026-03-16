@@ -1,6 +1,5 @@
 const { prisma } = require('../config/database');
-const fs = require('fs').promises;
-const path = require('path');
+const { uploadToR2, deleteFromR2 } = require('../config/r2');
 
 // Create or update persona
 async function createPersona(req, res) {
@@ -96,45 +95,40 @@ async function uploadPersonaImage(req, res) {
   try {
     const userId = req.user.id;
 
-    // Check if file was uploaded
     if (!req.file) {
-      return res.status(400).json({
-        error: 'No image file provided'
-      });
+      return res.status(400).json({ error: 'No image file provided' });
     }
 
-    // Get or create persona
-    let persona = await prisma.persona.findUnique({
-      where: { userId }
+    const persona = await prisma.persona.findUnique({
+      where: { userId: userId }
     });
 
     if (!persona) {
-      // Create persona if it doesn't exist
-      persona = await prisma.persona.create({
-        data: { userId }
-      });
+      return res.status(404).json({ error: 'Create a persona first' });
     }
 
-    // Save image reference to database
-    const imageUrl = `/uploads/${req.file.filename}`;
-    
+    // Upload to R2
+    const imageUrl = await uploadToR2(
+      req.file.buffer,
+      req.file.originalname,
+      req.file.mimetype
+    );
+
+    // Save to database
     const personaImage = await prisma.personaImage.create({
       data: {
         personaId: persona.id,
-        imageUrl: imageUrl
+        imageUrl: imageUrl, // Full R2 URL
       }
     });
 
-    res.status(201).json({
+    res.json({
       message: 'Image uploaded successfully',
       image: personaImage
     });
   } catch (error) {
-    console.error('Upload image error:', error);
-    res.status(500).json({
-      error: 'Failed to upload image',
-      message: error.message
-    });
+    console.error('Upload error:', error);
+    res.status(500).json({ error: 'Failed to upload image' });
   }
 }
 
@@ -144,53 +138,31 @@ async function deletePersonaImage(req, res) {
     const userId = req.user.id;
     const { imageId } = req.params;
 
-    // Get the image
     const image = await prisma.personaImage.findUnique({
       where: { id: imageId },
-      include: {
-        persona: true
-      }
+      include: { persona: true }
     });
 
     if (!image) {
-      return res.status(404).json({
-        error: 'Image not found'
-      });
+      return res.status(404).json({ error: 'Image not found' });
     }
 
-    // Check if image belongs to user's persona
     if (image.persona.userId !== userId) {
-      return res.status(403).json({
-        error: 'You do not have permission to delete this image'
-      });
+      return res.status(403).json({ error: 'Unauthorized' });
     }
 
-    // Delete file from filesystem
-const imagePath = image.url || image.imageUrl;
-if (imagePath) {
-  const filePath = path.join(__dirname, '../../', imagePath);
-  try {
-    await fs.unlink(filePath);
-  } catch (fileError) {
-    console.error('Error deleting file:', fileError);
-    // Continue even if file deletion fails
-    }
-  }
+    // Delete from R2
+    await deleteFromR2(image.imageUrl);
 
     // Delete from database
     await prisma.personaImage.delete({
       where: { id: imageId }
     });
 
-    res.json({
-      message: 'Image deleted successfully'
-    });
+    res.json({ message: 'Image deleted successfully' });
   } catch (error) {
-    console.error('Delete image error:', error);
-    res.status(500).json({
-      error: 'Failed to delete image',
-      message: error.message
-    });
+    console.error('Delete error:', error);
+    res.status(500).json({ error: 'Failed to delete image' });
   }
 }
 
@@ -212,20 +184,15 @@ async function deletePersona(req, res) {
       });
     }
 
-    // Delete all image files
-for (const image of persona.personaImages) {
-  const imagePath = image.url || image.imageUrl;
-  if (imagePath) {
-    const filePath = path.join(__dirname, '../../', imagePath);
-    try {
-      await fs.unlink(filePath);
-    } catch (fileError) {
-      console.error('Error deleting file:', fileError);
+    // Delete all images from R2
+    for (const image of persona.personaImages) {
+      const imageUrl = image.imageUrl || image.url;
+      if (imageUrl) {
+        await deleteFromR2(imageUrl); // ✅ Use R2 delete instead of fs.unlink
+      }
     }
-  }
-}
 
-    // Delete persona (cascade will delete images)
+    // Delete persona (cascade will delete image records from DB)
     await prisma.persona.delete({
       where: { userId }
     });
