@@ -32,15 +32,17 @@ async function uploadToR2(fileBuffer, originalName, mimetype) {
       Key: key,
       Body: fileBuffer,
       ContentType: mimetype,
+      ContentLength: fileBuffer.length, // ✅ Add this to fix the warning
     });
 
     await r2Client.send(command);
 
     // Return public URL
     const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+    console.log('✅ Uploaded to R2:', publicUrl);
     return publicUrl;
   } catch (error) {
-    console.error('R2 upload error:', error);
+    console.error('❌ R2 upload error:', error);
     throw new Error('Failed to upload file to R2');
   }
 }
@@ -63,9 +65,9 @@ async function deleteFromR2(fileUrl) {
     });
 
     await r2Client.send(command);
-    console.log('Deleted from R2:', key);
+    console.log('✅ Deleted from R2:', key);
   } catch (error) {
-    console.error('R2 delete error:', error);
+    console.error('❌ R2 delete error:', error);
     // Don't throw - deletion failure shouldn't block the request
   }
 }
