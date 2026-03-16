@@ -21,10 +21,27 @@ const r2Client = new S3Client({
  */
 async function uploadToR2(fileBuffer, originalName, mimetype) {
   try {
+    // Validate inputs
+    if (!fileBuffer) {
+      throw new Error('File buffer is required');
+    }
+    if (!Buffer.isBuffer(fileBuffer)) {
+      throw new Error('File buffer must be a Buffer object');
+    }
+    if (!originalName) {
+      throw new Error('Original filename is required');
+    }
+
     // Generate unique filename
     const fileExtension = path.extname(originalName);
     const uniqueName = `${Date.now()}-${crypto.randomBytes(8).toString('hex')}${fileExtension}`;
     const key = `uploads/${uniqueName}`;
+
+    console.log('📤 Uploading to R2:', {
+      key,
+      size: fileBuffer.length,
+      type: mimetype
+    });
 
     // Upload to R2
     const command = new PutObjectCommand({
@@ -32,7 +49,7 @@ async function uploadToR2(fileBuffer, originalName, mimetype) {
       Key: key,
       Body: fileBuffer,
       ContentType: mimetype,
-      ContentLength: fileBuffer.length, // ✅ Add this to fix the warning
+      ContentLength: fileBuffer.length,
     });
 
     await r2Client.send(command);
@@ -42,8 +59,9 @@ async function uploadToR2(fileBuffer, originalName, mimetype) {
     console.log('✅ Uploaded to R2:', publicUrl);
     return publicUrl;
   } catch (error) {
-    console.error('❌ R2 upload error:', error);
-    throw new Error('Failed to upload file to R2');
+    console.error('❌ R2 upload error:', error.message);
+    console.error('❌ Error details:', error);
+    throw new Error(`Failed to upload file to R2: ${error.message}`);
   }
 }
 
