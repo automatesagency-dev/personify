@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import founderPageAPI from '../services/founderPageAPI';
@@ -76,12 +76,6 @@ export default function FounderPage() {
   const backendUrl = getBackendUrl();
   const tabs = ['design', 'basicInfo', 'contact', 'services', 'portfolio', 'featured'];
   
-  // Clean mapping for labels
-  const colorLabels = {
-    primaryColor: 'Primary Color',
-    secondaryColor: 'Secondary Color'
-  };
-
   const tabLabels = {
     design: 'Design',
     basicInfo: 'Basic Info',
@@ -163,7 +157,6 @@ export default function FounderPage() {
     } finally { setSaving(false); }
   };
 
-  // State Updaters
   const updateNested = (parent, field, value) => setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [field]: value } }));
   const updateArray = (arrName, id, field, value) => setFormData(prev => ({ ...prev, [arrName]: prev[arrName].map(item => item.id === id ? { ...item, [field]: value } : item) }));
   const deleteArrayItem = (arrName, id, min = 0) => {
@@ -198,7 +191,6 @@ export default function FounderPage() {
                 </div>
               </button>
             ))}
-            {/* Coming Soon Templates */}
             {[{ icon: '📊', title: 'The Expert', desc: 'Clean & Professional', colors: 'from-blue-500 to-cyan-500' }, { icon: '🎬', title: 'The Creator', desc: 'Vibrant & Media-First', colors: 'from-green-500 to-emerald-500' }].map(t => (
               <div key={t.title} className="bg-dark-card rounded-xl p-6 border-2 border-gray-800 opacity-50 cursor-not-allowed text-left relative">
                 <span className="absolute top-4 right-4 bg-gray-700 text-gray-400 text-xs px-2 py-1 rounded">Coming Soon</span>
@@ -250,25 +242,17 @@ export default function FounderPage() {
                 <SelectInput label="Title Font" value={formData.design.titleFont} onChange={e => updateNested('design', 'titleFont', e.target.value)} options={['Afacad', 'Poppins', 'Inter', 'Montserrat', 'Playfair Display']} />
                 <SelectInput label="Body Font" value={formData.design.bodyFont} onChange={e => updateNested('design', 'bodyFont', e.target.value)} options={['Poppins', 'Inter', 'Roboto', 'Open Sans']} />
                 
-                {['primaryColor', 'secondaryColor'].map(colorKey => (
-                  <div key={colorKey}>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      {colorLabels[colorKey]}
-                    </label>
-                    <div className="flex gap-3">
-                      <div 
-                        className="w-12 h-12 rounded-lg border-2 border-gray-700" 
-                        style={{ backgroundColor: formData.design[colorKey] }}
-                      ></div>
-                      <input 
-                        type="text" 
-                        value={formData.design[colorKey]} 
-                        onChange={e => updateNested('design', colorKey, e.target.value)} 
-                        className="flex-1 px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white" 
-                      />
-                    </div>
-                  </div>
-                ))}
+                {/* Updated Color Picker Section */}
+                <ColorPicker
+                  label="Primary Color"
+                  value={formData.design.primaryColor}
+                  onChange={(color) => updateNested('design', 'primaryColor', color)}
+                />
+                <ColorPicker
+                  label="Secondary Color"
+                  value={formData.design.secondaryColor}
+                  onChange={(color) => updateNested('design', 'secondaryColor', color)}
+                />
               </div>
             </div>
           )}
