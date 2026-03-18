@@ -186,18 +186,32 @@ export default function FounderPage() {
           </div>
           <div className="flex gap-4">
             <button 
-              onClick={() => {
+              onClick={async () => {
                 if (!formData.username) {
-                  alert('Please enter a username first to preview your page');
-                  setActiveTab('basicInfo');
-                  return;
-                }
-                window.open(`/${formData.username}`, '_blank');
-              }}
-              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition flex items-center gap-2"
-            >
-              👁️ Preview Page
-            </button>
+                alert('Please enter a username first to preview your page');
+                setActiveTab('basicInfo');
+                return;
+              }
+    
+    // Auto-save before preview
+    try {
+      setSaving(true);
+      await founderPageAPI.upsert(formData);
+      // Small delay to ensure backend processes the save
+      await new Promise(resolve => setTimeout(resolve, 500));
+      window.open(`/${formData.username}`, '_blank');
+    } catch (error) {
+      alert('Failed to save changes before preview. Please try again.');
+      console.error('Preview save error:', error);
+    } finally {
+      setSaving(false);
+    }
+  }}
+  disabled={saving}
+  className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition flex items-center gap-2 disabled:opacity-50"
+>
+  {saving ? '💾 Saving...' : '👁️ Preview Page'}
+</button>
             <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
           </div>
         </div>
