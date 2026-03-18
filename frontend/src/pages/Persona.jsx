@@ -2,14 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { personaAPI } from '../services/api';
 
-// Helper to determine API base path
-const getBackendUrl = () => {
-  if (window.location.hostname === 'localhost') {
-    return 'http://localhost:5000';
-  }
-  return 'https://personifytest-production.up.railway.app';
-};
-
 export default function Persona() {
   const [persona, setPersona] = useState(null);
   const [formData, setFormData] = useState({
@@ -24,12 +16,10 @@ export default function Persona() {
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   
-  // ✅ Correctly tracking loaded images at component level
+  // Track loaded images for smooth transition
   const [loadedImages, setLoadedImages] = useState(new Set());
-  
   const fileInputRef = useRef(null);
 
-  // Notification helper
   const notify = (type, text) => {
     setMessage({ type, text });
     setTimeout(() => setMessage({ type: '', text: '' }), 4000);
@@ -112,7 +102,6 @@ export default function Persona() {
 
     try {
       await personaAPI.deleteImage(imageId);
-      // Clean up the loaded state set
       setLoadedImages(prev => {
         const next = new Set(prev);
         next.delete(imageId);
@@ -163,7 +152,6 @@ export default function Persona() {
               const isLoaded = loadedImages.has(image.id);
               return (
                 <div key={image.id} className="relative group aspect-square bg-black/40 rounded-xl overflow-hidden">
-                  {/* Visual Loading Indicator */}
                   {!isLoaded && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-gray-800 animate-pulse">
                       <div className="w-6 h-6 border-2 border-brand-pink border-t-transparent rounded-full animate-spin"></div>
@@ -171,7 +159,7 @@ export default function Persona() {
                   )}
 
                   <img
-                    src={`${getBackendUrl()}${image.imageUrl || image.url}`}
+                    src={image.imageUrl || image.url} // ✅ Fixed: Using direct R2/Storage URL
                     alt="Persona Reference"
                     loading="lazy"
                     onLoad={() => setLoadedImages(prev => new Set(prev).add(image.id))}
@@ -319,7 +307,6 @@ export default function Persona() {
           </div>
         </form>
 
-        {/* Instructional Tips */}
         <div className="mt-8 bg-blue-500/5 border border-blue-500/20 rounded-xl p-6">
           <h3 className="font-semibold text-blue-400 mb-3 flex items-center gap-2">
             <span className="text-xl">💡</span>
@@ -327,7 +314,7 @@ export default function Persona() {
           </h3>
           <ul className="space-y-2 text-sm text-blue-300/80">
             <li>• Ensure photos have clear, unobstructed views of your face.</li>
-            <li>• Specificity in your Bio (e.g., "Tech reviewer in NYC") yields better AI consistency.</li>
+            <li>• Specificity in your Bio yields better AI consistency.</li>
             <li>• Brand Tone affects both text style and image lighting/mood.</li>
           </ul>
         </div>
