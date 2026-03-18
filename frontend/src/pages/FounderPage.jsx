@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import founderPageAPI from '../services/founderPageAPI';
 import { personaAPI } from '../services/api';
+import ColorPicker from '../components/ColorPicker';
 
 // --- HELPER COMPONENTS ---
 
