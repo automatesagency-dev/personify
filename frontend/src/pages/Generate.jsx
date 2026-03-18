@@ -10,11 +10,14 @@ export default function Generate() {
   const [model, setModel] = useState(
     searchParams.get('type') === 'text' ? 'gpt-4' : 'dall-e-3'
   );
+  
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [showRetry, setShowRetry] = useState(false); // New state for retry button
   const [persona, setPersona] = useState(null);
   const [usageStats, setUsageStats] = useState({ used: 0, limit: 10 });
+  
   const [useFaceConsistency, setUseFaceConsistency] = useState(false);
   const [faceModel, setFaceModel] = useState('nano-banana-2');
   const [retryAttempt, setRetryAttempt] = useState(0);
@@ -57,7 +60,8 @@ export default function Generate() {
 
     setGenerating(true);
     setError('');
-    setResult(null);
+    setShowRetry(false); // Reset retry button visibility
+    if (retryCount === 0) setResult(null);
     setRetryAttempt(retryCount);
 
     try {
@@ -78,14 +82,27 @@ export default function Generate() {
       await loadUsageStats();
       setRetryAttempt(0);
       setRetryMessage('');
+
     } catch (err) {
       const errorStatus = err.response?.status;
       const errorMessage = err.response?.data?.error || err.message;
-      
-      const isServiceOverload = errorStatus === 500 || errorStatus === 503 || 
-                                errorMessage.includes('service') || 
-                                errorMessage.includes('traffic') ||
-                                errorMessage.includes('Downstream');
+
+      // 1. Persona Completion Check
+      if (errorStatus === 400 && errorMessage.toLowerCase().includes('complete your persona')) {
+        setError(
+          '⚠️ Face Consistency requires a complete persona. ' +
+          'Please go to your Persona page and fill out your bio, industry, and brand tone.'
+        );
+        return; 
+      }
+
+      // 2. Overload & Retry Logic
+      const isServiceOverload = 
+        errorStatus === 500 || 
+        errorStatus === 503 || 
+        errorMessage.includes('service') || 
+        errorMessage.includes('traffic') ||
+        errorMessage.includes('Downstream');
 
       if (isServiceOverload && retryCount < 3) {
         const modelName = useFaceConsistency 
@@ -94,24 +111,23 @@ export default function Generate() {
         
         setRetryMessage(`${modelName} is busy. Retrying... (Attempt ${retryCount + 1}/3)`);
         await new Promise(resolve => setTimeout(resolve, 3000));
-        
-        // Return the recursive call to prevent the finally block from firing early
         return handleGenerate(retryCount + 1); 
-      } else if (isServiceOverload) {
+      }
+
+      // 3. Final Error Reporting
+      if (isServiceOverload) {
+        setShowRetry(true); // Show the manual retry button
         const modelName = useFaceConsistency 
           ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
           : model.toUpperCase();
         
         setError(
-          `We're sorry! ${modelName} is temporarily overloaded due to high demand. ` +
-          `Most users succeed on the second attempt. Please try again in a few moments. ` +
-          `If this persists, contact support@personify.com`
+          `${modelName} is currently overloaded. We tried 3 times, but the server is still busy.`
         );
       } else {
         setError(errorMessage || 'Failed to generate content');
       }
     } finally {
-      // This will only run when the final attempt in the recursion chain completes
       setGenerating(false);
       setRetryAttempt(0);
       setRetryMessage('');
@@ -122,6 +138,7 @@ export default function Generate() {
     setPrompt('');
     setResult(null);
     setError('');
+    setShowRetry(false);
     setRetryAttempt(0);
   };
 
@@ -139,9 +156,17 @@ export default function Generate() {
           </div>
         )}
 
+        {/* Mode Toggle */}
         <div className="flex gap-4 mb-8">
           <button
-            onClick={() => { setType('image'); setModel('dall-e-3'); setUseFaceConsistency(false); setResult(null); }}
+            onClick={() => { 
+              setType('image'); 
+              setModel('dall-e-3'); 
+              setUseFaceConsistency(false); 
+              setResult(null); 
+              setError('');
+              setShowRetry(false);
+            }}
             disabled={generating}
             className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'image' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
           >
@@ -152,7 +177,14 @@ export default function Generate() {
           </button>
 
           <button
-            onClick={() => { setType('text'); setModel('gpt-4'); setResult(null); }}
+            onClick={() => { 
+              setType('text'); 
+              setModel('gpt-4'); 
+              setUseFaceConsistency(false);
+              setResult(null); 
+              setError('');
+              setShowRetry(false);
+            }}
             disabled={generating}
             className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'text' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
           >
@@ -186,8 +218,8 @@ export default function Generate() {
                     <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
                     <div className="absolute inset-0 border-4 border-brand-pink rounded-full border-t-transparent animate-spin"></div>
                   </div>
-                  <p className="text-white font-medium mb-1">{retryMessage || 'Generating your content...'}</p>
-                  {retryAttempt > 0 && <p className="text-yellow-400 text-xs">Retry attempt {retryAttempt}/3</p>}
+                  <p className="text-white font-medium mb-1">{retryMessage || 'Generating...'}</p>
+                  {retryAttempt > 0 && <p className="text-yellow-400 text-xs">Attempt {retryAttempt}/3</p>}
                 </div>
               )}
               
@@ -195,22 +227,22 @@ export default function Generate() {
                 <div className="space-y-4">
                   {result.type === 'image' ? (
                     <>
-                      <img src={result.url} alt="Generated" className="w-full rounded-lg" />
+                      <img src={result.url} alt="Generated" className="w-full rounded-lg shadow-lg" />
                       <div className="flex gap-4">
-                        <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3 rounded-lg font-semibold text-center hover:bg-gray-200">
-                          Download Image
+                        <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3 rounded-lg font-semibold text-center hover:bg-gray-200 transition">
+                          Download
                         </a>
-                        <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-white/10 text-white py-3 rounded-lg font-semibold text-center hover:bg-white/20">
-                          Open Full Size
+                        <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-white/10 text-white py-3 rounded-lg font-semibold text-center hover:bg-white/20 transition">
+                          View Full
                         </a>
                       </div>
                     </>
                   ) : (
                     <>
-                      <div className="bg-black/40 rounded-lg p-6 max-h-96 overflow-y-auto text-gray-300 whitespace-pre-wrap">
+                      <div className="bg-black/40 rounded-lg p-6 max-h-96 overflow-y-auto text-gray-300 whitespace-pre-wrap border border-gray-700">
                         {result.text}
                       </div>
-                      <button onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }} className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200">
+                      <button onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }} className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
                         📋 Copy to Clipboard
                       </button>
                     </>
@@ -230,14 +262,9 @@ export default function Generate() {
                   <span className="text-gray-400">Today's Usage</span>
                   <span className="text-white font-semibold">{usageStats.used}/{usageStats.limit}</span>
                 </div>
-                <div className="w-full bg-gray-700 h-2 rounded-full">
-                  <div className="bg-brand-pink h-2 rounded-full transition-all" style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}></div>
+                <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
+                  <div className="bg-brand-pink h-2 transition-all duration-500" style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}></div>
                 </div>
-                <p className="text-xs text-gray-400 mt-2">
-                  {type === 'image' 
-                    ? '⏱️ Images may take up to 2 minutes to generate' 
-                    : '⏱️ Text generation typically takes 5-15 seconds'}
-                </p>
               </div>
             </div>
 
@@ -245,28 +272,41 @@ export default function Generate() {
               <button
                 onClick={() => handleGenerate(0)}
                 disabled={generating || !prompt.trim()}
-                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-50 transition"
+                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-50 transition transform active:scale-95"
               >
                 {generating ? 'Processing...' : 'Generate with AI'}
               </button>
-              {result && <button onClick={handleReset} className="px-8 py-4 bg-white/10 text-white rounded-xl hover:bg-white/20 transition">New Generation</button>}
+              {result && <button onClick={handleReset} className="px-8 py-4 bg-white/10 text-white rounded-xl hover:bg-white/20 transition">New</button>}
             </div>
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
-                <p className="text-red-400 font-semibold mb-1">Generation Failed</p>
-                <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <p className="text-red-400 font-semibold mb-1">Error</p>
+                    <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+                  </div>
+                  {showRetry && (
+                    <button 
+                      onClick={() => handleGenerate(0)}
+                      className="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-bold hover:bg-red-600 transition shadow-lg"
+                    >
+                      🔄 Retry Now
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </div>
 
+          {/* Sidebar Controls */}
           <div className="space-y-6">
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <label className="text-white font-medium block mb-4">✨ AI Model Selection</label>
+              <label className="text-white font-medium block mb-4">✨ AI Model</label>
               {type === 'image' ? (
                 <div className="space-y-4">
                   {!useFaceConsistency && (
-                    <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white">
+                    <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white focus:border-brand-pink outline-none">
                       <option value="dall-e-3">DALL-E 3</option>
                       <option value="dall-e-2">DALL-E 2</option>
                     </select>
@@ -283,7 +323,7 @@ export default function Generate() {
                       />
                     </div>
                     {useFaceConsistency && (
-                      <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} className="w-full mt-3 bg-black/40 border border-gray-700 p-2 rounded text-sm text-white">
+                      <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} className="w-full mt-3 bg-black/40 border border-gray-700 p-2 rounded text-sm text-white outline-none">
                         <option value="nano-banana-2">Nano Banana 2 (HQ)</option>
                         <option value="bytedance-seedream">ByteDance SeeDream</option>
                       </select>
@@ -292,7 +332,7 @@ export default function Generate() {
                   </div>
                 </div>
               ) : (
-                <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white">
+                <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white focus:border-brand-pink outline-none">
                   <option value="gpt-4">GPT-4</option>
                   <option value="gpt-4o">GPT-4o</option>
                   <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>

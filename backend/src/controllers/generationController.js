@@ -64,6 +64,12 @@ async function generateImage(req, res) {
         persona.personaImages &&
         persona.personaImages.length > 0
       ) {
+
+        if (!persona.bio || !persona.industry || !persona.brandTone) {
+          return res.status(400).json({
+            error: 'Please complete your persona profile (bio, industry, brand tone) to use face consistency.'
+          });
+        }
         console.log(`🎨 Using Fal.ai ${faceModel}...`);
 
         const personaImage = persona.personaImages[0];

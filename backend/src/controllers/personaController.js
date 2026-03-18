@@ -99,12 +99,22 @@ async function uploadPersonaImage(req, res) {
       return res.status(400).json({ error: 'No image file provided' });
     }
 
-    const persona = await prisma.persona.findUnique({
+    // Find or create persona
+    let persona = await prisma.persona.findUnique({
       where: { userId: userId }
     });
 
     if (!persona) {
-      return res.status(404).json({ error: 'Create a persona first' });
+      // Auto-create empty persona if it doesn't exist
+      persona = await prisma.persona.create({
+        data: {
+          userId,
+          bio: null,
+          industry: null,
+          targetAudience: null,
+          brandTone: null
+        }
+      });
     }
 
     // Upload to R2
@@ -118,7 +128,7 @@ async function uploadPersonaImage(req, res) {
     const personaImage = await prisma.personaImage.create({
       data: {
         personaId: persona.id,
-        imageUrl: imageUrl, // Full R2 URL
+        imageUrl: imageUrl,
       }
     });
 
