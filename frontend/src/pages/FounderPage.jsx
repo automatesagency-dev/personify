@@ -229,16 +229,38 @@ export default function FounderPage() {
         <div className="bg-dark-card rounded-xl p-8 border border-gray-800">
           
           {activeTab === 'design' && (
-            <div className="space-y-6">
-              <h2 className="text-2xl font-semibold text-white mb-6">Design Settings</h2>
-              <div className="grid md:grid-cols-2 gap-6">
-                <SelectInput label="Title Font" value={formData.design.titleFont} onChange={e => updateNested('design', 'titleFont', e.target.value)} options={['Afacad', 'Poppins', 'Inter', 'Montserrat']} />
-                <SelectInput label="Body Font" value={formData.design.bodyFont} onChange={e => updateNested('design', 'bodyFont', e.target.value)} options={['Poppins', 'Inter', 'Roboto']} />
-                <ColorPicker label="Primary Color" value={formData.design.primaryColor} onChange={(color) => updateNested('design', 'primaryColor', color)} />
-                <ColorPicker label="Secondary Color" value={formData.design.secondaryColor} onChange={(color) => updateNested('design', 'secondaryColor', color)} />
-              </div>
-            </div>
-          )}
+  <div className="space-y-6">
+    <div className="flex justify-between items-center mb-6">
+      <h2 className="text-2xl font-semibold text-white">Design Settings</h2>
+      <button 
+        onClick={() => setShowTemplateSelector(true)} 
+        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+      >
+        🔄 Change Template
+      </button>
+    </div>
+    
+    <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-blue-400 text-sm">
+            Current Template: <strong className="capitalize">{formData.template === 'visionary' ? '🚀 The Visionary' : '🎨 The Storyteller'}</strong>
+          </p>
+          <p className="text-blue-300 text-xs mt-1">
+            {formData.template === 'visionary' ? 'Bold & Inspiring (Light Theme)' : 'Warm & Personal (Dark Theme)'}
+          </p>
+        </div>
+      </div>
+    </div>
+    
+    <div className="grid md:grid-cols-2 gap-6">
+      <SelectInput label="Title Font" value={formData.design.titleFont} onChange={e => updateNested('design', 'titleFont', e.target.value)} options={['Afacad', 'Poppins', 'Inter', 'Montserrat']} />
+      <SelectInput label="Body Font" value={formData.design.bodyFont} onChange={e => updateNested('design', 'bodyFont', e.target.value)} options={['Poppins', 'Inter', 'Roboto']} />
+      <ColorPicker label="Primary Color" value={formData.design.primaryColor} onChange={(color) => updateNested('design', 'primaryColor', color)} />
+      <ColorPicker label="Secondary Color" value={formData.design.secondaryColor} onChange={(color) => updateNested('design', 'secondaryColor', color)} />
+    </div>
+  </div>
+)}
 
           {activeTab === 'basicInfo' && (
             <div className="space-y-6">
