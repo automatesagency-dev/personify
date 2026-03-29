@@ -62,6 +62,8 @@ export default function Settings() {
     }
   };
 
+  const { user, refreshUser } = useAuth(); // Add refreshUser
+
   const handleProfilePictureUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -77,22 +79,29 @@ export default function Settings() {
       const formData = new FormData();
       formData.append('image', file);
 
-      // Use persona API to upload (it uploads to R2)
-      const { personaAPI } = await import('../services/api');
-      const response = await personaAPI.uploadImage(formData);
+      // Step 1: Upload to R2
+    const { personaAPI } = await import('../services/api');
+    const uploadResponse = await personaAPI.uploadImage(formData);
+    const imageUrl = uploadResponse.data.image.imageUrl;
 
-      // TODO: Save the profile picture URL to user profile
-      alert('Profile picture uploaded successfully! (Backend integration coming soon)');
-      console.log('Uploaded image URL:', response.data.image.imageUrl);
-    } catch (error) {
-      console.error('Upload failed:', error);
-      alert('Failed to upload profile picture. Please try again.');
-    } finally {
-      setUploading(false);
-      // Reset file input
-      e.target.value = '';
-    }
-  };
+    // Step 2: Save URL to user profile
+    const { authAPI } = await import('../services/api');
+    await authAPI.updateProfilePicture(imageUrl);
+
+    // Step 3: Update local user context (refresh user data)
+    await refreshUser
+    // You'll need to update the AuthContext to refresh user data
+    // For now, just show success and reload
+    alert('Profile picture updated successfully!');
+    
+  } catch (error) {
+    console.error('Upload failed:', error);
+    alert('Failed to upload profile picture. Please try again.');
+  } finally {
+    setUploading(false);
+    e.target.value = '';
+  }
+};
 
   const loadStats = async () => {
     try {

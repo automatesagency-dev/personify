@@ -29,6 +29,16 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // Add this new function
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getMe();
+      setUser(response.data.user);
+    } catch (error) {
+      console.error('Failed to refresh user:', error);
+    }
+  };
+
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password });
     const { user, token } = response.data;
@@ -65,6 +75,7 @@ export function AuthProvider({ children }) {
       login, 
       register, 
       logout,
+      refreshUser, // Add this to the context value
       isAuthenticated: !!user 
     }}>
       {children}
