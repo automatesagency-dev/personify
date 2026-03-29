@@ -134,4 +134,36 @@ async function getMe(req, res) {
   }
 }
 
-module.exports = { register, login, getMe };
+// Update user profile picture
+const updateProfilePicture = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { profilePictureUrl } = req.body;
+
+    if (!profilePictureUrl) {
+      return res.status(400).json({ error: 'Profile picture URL is required' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: { profilePictureUrl },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        profilePictureUrl: true,
+        createdAt: true
+      }
+    });
+
+    res.json({ 
+      message: 'Profile picture updated successfully',
+      user: updatedUser 
+    });
+  } catch (error) {
+    console.error('Update profile picture error:', error);
+    res.status(500).json({ error: 'Failed to update profile picture' });
+  }
+};
+
+module.exports = { register, login, getMe, updateProfilePicture };
