@@ -2,21 +2,23 @@ const { prisma } = require('../config/database');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
 
-// Register new user
+/**
+ * Register new user
+ */
 async function register(req, res) {
   try {
     const { email, password, name } = req.body;
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ 
-        error: 'Email and password are required' 
+      return res.status(400).json({
+        error: 'Email and password are required'
       });
     }
 
     if (password.length < 6) {
-      return res.status(400).json({ 
-        error: 'Password must be at least 6 characters' 
+      return res.status(400).json({
+        error: 'Password must be at least 6 characters'
       });
     }
 
@@ -26,8 +28,8 @@ async function register(req, res) {
     });
 
     if (existingUser) {
-      return res.status(400).json({ 
-        error: 'User with this email already exists' 
+      return res.status(400).json({
+        error: 'User with this email already exists'
       });
     }
 
@@ -59,22 +61,24 @@ async function register(req, res) {
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Registration failed',
-      message: error.message 
+      message: error.message
     });
   }
 }
 
-// Login user
+/**
+ * Login user
+ */
 async function login(req, res) {
   try {
     const { email, password } = req.body;
 
     // Validate input
     if (!email || !password) {
-      return res.status(400).json({ 
-        error: 'Email and password are required' 
+      return res.status(400).json({
+        error: 'Email and password are required'
       });
     }
 
@@ -84,8 +88,8 @@ async function login(req, res) {
     });
 
     if (!user) {
-      return res.status(401).json({ 
-        error: 'Invalid email or password' 
+      return res.status(401).json({
+        error: 'Invalid email or password'
       });
     }
 
@@ -93,8 +97,8 @@ async function login(req, res) {
     const isPasswordValid = await comparePassword(password, user.password);
 
     if (!isPasswordValid) {
-      return res.status(401).json({ 
-        error: 'Invalid email or password' 
+      return res.status(401).json({
+        error: 'Invalid email or password'
       });
     }
 
@@ -111,14 +115,16 @@ async function login(req, res) {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Login failed',
-      message: error.message 
+      message: error.message
     });
   }
 }
 
-// Get current user (protected route)
+/**
+ * Get current user (protected route)
+ */
 async function getMe(req, res) {
   try {
     // User is already attached by authenticateUser middleware
@@ -127,14 +133,16 @@ async function getMe(req, res) {
     });
   } catch (error) {
     console.error('GetMe error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: 'Failed to get user',
-      message: error.message 
+      message: error.message
     });
   }
 }
 
-// Update user profile picture
+/**
+ * Update user profile picture
+ */
 const updateProfilePicture = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -156,9 +164,9 @@ const updateProfilePicture = async (req, res) => {
       }
     });
 
-    res.json({ 
+    res.json({
       message: 'Profile picture updated successfully',
-      user: updatedUser 
+      user: updatedUser
     });
   } catch (error) {
     console.error('Update profile picture error:', error);
@@ -166,4 +174,9 @@ const updateProfilePicture = async (req, res) => {
   }
 };
 
-module.exports = { register, login, getMe, updateProfilePicture };
+module.exports = {
+  register,
+  login,
+  getMe,
+  updateProfilePicture
+};
