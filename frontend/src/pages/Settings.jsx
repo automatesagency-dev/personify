@@ -88,9 +88,8 @@ export default function Settings() {
     await authAPI.updateProfilePicture(imageUrl);
 
     // Step 3: Update local user context (refresh user data)
-    await refreshUser
-    // You'll need to update the AuthContext to refresh user data
-    // For now, just show success and reload
+    await refreshUser();
+    
     alert('Profile picture updated successfully!');
     
   } catch (error) {
