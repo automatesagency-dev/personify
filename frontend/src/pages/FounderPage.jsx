@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import founderPageAPI from '../services/founderPageAPI';
-import { personaAPI } from '../services/api';
+import { personaAPI, uploadAPI } from '../services/api';
 import ColorPicker from '../components/ColorPicker';
 
 // --- HELPER COMPONENTS ---
@@ -97,7 +97,7 @@ export default function FounderPage() {
       setUploading(true);
       const uploadData = new FormData();
       uploadData.append('image', file);
-      const { data } = await personaAPI.uploadImage(uploadData);
+      const { data } = await uploadAPI.uploadImage(uploadData);
       onSuccess(data.image.imageUrl);
     } catch (error) {
       console.error('Upload failed:', error);
