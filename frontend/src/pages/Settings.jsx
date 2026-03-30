@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { generationAPI } from '../services/api';
 
 export default function Settings() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
   const [generations, setGenerations] = useState([]);
   const [uploading, setUploading] = useState(false);
@@ -62,7 +62,6 @@ export default function Settings() {
     }
   };
 
-  const { user, refreshUser } = useAuth(); // Add refreshUser
 
   const handleProfilePictureUpload = async (e) => {
     const file = e.target.files[0];
