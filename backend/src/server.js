@@ -67,6 +67,8 @@ app.use('/api/generate', generationRoutes);
 
 app.use('/api/founder-page', founderPageRoutes);
 
+app.use('/api/upload', require('./routes/uploadRoutes'));
+
 // Start server
 const server = app.listen(PORT, async () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);
