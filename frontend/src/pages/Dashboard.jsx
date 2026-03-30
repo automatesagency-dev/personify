@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import { personaAPI, generationAPI } from '../services/api';
 import founderPageAPI from '../services/founderPageAPI';
+import { useAuth } from '../context/AuthContext';
 
 // --- HELPER COMPONENTS ---
 
@@ -35,6 +36,7 @@ const FeatureItem = ({ title, desc }) => (
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [persona, setPersona] = useState(null);
   const [recentGenerations, setRecentGenerations] = useState([]);
   const [founderPage, setFounderPage] = useState(null);
@@ -117,7 +119,7 @@ export default function Dashboard() {
       <div className="p-8 max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back, {persona?.userId ? 'Sagar' : 'User'}</h1>
+          <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back, {user?.name || 'User'}</h1>
           <p className="text-gray-400">Ready to create something amazing today?</p>
         </div>
 
