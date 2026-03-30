@@ -79,8 +79,8 @@ export default function Settings() {
       formData.append('image', file);
 
       // Step 1: Upload to R2
-    const { personaAPI } = await import('../services/api');
-    const uploadResponse = await personaAPI.uploadImage(formData);
+    const { uploadAPI } = await import('../services/api');
+    const uploadResponse = await uploadAPI.uploadImage(formData);
     const imageUrl = uploadResponse.data.image.imageUrl;
 
     // Step 2: Save URL to user profile
@@ -194,8 +194,8 @@ export default function Settings() {
                 {/* Profile Picture */}
                 <div className="flex items-center gap-4 mb-6">
                   <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-pink to-purple-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                    {user?.profilePicture ? (
-                      <img src={user.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+                    {user?.profilePictureUrl ? (
+                      <img src={user.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
                     ) : (
                       user?.name?.charAt(0).toUpperCase() || 'U'
                     )}
