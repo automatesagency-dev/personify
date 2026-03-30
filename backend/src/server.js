@@ -67,7 +67,7 @@ app.use('/api/generate', generationRoutes);
 
 app.use('/api/founder-page', founderPageRoutes);
 
-app.use('/api/upload', require('./routes/uploadRoutes'));
+app.use('/api/upload', require('./routes/upload'));
 
 // Start server
 const server = app.listen(PORT, async () => {
