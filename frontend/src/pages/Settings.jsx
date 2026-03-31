@@ -1,13 +1,15 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { generationAPI } from '../services/api';
+import { generationAPI, authAPI } from '../services/api';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
-  const [generations, setGenerations] = useState([]);
+  const [generations, setGenerations] = useState([]); // eslint-disable-line no-unused-vars
   const [uploading, setUploading] = useState(false);
+  const [accountMsg, setAccountMsg] = useState(null);
+  const [passwordMsg, setPasswordMsg] = useState(null);
   const [stats, setStats] = useState({
     imagesUsedToday: 0,
     textUsedToday: 0,
@@ -132,18 +134,35 @@ export default function Settings() {
     }
   };
 
-  const handleAccountSubmit = (e) => {
+  const handleAccountSubmit = async (e) => {
     e.preventDefault();
-    alert('Account update functionality coming soon!');
+    setAccountMsg(null);
+    try {
+      await authAPI.updateProfile({ name: accountForm.name, email: accountForm.email });
+      await refreshUser();
+      setAccountMsg({ type: 'success', text: 'Profile updated successfully!' });
+    } catch (error) {
+      setAccountMsg({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' });
+    }
   };
 
-  const handlePasswordSubmit = (e) => {
+  const handlePasswordSubmit = async (e) => {
     e.preventDefault();
+    setPasswordMsg(null);
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
-      alert('Passwords do not match!');
+      setPasswordMsg({ type: 'error', text: 'Passwords do not match!' });
       return;
     }
-    alert('Password update functionality coming soon!');
+    try {
+      await authAPI.updatePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      setPasswordMsg({ type: 'success', text: 'Password updated successfully!' });
+    } catch (error) {
+      setPasswordMsg({ type: 'error', text: error.response?.data?.error || 'Failed to update password' });
+    }
   };
 
   const handleDeleteAccount = () => {
@@ -259,6 +278,12 @@ export default function Settings() {
                   </div>
                 </div>
 
+                {accountMsg && (
+                  <p className={`mt-4 text-sm ${accountMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {accountMsg.text}
+                  </p>
+                )}
+
                 {/* Buttons */}
                 <div className="flex gap-4 mt-6">
                   <button
@@ -269,6 +294,7 @@ export default function Settings() {
                   </button>
                   <button
                     type="button"
+                    onClick={loadUserData}
                     className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
                   >
                     Cancel
@@ -323,6 +349,12 @@ export default function Settings() {
                     />
                   </div>
                 </div>
+
+                {passwordMsg && (
+                  <p className={`mt-4 text-sm ${passwordMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                    {passwordMsg.text}
+                  </p>
+                )}
 
                 <button
                   type="submit"

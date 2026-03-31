@@ -29,8 +29,10 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   getMe: () => api.get('/auth/me'),
-  updateProfilePicture: (profilePictureUrl) => 
+  updateProfilePicture: (profilePictureUrl) =>
     api.patch('/auth/profile-picture', { profilePictureUrl }),
+  updateProfile: (data) => api.patch('/auth/profile', data),
+  updatePassword: (data) => api.patch('/auth/password', data),
 };
 
 // Persona API
