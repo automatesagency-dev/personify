@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import founderPageAPI from '../services/founderPageAPI';
 
 // --- SHARED HELPERS ---
@@ -16,6 +16,8 @@ const Grid = ({ items, renderItem, gap = "gap-8", cols = "md:grid-cols-3" }) => 
 
 export default function PublicFounderPage() {
   const { username } = useParams();
+  const [searchParams] = useSearchParams();
+  const isPreview = searchParams.get('preview') === 'true';
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(null);
   const [error, setError] = useState('');
@@ -24,7 +26,9 @@ export default function PublicFounderPage() {
     const loadPage = async () => {
       try {
         setLoading(true);
-        const response = await founderPageAPI.getPublic(username);
+        const response = isPreview
+          ? await founderPageAPI.getPreview()
+          : await founderPageAPI.getPublic(username);
         setPage(response.data.founderPage);
       } catch (err) {
         console.error('Failed to load page:', err);
@@ -34,7 +38,7 @@ export default function PublicFounderPage() {
       }
     };
     loadPage();
-  }, [username]);
+  }, [username, isPreview]);
 
   if (loading) return (
     <div className="min-h-screen bg-black flex items-center justify-center text-white">
@@ -58,9 +62,19 @@ export default function PublicFounderPage() {
     </div>
   );
 
-  return page.template === 'visionary' 
-    ? <VisionaryTemplate page={page} /> 
-    : <StorytellerTemplate page={page} />;
+  return (
+    <>
+      {isPreview && (
+        <div className="sticky top-0 z-[9999] bg-yellow-500 text-black text-sm font-semibold text-center py-2 px-4">
+          👁️ Preview Mode — This is how your page will look. It is not live yet.{' '}
+          <button onClick={() => window.close()} className="underline ml-2">Close Preview</button>
+        </div>
+      )}
+      {page.template === 'visionary'
+        ? <VisionaryTemplate page={page} />
+        : <StorytellerTemplate page={page} />}
+    </>
+  );
 }
 
 // --- VISIONARY TEMPLATE ---

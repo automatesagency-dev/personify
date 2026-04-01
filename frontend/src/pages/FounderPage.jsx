@@ -199,7 +199,7 @@ export default function FounderPage() {
       await founderPageAPI.upsert(formData);
       // Small delay to ensure backend processes the save
       await new Promise(resolve => setTimeout(resolve, 500));
-      window.open(`/${formData.username}`, '_blank');
+      window.open(`/${formData.username}?preview=true`, '_blank');
     } catch (error) {
       alert('Failed to save changes before preview. Please try again.');
       console.error('Preview save error:', error);

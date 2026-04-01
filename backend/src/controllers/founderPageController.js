@@ -163,6 +163,28 @@ async function getPublicFounderPage(req, res) {
 }
 
 // =====================================
+// Preview Own Founder Page (auth, ignores published)
+// =====================================
+async function previewFounderPage(req, res) {
+  try {
+    const userId = req.user.id;
+
+    const founderPage = await prisma.founderPage.findUnique({
+      where: { userId }
+    });
+
+    if (!founderPage) {
+      return res.status(404).json({ error: 'No founder page found' });
+    }
+
+    res.json({ founderPage });
+  } catch (error) {
+    console.error('Preview founder page error:', error);
+    res.status(500).json({ error: 'Failed to get preview', message: error.message });
+  }
+}
+
+// =====================================
 // Check Username Availability
 // =====================================
 async function checkUsername(req, res) {
@@ -217,6 +239,7 @@ module.exports = {
   upsertFounderPage,
   publishFounderPage,
   getPublicFounderPage,
+  previewFounderPage,
   checkUsername,
   deleteFounderPage
 };

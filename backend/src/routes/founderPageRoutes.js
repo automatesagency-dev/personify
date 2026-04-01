@@ -6,6 +6,7 @@ const {
   upsertFounderPage,
   publishFounderPage,
   getPublicFounderPage,
+  previewFounderPage,
   checkUsername,
   deleteFounderPage
 } = require('../controllers/founderPageController');
@@ -14,6 +15,7 @@ const {
 router.get('/', authenticateUser, getFounderPage);
 router.post('/', authenticateUser, upsertFounderPage);
 router.patch('/publish', authenticateUser, publishFounderPage);
+router.get('/preview', authenticateUser, previewFounderPage);
 router.get('/check-username/:username', authenticateUser, checkUsername);
 router.delete('/', authenticateUser, deleteFounderPage);
 
