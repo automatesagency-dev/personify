@@ -18,7 +18,7 @@ export default function Generate() {
   const [persona, setPersona] = useState(null);
   const [usageStats, setUsageStats] = useState({ used: 0, limit: 10 });
   
-  const [useFaceConsistency, setUseFaceConsistency] = useState(false);
+  const [useFaceConsistency, setUseFaceConsistency] = useState(true);
   const [faceModel, setFaceModel] = useState('nano-banana-2');
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryMessage, setRetryMessage] = useState('');
@@ -159,11 +159,11 @@ export default function Generate() {
         {/* Mode Toggle */}
         <div className="flex gap-4 mb-8">
           <button
-            onClick={() => { 
-              setType('image'); 
-              setModel('dall-e-3'); 
-              setUseFaceConsistency(false); 
-              setResult(null); 
+            onClick={() => {
+              setType('image');
+              setModel('dall-e-3');
+              setUseFaceConsistency(true);
+              setResult(null);
               setError('');
               setShowRetry(false);
             }}
@@ -208,6 +208,71 @@ export default function Generate() {
                 disabled={generating}
               />
             </div>
+
+            {/* Generation Mode — image only */}
+            {type === 'image' && (
+              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
+                <label className="text-white font-medium block mb-1">Generation Mode</label>
+                <p className="text-gray-400 text-sm mb-4">How do you want to generate your image?</p>
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Option 1: Use Persona Face */}
+                  <button
+                    onClick={() => setUseFaceConsistency(true)}
+                    disabled={generating}
+                    className={`p-4 rounded-xl border-2 transition text-left w-full ${useFaceConsistency ? 'border-brand-pink bg-brand-pink/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
+                  >
+                    <span className="text-2xl mb-2 block">🧬</span>
+                    <p className="text-white font-semibold text-sm">Use Persona Image</p>
+                    <p className="text-gray-400 text-xs mt-1">Generate with your persona's face</p>
+                  </button>
+
+                  {/* Option 2: Normal generation */}
+                  <button
+                    onClick={() => setUseFaceConsistency(false)}
+                    disabled={generating}
+                    className={`p-4 rounded-xl border-2 transition text-left w-full ${!useFaceConsistency ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
+                  >
+                    <span className="text-2xl mb-2 block">🎨</span>
+                    <p className="text-white font-semibold text-sm">Normal Generation</p>
+                    <p className="text-gray-400 text-xs mt-1">Generate without your face</p>
+                  </button>
+                </div>
+
+                {/* Model selector for active option */}
+                <div className="mt-4">
+                  {useFaceConsistency ? (
+                    <>
+                      <label className="text-gray-400 text-xs block mb-2">Face Model</label>
+                      <select
+                        value={faceModel}
+                        onChange={(e) => setFaceModel(e.target.value)}
+                        disabled={generating}
+                        className="w-full bg-black/40 border border-gray-700 p-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
+                      >
+                        <option value="nano-banana-2">Nano Banana 2 (HQ)</option>
+                        <option value="bytedance-seedream">ByteDance SeeDream</option>
+                      </select>
+                      {!persona && (
+                        <p className="text-yellow-400 text-xs mt-2">⚠️ Complete your persona with photos before using this mode.</p>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <label className="text-gray-400 text-xs block mb-2">Image Model</label>
+                      <select
+                        value={model}
+                        onChange={(e) => setModel(e.target.value)}
+                        disabled={generating}
+                        className="w-full bg-black/40 border border-gray-700 p-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
+                      >
+                        <option value="dall-e-3">DALL-E 3</option>
+                        <option value="dall-e-2">DALL-E 2</option>
+                      </select>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
               <h3 className="text-white font-semibold mb-4">Preview</h3>
@@ -301,44 +366,16 @@ export default function Generate() {
 
           {/* Sidebar Controls */}
           <div className="space-y-6">
-            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <label className="text-white font-medium block mb-4">✨ AI Model</label>
-              {type === 'image' ? (
-                <div className="space-y-4">
-                  {!useFaceConsistency && (
-                    <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white focus:border-brand-pink outline-none">
-                      <option value="dall-e-3">DALL-E 3</option>
-                      <option value="dall-e-2">DALL-E 2</option>
-                    </select>
-                  )}
-                  <div className="bg-blue-500/10 border border-blue-500/20 rounded-xl p-4">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-white font-medium">Face Consistency</span>
-                      <input 
-                        type="checkbox" 
-                        checked={useFaceConsistency} 
-                        onChange={(e) => setUseFaceConsistency(e.target.checked)} 
-                        disabled={generating}
-                        className="w-5 h-5 accent-brand-pink cursor-pointer"
-                      />
-                    </div>
-                    {useFaceConsistency && (
-                      <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} className="w-full mt-3 bg-black/40 border border-gray-700 p-2 rounded text-sm text-white outline-none">
-                        <option value="nano-banana-2">Nano Banana 2 (HQ)</option>
-                        <option value="bytedance-seedream">ByteDance SeeDream</option>
-                      </select>
-                    )}
-                    <p className="text-[10px] text-blue-300 mt-2 italic">Requires persona photos</p>
-                  </div>
-                </div>
-              ) : (
+            {type === 'text' && (
+              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
+                <label className="text-white font-medium block mb-4">✨ AI Model</label>
                 <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white focus:border-brand-pink outline-none">
                   <option value="gpt-4">GPT-4</option>
                   <option value="gpt-4o">GPT-4o</option>
                   <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
                 </select>
-              )}
-            </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
