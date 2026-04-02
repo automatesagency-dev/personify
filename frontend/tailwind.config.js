@@ -1,9 +1,5 @@
-/** @type {import('tailwindcss').Config} */
-export default {
-  content: [
-    "./index.html",
-    "./src/**/*.{js,ts,jsx,tsx}",
-  ],
+module.exports = {
+  content: ['./app/**/*.{js,jsx}', './components/**/*.{js,jsx}', './pages/**/*.{js,jsx}'],
   theme: {
     extend: {
       fontFamily: {
@@ -15,7 +11,7 @@ export default {
         'dark-card': '#1A1A1A',
         'cream': '#FFF8F0',
       }
-    },
+    }
   },
-  plugins: [],
+  plugins: []
 }
