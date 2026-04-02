@@ -16,6 +16,7 @@ import History from './pages/History';
 import Settings from './pages/Settings';
 import FounderPage from './pages/FounderPage';
 import PublicFounderPage from './pages/PublicFounderPage';
+import Onboarding from './pages/Onboarding';
 
 function App() {
   return (
@@ -86,8 +87,14 @@ function App() {
             }
            /> 
 
-          {/* Redirect onboarding to persona */}
-          <Route path="/onboarding" element={<Navigate to="/persona" replace />} />
+          <Route
+            path="/onboarding"
+            element={
+              <ProtectedRoute>
+                <Onboarding />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Catch all */}
           <Route path="*" element={<Navigate to="/" replace />} />

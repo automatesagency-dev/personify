@@ -39,7 +39,7 @@ export default function Register() {
 
     try {
       await register(email, password, name);
-      navigate('/persona');
+      navigate('/onboarding');
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {

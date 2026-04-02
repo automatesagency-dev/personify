@@ -156,19 +156,120 @@ export default function FounderPage() {
   if (loading) return <Layout><div className="p-8 flex items-center justify-center min-h-screen text-white">Loading...</div></Layout>;
 
   if (showTemplateSelector) {
+    const activeTemplates = [
+      {
+        id: 'visionary',
+        icon: '🚀',
+        title: 'The Visionary',
+        subtitle: 'Bold & Inspiring',
+        subtitleColor: 'text-green-400',
+        description: 'Large hero headline, minimal layout. Perfect for thought leaders & startup founders.',
+        preview: (
+          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
+            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-green-600" /><div className="h-2 w-28 bg-gray-600 rounded" /></div>
+            <div className="h-2 w-full bg-gray-700 rounded" />
+            <div className="h-2 w-4/5 bg-gray-700 rounded" />
+            <div className="h-6 w-16 bg-green-700 rounded mt-2" />
+          </div>
+        )
+      },
+      {
+        id: 'storyteller',
+        icon: '✍️',
+        title: 'The Storyteller',
+        subtitle: 'Warm & Personal',
+        subtitleColor: 'text-orange-400',
+        description: 'Narrative-driven bio with a warm, human feel. Great for coaches & speakers.',
+        preview: (
+          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
+            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-orange-700" /><div className="h-2 w-32 bg-gray-600 rounded" /></div>
+            <div className="h-2 w-full bg-gray-700 rounded" />
+            <div className="h-2 w-3/4 bg-gray-700 rounded" />
+            <div className="h-6 w-16 bg-orange-800 rounded mt-2" />
+          </div>
+        )
+      }
+    ];
+
+    const comingSoonTemplates = [
+      {
+        id: 'expert',
+        icon: '📊',
+        title: 'The Expert',
+        subtitle: 'Clean & Professional',
+        subtitleColor: 'text-blue-400',
+        description: 'Skills, achievements, and credentials front and center. For executives & consultants.',
+        preview: (
+          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
+            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-blue-800" /><div className="h-2 w-28 bg-gray-700 rounded" /></div>
+            <div className="h-2 w-full bg-gray-800 rounded" />
+            <div className="h-6 w-16 bg-gray-700 rounded mt-2" />
+          </div>
+        )
+      },
+      {
+        id: 'creator',
+        icon: '🎨',
+        title: 'The Creator',
+        subtitle: 'Vibrant & Media-First',
+        subtitleColor: 'text-purple-400',
+        description: 'Media-first layout for content creators, artists, and influencers.',
+        preview: (
+          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
+            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-purple-800" /><div className="h-2 w-28 bg-gray-700 rounded" /></div>
+            <div className="h-2 w-full bg-gray-800 rounded" />
+            <div className="h-6 w-16 bg-gray-700 rounded mt-2" />
+          </div>
+        )
+      }
+    ];
+
     return (
       <Layout>
         <div className="p-8 max-w-6xl mx-auto">
           <button onClick={() => navigate('/dashboard')} className="text-gray-400 hover:text-white mb-4 flex items-center gap-2">← Back</button>
-          <h1 className="text-3xl font-semibold text-white mb-8">Choose Your Template</h1>
+          <h1 className="text-3xl font-semibold text-white mb-2">Founder Page</h1>
+          <p className="text-gray-400 mb-8">Choose a template to get started.</p>
+
           <div className="grid md:grid-cols-2 gap-6">
-            {[{ id: 'visionary', icon: '🚀', title: 'The Visionary' }, { id: 'storyteller', icon: '🎨', title: 'The Storyteller' }].map(t => (
-              <button key={t.id} onClick={() => { setFormData({ ...formData, template: t.id }); setShowTemplateSelector(false); }} className="bg-dark-card rounded-xl p-6 border-2 border-gray-800 hover:border-brand-pink transition text-left">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-gray-700 flex items-center justify-center text-2xl">{t.icon}</div>
-                  <h3 className="text-xl font-semibold text-white">{t.title}</h3>
+            {/* Active templates */}
+            {activeTemplates.map(t => (
+              <button
+                key={t.id}
+                onClick={() => { setFormData({ ...formData, template: t.id }); setShowTemplateSelector(false); }}
+                className="bg-dark-card rounded-xl p-6 border-2 border-gray-800 hover:border-white transition text-left group"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-2xl">{t.icon}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{t.title}</h3>
+                    <p className={`text-sm font-medium ${t.subtitleColor}`}>{t.subtitle}</p>
+                  </div>
                 </div>
+                <p className="text-gray-400 text-sm leading-relaxed">{t.description}</p>
+                {t.preview}
               </button>
+            ))}
+
+            {/* Coming soon templates */}
+            {comingSoonTemplates.map(t => (
+              <div
+                key={t.id}
+                className="bg-dark-card rounded-xl p-6 border-2 border-gray-800 text-left opacity-60 cursor-not-allowed relative"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-lg bg-gray-800 flex items-center justify-center text-2xl">{t.icon}</div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">{t.title}</h3>
+                      <p className={`text-sm font-medium ${t.subtitleColor}`}>{t.subtitle}</p>
+                    </div>
+                  </div>
+                  <span className="text-xs font-semibold bg-gray-700 text-gray-300 px-3 py-1 rounded-full">Coming Soon</span>
+                </div>
+                <p className="text-gray-500 text-sm leading-relaxed">{t.description}</p>
+                {t.preview}
+              </div>
             ))}
           </div>
         </div>

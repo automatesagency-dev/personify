@@ -32,7 +32,7 @@ export default function Layout({ children }) {
   return (
     <div className="min-h-screen bg-dark-bg flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-dark-bg border-r border-gray-800 flex flex-col">
+      <aside className="w-64 bg-dark-bg border-r border-gray-800 flex flex-col h-screen sticky top-0">
         {/* Logo */}
         <div className="p-6 border-b border-gray-800">
           <Link to="/dashboard" className="flex items-center gap-2">
@@ -42,7 +42,7 @@ export default function Layout({ children }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 p-4 space-y-1">
+        <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path;
             return (
