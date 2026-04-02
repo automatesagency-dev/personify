@@ -162,97 +162,112 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Founder Page Widget */}
-        <div className="mb-8">
-          <h2 className="text-2xl font-semibold text-white mb-4">Founder Page</h2>
-          {loadingFounderPage ? (
-            <div className="bg-dark-card rounded-xl p-8 border border-gray-800"><div className="text-gray-400">Loading...</div></div>
-          ) : founderPage?.published ? (
-            <div className="bg-dark-card rounded-xl p-8 border border-gray-800">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center text-2xl">✨</div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Your Page is Live!</h3>
-                    <p className="text-sm text-gray-400">Template: <span className="capitalize">{founderPage.template}</span></p>
+        {/* Founder Page + Generate — side by side */}
+        <div className="grid md:grid-cols-2 gap-6 mb-8">
+
+          {/* Founder Page Widget */}
+          <div>
+            {loadingFounderPage ? (
+              <div className="bg-dark-card rounded-2xl p-8 border border-gray-800 h-full"><div className="text-gray-400">Loading...</div></div>
+            ) : founderPage?.published ? (
+              <div className="bg-dark-card rounded-2xl p-6 border border-gray-800 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center text-2xl">✨</div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Your Page is Live!</h3>
+                      <p className="text-sm text-gray-400 capitalize">{founderPage.template} template</p>
+                    </div>
+                  </div>
+                  <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">Published</span>
+                </div>
+                <div className="bg-black/40 rounded-lg p-3 mb-4">
+                  <p className="text-gray-500 text-xs mb-1">Your page URL</p>
+                  <div className="flex items-center gap-2">
+                    <code className="flex-1 text-white text-xs truncate">personify-alpha.vercel.app/{founderPage.username}</code>
+                    <button onClick={copyUrl} className="px-3 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition">Copy</button>
                   </div>
                 </div>
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">Published</span>
-              </div>
-              <div className="bg-black/40 rounded-lg p-4 mb-6">
-                <p className="text-gray-400 text-sm mb-2">Your page URL:</p>
-                <div className="flex items-center gap-3">
-                  <code className="flex-1 text-white bg-black/40 px-4 py-2 rounded text-sm">personify-alpha.vercel.app/{founderPage.username}</code>
-                  <button onClick={copyUrl} className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm">Copy</button>
+                <div className="flex gap-3 mt-auto">
+                  <button onClick={() => window.open(`/${founderPage.username}`, '_blank')} className="flex-1 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-sm">View Page</button>
+                  <button onClick={() => navigate('/founder-page')} className="flex-1 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition text-sm">Edit</button>
                 </div>
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => window.open(`/${founderPage.username}`, '_blank')} className="flex-1 px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition">View Page</button>
-                <button onClick={() => navigate('/founder-page')} className="flex-1 px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition">Edit Page</button>
-              </div>
-            </div>
-          ) : founderPage && !founderPage.published ? (
-            <div className="bg-dark-card rounded-xl p-8 border border-gray-800">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-yellow-500/20 flex items-center justify-center text-2xl">📝</div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Page in Draft</h3>
-                    <p className="text-sm text-gray-400">Template: <span className="capitalize">{founderPage.template}</span></p>
+            ) : founderPage && !founderPage.published ? (
+              <div className="bg-dark-card rounded-2xl p-6 border border-gray-800 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-yellow-500/20 flex items-center justify-center text-2xl">📝</div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Page in Draft</h3>
+                      <p className="text-sm text-gray-400 capitalize">{founderPage.template} template</p>
+                    </div>
                   </div>
+                  <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full">Draft</span>
                 </div>
-                <span className="px-3 py-1 bg-yellow-500/20 text-yellow-400 text-xs font-semibold rounded-full">Draft</span>
+                <p className="text-gray-400 text-sm mb-4 flex-1">Your page is saved but not published yet. Continue editing and publish when ready.</p>
+                <button onClick={() => navigate('/founder-page')} className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-sm">Continue Editing</button>
               </div>
-              <p className="text-gray-400 mb-6">Your page is saved but not published yet. Continue editing and publish when ready.</p>
-              <button onClick={() => navigate('/founder-page')} className="px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition">Continue Editing</button>
-            </div>
-          ) : (
-            <div className="bg-dark-card rounded-xl p-8 border border-gray-800">
-              <div className="flex items-start justify-between mb-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-lg bg-brand-pink/20 flex items-center justify-center text-2xl">🚀</div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-white">Create Your Founder Page</h3>
-                    <p className="text-sm text-gray-400">Showcase your personal brand online</p>
+            ) : (
+              <div className="bg-dark-card rounded-2xl p-6 border border-gray-800 h-full flex flex-col">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl bg-brand-pink/20 flex items-center justify-center text-2xl">🚀</div>
+                    <div>
+                      <h3 className="text-lg font-semibold text-white">Founder Page</h3>
+                      <p className="text-sm text-gray-400">Showcase your personal brand</p>
+                    </div>
                   </div>
+                  <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">FREE</span>
                 </div>
-                <span className="px-3 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">FREE</span>
+                <div className="space-y-3 mb-6 flex-1">
+                  {fpFeaturesData.map((f, i) => <FeatureItem key={i} title={f.title} desc={f.desc} />)}
+                </div>
+                <button onClick={() => navigate('/founder-page')} className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-sm">Create Your Page</button>
               </div>
-              <div className="grid md:grid-cols-2 gap-4 mb-6">
-                {fpFeaturesData.map((f, i) => <FeatureItem key={i} title={f.title} desc={f.desc} />)}
-              </div>
-              <button onClick={() => navigate('/founder-page')} className="w-full px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition">Create Your Page</button>
+            )}
+          </div>
+
+          {/* Create New Generation */}
+          <div className="bg-dark-card rounded-2xl p-6 border border-gray-800 flex flex-col">
+            <div className="mb-6">
+              <h2 className="text-lg font-semibold text-white mb-1">Create New Generation</h2>
+              <p className="text-sm text-gray-400">Generate AI images or text powered by your persona</p>
             </div>
-          )}
+            <div className="grid grid-cols-2 gap-4 mb-6 flex-1">
+              <Link
+                to="/generate?type=image"
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-black/40 border border-gray-700 rounded-xl hover:border-brand-pink hover:bg-brand-pink/5 transition group"
+              >
+                <span className="text-4xl group-hover:scale-110 transition-transform">🎨</span>
+                <div className="text-center">
+                  <p className="text-white font-semibold text-sm">Image</p>
+                  <p className="text-gray-500 text-xs mt-1">AI-generated visuals</p>
+                </div>
+              </Link>
+              <Link
+                to="/generate?type=text"
+                className="flex flex-col items-center justify-center gap-3 p-6 bg-black/40 border border-gray-700 rounded-xl hover:border-brand-pink hover:bg-brand-pink/5 transition group"
+              >
+                <span className="text-4xl group-hover:scale-110 transition-transform">✍️</span>
+                <div className="text-center">
+                  <p className="text-white font-semibold text-sm">Text</p>
+                  <p className="text-gray-500 text-xs mt-1">Captions, posts & more</p>
+                </div>
+              </Link>
+            </div>
+            <Link
+              to="/generate"
+              className="w-full py-3 bg-white text-black rounded-xl font-semibold hover:bg-gray-200 transition text-center text-sm"
+            >
+              Open Generator →
+            </Link>
+          </div>
         </div>
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           {statCardsData.map((stat, idx) => <StatCard key={idx} {...stat} />)}
-        </div>
-
-        {/* Create New Generation */}
-        <div className="bg-dark-card rounded-2xl p-6 border border-gray-800 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-semibold text-white">Create New Generation</h2>
-            <div className="flex gap-2">
-              <Link to="/generate?type=image" className="px-4 py-2 bg-white text-black rounded-lg hover:bg-gray-200 transition font-medium text-sm">Image</Link>
-              <Link to="/generate?type=text" className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition font-medium text-sm">Text</Link>
-            </div>
-          </div>
-          <div className="mb-4">
-            <label className="block text-sm text-gray-400 mb-2">Your Prompt</label>
-            <textarea placeholder="Describe what you want to create... Your persona will automatically enhance this prompt with your brand identity and style." rows={3} className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition resize-none" />
-          </div>
-          <div className="grid grid-cols-2 gap-4 mb-4">
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">AI Model</label>
-              <select className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"><option>DALL-E (Default)</option></select>
-            </div>
-            <div className="flex items-end">
-              <Link to="/generate" className="w-full px-6 py-3 bg-white text-black rounded-lg hover:bg-gray-200 transition font-semibold text-center">Generate with AI</Link>
-            </div>
-          </div>
         </div>
 
         {/* Recent Generations */}

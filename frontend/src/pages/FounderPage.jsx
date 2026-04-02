@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from '../components/Layout';
 import founderPageAPI from '../services/founderPageAPI';
-import { personaAPI, uploadAPI } from '../services/api';
+import { uploadAPI } from '../services/api';
 import ColorPicker from '../components/ColorPicker';
 
 // --- HELPER COMPONENTS ---
@@ -136,7 +136,7 @@ export default function FounderPage() {
         await founderPageAPI.publish(true);
         setFormData(prev => ({ ...prev, published: true }));
         alert('🎉 Your page is now live!');
-        navigate(`/${formData.username}`);
+        window.open(`/${formData.username}`, '_blank');
       } else {
         alert('Founder page saved successfully!');
       }
@@ -333,12 +333,20 @@ export default function FounderPage() {
   <div className="space-y-6">
     <div className="flex justify-between items-center mb-6">
       <h2 className="text-2xl font-semibold text-white">Design Settings</h2>
-      <button 
-        onClick={() => setShowTemplateSelector(true)} 
-        className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
-      >
-        🔄 Change Template
-      </button>
+      <div className="flex gap-3">
+        <button
+          onClick={() => setFormData(prev => ({ ...prev, design: { titleFont: 'Afacad', bodyFont: 'Poppins', primaryColor: '#623437', secondaryColor: '#f5a623' } }))}
+          className="px-4 py-2 bg-white/5 hover:bg-white/10 text-gray-300 border border-gray-700 rounded-lg text-sm font-medium transition"
+        >
+          Reset to Default
+        </button>
+        <button
+          onClick={() => setShowTemplateSelector(true)}
+          className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition flex items-center gap-2"
+        >
+          🔄 Change Template
+        </button>
+      </div>
     </div>
     
     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
