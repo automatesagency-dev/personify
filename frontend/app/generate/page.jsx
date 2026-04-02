@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import ProtectedRoute from '../../components/ProtectedRoute'
-import Generate from '../../pages/Generate'
+import Generate from '../../views/Generate'
 
 export default function Page() {
   return (

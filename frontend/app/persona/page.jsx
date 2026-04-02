@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import ProtectedRoute from '../../components/ProtectedRoute'
-import Persona from '../../pages/Persona'
+import Persona from '../../views/Persona'
 
 export default function Page() {
   return (

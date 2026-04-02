@@ -1,3 +1,3 @@
 'use client'
 export const dynamic = 'force-dynamic'
-export { default } from '../../pages/PublicFounderPage'
+export { default } from '../../views/PublicFounderPage'

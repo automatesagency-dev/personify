@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 
 import ProtectedRoute from '../../components/ProtectedRoute'
-import Onboarding from '../../pages/Onboarding'
+import Onboarding from '../../views/Onboarding'
 
 export default function Page() {
   return (
