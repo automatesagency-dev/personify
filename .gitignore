@@ -23,3 +23,7 @@ frontend/build/
 # OS
 .DS_Store
 Thumbs.db
+
+# Claude
+.claire/
+.claude/
