@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const { openai } = require('../config/ai');
 const { fal } = require('../config/fal');
+const { uploadToR2 } = require('../config/r2');
 
 // =====================================
 // Generate Image
@@ -12,7 +13,9 @@ async function generateImage(req, res) {
       prompt,
       model = 'dall-e-3',
       useFaceConsistency = false,
-      faceModel = 'nano-banana-2'
+      faceModel = 'nano-banana-2',
+      referenceImagesBase64 = [],
+      referenceImagesMimeTypes = []
     } = req.body;
 
     if (!prompt) {
@@ -81,7 +84,23 @@ async function generateImage(req, res) {
           });
         }
 
-        // imageUrl is already a full R2 URL (e.g., https://pub-xxxxx.r2.dev/...)
+        // Upload reference images to R2 if provided
+        const referenceUrls = [];
+        for (let i = 0; i < referenceImagesBase64.length; i++) {
+          try {
+            const mime = referenceImagesMimeTypes[i] || 'image/jpeg';
+            const ext = mime.split('/')[1] || 'jpg';
+            const refBuffer = Buffer.from(referenceImagesBase64[i], 'base64');
+            const refUrl = await uploadToR2(refBuffer, `reference-${i}.${ext}`, mime);
+            referenceUrls.push(refUrl);
+            console.log(`📎 Reference image ${i + 1} uploaded:`, refUrl);
+          } catch (uploadErr) {
+            console.warn(`⚠️ Reference image ${i + 1} upload failed, skipping:`, uploadErr.message);
+          }
+        }
+
+        const imageUrlsForFal = [imageUrlPath, ...referenceUrls];
+
         console.log('📸 Persona image URL:', imageUrlPath);
         console.log('✍️ Prompt:', enhancedPrompt);
 
@@ -91,7 +110,7 @@ async function generateImage(req, res) {
           if (faceModel === 'nano-banana-2') {
             result = await fal.subscribe('fal-ai/nano-banana-2/edit', {
               input: {
-                image_urls: [imageUrlPath],
+                image_urls: imageUrlsForFal,
                 prompt: enhancedPrompt,
                 image_size: 'square_hd',
                 num_inference_steps: 28,
@@ -109,7 +128,7 @@ async function generateImage(req, res) {
               'fal-ai/bytedance/seedream/v4.5/edit',
               {
                 input: {
-                  image_urls: [imageUrlPath],
+                  image_urls: imageUrlsForFal,
                   prompt: enhancedPrompt,
                   num_inference_steps: 25,
                   guidance_scale: 7.5,
@@ -200,7 +219,12 @@ async function generateImage(req, res) {
 async function generateText(req, res) {
   try {
     const userId = req.user.id;
-    const { prompt, model = 'gpt-4' } = req.body;
+    const {
+      prompt,
+      model = 'gpt-4',
+      referenceImagesBase64 = [],
+      referenceImagesMimeTypes = []
+    } = req.body;
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -239,11 +263,26 @@ async function generateText(req, res) {
     });
 
     try {
+      // If reference images are provided, force gpt-4o (vision) and include the images
+      const hasImages = referenceImagesBase64.length > 0;
+      const effectiveModel = hasImages ? 'gpt-4o' : model;
+      const userContent = hasImages
+        ? [
+            { type: 'text', text: prompt },
+            ...referenceImagesBase64.map((b64, i) => ({
+              type: 'image_url',
+              image_url: {
+                url: `data:${referenceImagesMimeTypes[i] || 'image/jpeg'};base64,${b64}`
+              }
+            }))
+          ]
+        : prompt;
+
       const response = await openai.chat.completions.create({
-        model,
+        model: effectiveModel,
         messages: [
           { role: 'system', content: systemMessage },
-          { role: 'user', content: prompt }
+          { role: 'user', content: userContent }
         ],
         max_tokens: 1000,
         temperature: 0.7

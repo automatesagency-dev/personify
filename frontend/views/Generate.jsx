@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, Suspense } from 'react';
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '../components/Layout';
 import { generationAPI, personaAPI } from '../services/api';
@@ -12,18 +12,22 @@ function GenerateInner() {
   const [model, setModel] = useState(
     searchParams.get('type') === 'text' ? 'gpt-4' : 'dall-e-3'
   );
-  
+
   const [generating, setGenerating] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const [showRetry, setShowRetry] = useState(false); // New state for retry button
+  const [showRetry, setShowRetry] = useState(false);
   const [persona, setPersona] = useState(null);
   const [usageStats, setUsageStats] = useState({ used: 0, limit: 10 });
-  
+
   const [useFaceConsistency, setUseFaceConsistency] = useState(true);
   const [faceModel, setFaceModel] = useState('nano-banana-2');
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryMessage, setRetryMessage] = useState('');
+
+  // Up to 3 reference images: [{ file, preview }]
+  const [referenceImages, setReferenceImages] = useState([]);
+  const fileInputRef = useRef(null);
 
   const loadUsageStats = useCallback(async () => {
     try {
@@ -31,15 +35,13 @@ function GenerateInner() {
       const generations = response.data.generations || [];
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-
       const todayGenerations = generations.filter(
         (g) => new Date(g.createdAt) >= today && g.type === type
       );
-
       const limit = type === 'image' ? 10 : 50;
       setUsageStats({ used: todayGenerations.length, limit });
     } catch (err) {
-      console.error("Usage stats error:", err);
+      console.error('Usage stats error:', err);
     }
   }, [type]);
 
@@ -57,27 +59,54 @@ function GenerateInner() {
     loadUsageStats();
   }, [loadUsageStats]);
 
+  const handleAddImage = (e) => {
+    const file = e.target.files[0];
+    if (!file || referenceImages.length >= 3) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      setReferenceImages((prev) => [...prev, { file, preview: ev.target.result }]);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const removeReferenceImage = (index) => {
+    setReferenceImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const clearReferenceImages = () => setReferenceImages([]);
+
   const handleGenerate = async (retryCount = 0) => {
     if (!prompt.trim()) return;
 
     setGenerating(true);
     setError('');
-    setShowRetry(false); // Reset retry button visibility
+    setShowRetry(false);
     if (retryCount === 0) setResult(null);
     setRetryAttempt(retryCount);
 
     try {
+      const referenceImagesBase64 = referenceImages.map((img) => img.preview.split(',')[1]);
+      const referenceImagesMimeTypes = referenceImages.map((img) => img.file.type || 'image/jpeg');
+
       let response;
       if (type === 'image') {
         response = await generationAPI.generateImage({
           prompt,
           model,
           useFaceConsistency,
-          faceModel
+          faceModel,
+          referenceImagesBase64,
+          referenceImagesMimeTypes,
         });
         setResult({ type: 'image', url: response.data.imageUrl });
       } else {
-        response = await generationAPI.generateText({ prompt, model });
+        response = await generationAPI.generateText({
+          prompt,
+          model,
+          referenceImagesBase64,
+          referenceImagesMimeTypes,
+        });
         setResult({ type: 'text', text: response.data.text });
       }
 
@@ -89,43 +118,36 @@ function GenerateInner() {
       const errorStatus = err.response?.status;
       const errorMessage = err.response?.data?.error || err.message;
 
-      // 1. Persona Completion Check
       if (errorStatus === 400 && errorMessage.toLowerCase().includes('complete your persona')) {
         setError(
           '⚠️ Face Consistency requires a complete persona. ' +
           'Please go to your Persona page and fill out your bio, industry, and brand tone.'
         );
-        return; 
+        return;
       }
 
-      // 2. Overload & Retry Logic
-      const isServiceOverload = 
-        errorStatus === 500 || 
-        errorStatus === 503 || 
-        errorMessage.includes('service') || 
+      const isServiceOverload =
+        errorStatus === 500 ||
+        errorStatus === 503 ||
+        errorMessage.includes('service') ||
         errorMessage.includes('traffic') ||
         errorMessage.includes('Downstream');
 
       if (isServiceOverload && retryCount < 3) {
-        const modelName = useFaceConsistency 
+        const modelName = useFaceConsistency
           ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
           : model.toUpperCase();
-        
         setRetryMessage(`${modelName} is busy. Retrying... (Attempt ${retryCount + 1}/3)`);
         await new Promise(resolve => setTimeout(resolve, 3000));
-        return handleGenerate(retryCount + 1); 
+        return handleGenerate(retryCount + 1);
       }
 
-      // 3. Final Error Reporting
       if (isServiceOverload) {
-        setShowRetry(true); // Show the manual retry button
-        const modelName = useFaceConsistency 
+        setShowRetry(true);
+        const modelName = useFaceConsistency
           ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
           : model.toUpperCase();
-        
-        setError(
-          `${modelName} is currently overloaded. We tried 3 times, but the server is still busy.`
-        );
+        setError(`${modelName} is currently overloaded. We tried 3 times, but the server is still busy.`);
       } else {
         setError(errorMessage || 'Failed to generate content');
       }
@@ -142,243 +164,334 @@ function GenerateInner() {
     setError('');
     setShowRetry(false);
     setRetryAttempt(0);
+    clearReferenceImages();
+  };
+
+  const switchType = (newType) => {
+    setType(newType);
+    setModel(newType === 'text' ? 'gpt-4' : 'dall-e-3');
+    setUseFaceConsistency(newType === 'image');
+    setResult(null);
+    setError('');
+    setShowRetry(false);
+    clearReferenceImages();
   };
 
   return (
     <Layout>
-      <div className="p-8 max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">Generate Content</h1>
-          <p className="text-gray-400">Create AI-powered images and text using your persona</p>
+      <div className="p-6 lg:p-10 max-w-[1400px] mx-auto min-h-screen flex flex-col">
+        
+        {/* Header & Main Toggles */}
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Create Content</h1>
+            <p className="text-gray-400 text-sm">Turn your ideas into high-quality assets</p>
+          </div>
+          
+          <div className="flex bg-black/40 p-1 rounded-xl border border-gray-800">
+            <button
+              onClick={() => switchType('image')}
+              disabled={generating}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                type === 'image' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              🎨 Image
+            </button>
+            <button
+              onClick={() => switchType('text')}
+              disabled={generating}
+              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                type === 'text' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'
+              }`}
+            >
+              ✍️ Text
+            </button>
+          </div>
         </div>
 
         {!persona && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-6 text-yellow-500 text-sm">
-            ⚠️ You haven't created a persona yet. Your generations won't include personalized context.
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex items-center gap-3 text-yellow-500 text-sm font-medium">
+            <span className="text-xl">⚠️</span>
+            You haven't created a persona yet. Your generated content won't include personalized context or your face.
           </div>
         )}
 
-        {/* Mode Toggle */}
-        <div className="flex gap-4 mb-8">
-          <button
-            onClick={() => {
-              setType('image');
-              setModel('dall-e-3');
-              setUseFaceConsistency(true);
-              setResult(null);
-              setError('');
-              setShowRetry(false);
-            }}
-            disabled={generating}
-            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'image' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">🎨</span>
-              <h3 className="text-xl font-semibold text-white">Image Generation</h3>
-            </div>
-          </button>
-
-          <button
-            onClick={() => { 
-              setType('text'); 
-              setModel('gpt-4'); 
-              setUseFaceConsistency(false);
-              setResult(null); 
-              setError('');
-              setShowRetry(false);
-            }}
-            disabled={generating}
-            className={`flex-1 p-6 rounded-xl border-2 transition text-left ${type === 'text' ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
-          >
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-3xl">✍️</span>
-              <h3 className="text-xl font-semibold text-white">Text Generation</h3>
-            </div>
-          </button>
-        </div>
-
-        <div className="grid lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <label className="text-white font-medium block mb-3">Your Prompt</label>
+        {/* Main Workspace - 2 Columns */}
+        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 flex-1">
+          
+          {/* LEFT COLUMN: Input & Settings */}
+          <div className="w-full lg:w-5/12 flex flex-col gap-6">
+            
+            {/* The Prompt Box */}
+            <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl overflow-hidden focus-within:border-brand-pink transition-colors">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                rows={4}
-                className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white outline-none focus:border-brand-pink transition resize-none"
-                placeholder={type === 'image' ? 'Describe your image...' : 'Write a post about...'}
+                rows={5}
+                className="w-full px-5 py-4 bg-transparent text-white outline-none resize-none placeholder-gray-600 text-base"
+                placeholder={type === 'image' ? "Describe the image you want to create..." : "What do you want to write about?"}
                 disabled={generating}
               />
-            </div>
-
-            {/* Generation Mode — image only */}
-            {type === 'image' && (
-              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-                <label className="text-white font-medium block mb-1">Generation Mode</label>
-                <p className="text-gray-400 text-sm mb-4">How do you want to generate your image?</p>
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Option 1: Use Persona Face */}
-                  <button
-                    onClick={() => setUseFaceConsistency(true)}
-                    disabled={generating}
-                    className={`p-4 rounded-xl border-2 transition text-left w-full ${useFaceConsistency ? 'border-brand-pink bg-brand-pink/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
-                  >
-                    <span className="text-2xl mb-2 block">🧬</span>
-                    <p className="text-white font-semibold text-sm">Use Persona Image</p>
-                    <p className="text-gray-400 text-xs mt-1">Generate with your persona's face</p>
-                  </button>
-
-                  {/* Option 2: Normal generation */}
-                  <button
-                    onClick={() => setUseFaceConsistency(false)}
-                    disabled={generating}
-                    className={`p-4 rounded-xl border-2 transition text-left w-full ${!useFaceConsistency ? 'border-white bg-white/5' : 'border-gray-700 bg-black/20 hover:border-gray-600'}`}
-                  >
-                    <span className="text-2xl mb-2 block">🎨</span>
-                    <p className="text-white font-semibold text-sm">Normal Generation</p>
-                    <p className="text-gray-400 text-xs mt-1">Generate without your face</p>
-                  </button>
-                </div>
-
-                {/* Model selector for active option */}
-                <div className="mt-4">
-                  {useFaceConsistency ? (
-                    <>
-                      <label className="text-gray-400 text-xs block mb-2">Face Model</label>
-                      <select
-                        value={faceModel}
-                        onChange={(e) => setFaceModel(e.target.value)}
-                        disabled={generating}
-                        className="w-full bg-black/40 border border-gray-700 p-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
-                      >
-                        <option value="nano-banana-2">Nano Banana 2 (HQ)</option>
-                        <option value="bytedance-seedream">ByteDance SeeDream</option>
-                      </select>
-                      {!persona && (
-                        <p className="text-yellow-400 text-xs mt-2">⚠️ Complete your persona with photos before using this mode.</p>
-                      )}
-                    </>
-                  ) : (
-                    <>
-                      <label className="text-gray-400 text-xs block mb-2">Image Model</label>
-                      <select
-                        value={model}
-                        onChange={(e) => setModel(e.target.value)}
-                        disabled={generating}
-                        className="w-full bg-black/40 border border-gray-700 p-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
-                      >
-                        <option value="dall-e-3">DALL-E 3</option>
-                        <option value="dall-e-2">DALL-E 2</option>
-                      </select>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
-
-            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h3 className="text-white font-semibold mb-4">Preview</h3>
               
-              {generating && !result && (
-                <div className="aspect-video bg-black/40 rounded-lg flex flex-col items-center justify-center border border-gray-700">
-                  <div className="relative w-16 h-16 mb-4">
-                    <div className="absolute inset-0 border-4 border-gray-700 rounded-full"></div>
-                    <div className="absolute inset-0 border-4 border-brand-pink rounded-full border-t-transparent animate-spin"></div>
-                  </div>
-                  <p className="text-white font-medium mb-1">{retryMessage || 'Generating...'}</p>
-                  {retryAttempt > 0 && <p className="text-yellow-400 text-xs">Attempt {retryAttempt}/3</p>}
-                </div>
-              )}
-              
-              {result ? (
-                <div className="space-y-4">
-                  {result.type === 'image' ? (
-                    <>
-                      <img src={result.url} alt="Generated" className="w-full rounded-lg shadow-lg" />
-                      <div className="flex gap-4">
-                        <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3 rounded-lg font-semibold text-center hover:bg-gray-200 transition">
-                          Download
-                        </a>
-                        <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-white/10 text-white py-3 rounded-lg font-semibold text-center hover:bg-white/20 transition">
-                          View Full
-                        </a>
-                      </div>
-                    </>
-                  ) : (
-                    <>
-                      <div className="bg-black/40 rounded-lg p-6 max-h-96 overflow-y-auto text-gray-300 whitespace-pre-wrap border border-gray-700">
-                        {result.text}
-                      </div>
-                      <button onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }} className="w-full bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200 transition">
-                        📋 Copy to Clipboard
+              {/* Reference Images Toolbar within Prompt */}
+              <div className="bg-[#1a1a1a] px-5 py-3 border-t border-gray-800 flex items-center justify-between">
+                <div className="flex items-center gap-2 overflow-x-auto">
+                  {referenceImages.map((img, i) => (
+                    <div key={i} className="relative group flex-shrink-0">
+                      <img
+                        src={img.preview}
+                        alt={`ref-${i}`}
+                        className="w-10 h-10 object-cover rounded-md border border-gray-600 opacity-80 group-hover:opacity-100 transition"
+                      />
+                      <button
+                        onClick={() => removeReferenceImage(i)}
+                        disabled={generating}
+                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 hover:bg-red-400 rounded-full text-white flex items-center justify-center text-[10px] shadow-sm"
+                      >
+                        ✕
                       </button>
-                    </>
+                    </div>
+                  ))}
+                  
+                  {referenceImages.length < 3 && (
+                    <button
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={generating}
+                      className="w-10 h-10 rounded-md border border-dashed border-gray-600 hover:border-gray-400 flex items-center justify-center text-gray-500 hover:text-gray-300 transition flex-shrink-0 bg-black/20"
+                      title="Attach reference image"
+                    >
+                      <span className="text-lg leading-none">+</span>
+                    </button>
                   )}
+                  <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAddImage} className="hidden" />
                 </div>
-              ) : !generating && (
-                <div className="aspect-video bg-black/40 rounded-lg flex items-center justify-center border border-gray-700 text-gray-500">
-                  <div className="text-center">
-                    <span className="text-4xl mb-2 block">🖼️</span>
-                    <p>Your content will appear here</p>
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-6 pt-6 border-t border-gray-700">
-                <div className="flex justify-between text-sm mb-2">
-                  <span className="text-gray-400">Today's Usage</span>
-                  <span className="text-white font-semibold">{usageStats.used}/{usageStats.limit}</span>
-                </div>
-                <div className="w-full bg-gray-700 h-2 rounded-full overflow-hidden">
-                  <div className="bg-brand-pink h-2 transition-all duration-500" style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}></div>
-                </div>
+                
+                <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
+                  {referenceImages.length}/3 attached
+                </span>
               </div>
             </div>
 
-            <div className="flex gap-4">
+            {/* Settings Area */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Generation Settings</h3>
+              
+              {type === 'image' ? (
+                <div className="flex flex-col gap-3">
+                  {/* Option 1: Persona Mode */}
+                  <div 
+                    onClick={() => !generating && setUseFaceConsistency(true)}
+                    className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      useFaceConsistency ? 'border-brand-pink bg-brand-pink/5' : 'border-gray-800 bg-[#111] hover:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${useFaceConsistency ? 'bg-brand-pink/20 text-brand-pink' : 'bg-gray-800 text-gray-400'}`}>
+                        🧬
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium mb-1">Brand Persona Mode</h4>
+                        <p className="text-gray-400 text-xs leading-relaxed mb-3">
+                          Uses your uploaded photos to generate a facially consistent image. Ideal for professional headshots and branded content.
+                        </p>
+                        
+                        {useFaceConsistency && (
+                          <div onClick={e => e.stopPropagation()}>
+                            <select
+                              value={faceModel}
+                              onChange={(e) => setFaceModel(e.target.value)}
+                              disabled={generating}
+                              className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
+                            >
+                              <option value="nano-banana-2">Model: Nano Banana 2 (High Quality)</option>
+                              <option value="bytedance-seedream">Model: ByteDance SeeDream</option>
+                            </select>
+                          </div>
+                        )}
+                        {useFaceConsistency && !persona && (
+                          <p className="text-yellow-400 text-xs mt-2 font-medium">⚠️ Complete your persona first.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Option 2: Normal Mode */}
+                  <div 
+                    onClick={() => !generating && setUseFaceConsistency(false)}
+                    className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                      !useFaceConsistency ? 'border-white/60 bg-white/5' : 'border-gray-800 bg-[#111] hover:border-gray-700'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`p-2 rounded-lg ${!useFaceConsistency ? 'bg-white/20 text-white' : 'bg-gray-800 text-gray-400'}`}>
+                        🎨
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="text-white font-medium mb-1">Freestyle Mode</h4>
+                        <p className="text-gray-400 text-xs leading-relaxed mb-3">
+                          Generates images purely from your prompt without using your face. Best for abstract art, scenes, and concepts.
+                        </p>
+                        
+                        {!useFaceConsistency && (
+                          <div onClick={e => e.stopPropagation()}>
+                            <select
+                              value={model}
+                              onChange={(e) => setModel(e.target.value)}
+                              disabled={generating}
+                              className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-white/50"
+                            >
+                              <option value="dall-e-3">Model: DALL-E 3 (Creative)</option>
+                              <option value="dall-e-2">Model: DALL-E 2 (Fast)</option>
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                /* Text Mode Settings */
+                <div className="bg-[#111] rounded-xl border border-gray-800 p-5">
+                  <label className="text-white font-medium block mb-2">Select AI Model</label>
+                  <p className="text-gray-400 text-xs mb-4">Choose the intelligence engine for your text.</p>
+                  <select 
+                    value={model} 
+                    onChange={(e) => setModel(e.target.value)} 
+                    disabled={generating} 
+                    className="w-full bg-black border border-gray-700 p-3 rounded-lg text-white text-sm focus:border-brand-pink outline-none"
+                  >
+                    <option value="gpt-4">GPT-4 (Best for logic & reasoning)</option>
+                    <option value="gpt-4o">GPT-4o (Fastest & most capable)</option>
+                    <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Quick drafts)</option>
+                  </select>
+                  {referenceImages.length > 0 && (
+                    <div className="mt-3 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
+                      <p className="text-blue-400 text-xs flex items-center gap-2">
+                        <span>⚡</span> GPT-4o will be used automatically to process your attached images.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-4 flex flex-col gap-3">
               <button
                 onClick={() => handleGenerate(0)}
                 disabled={generating || !prompt.trim()}
-                className="flex-1 bg-white text-black py-4 rounded-xl font-semibold hover:bg-gray-200 disabled:opacity-50 transition transform active:scale-95"
+                className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] shadow-lg"
               >
-                {generating ? 'Processing...' : 'Generate with AI'}
+                {generating ? 'Processing...' : `Generate ${type === 'image' ? 'Image' : 'Text'}`}
               </button>
-              {result && <button onClick={handleReset} className="px-8 py-4 bg-white/10 text-white rounded-xl hover:bg-white/20 transition">New</button>}
+              
+              {result && (
+                <button onClick={handleReset} className="w-full py-3 text-gray-400 hover:text-white transition text-sm font-medium">
+                  Clear and start over
+                </button>
+              )}
             </div>
-
+            
+            {/* Error Message Inline */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-5">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-red-400 font-semibold mb-1">Error</p>
-                    <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex flex-col gap-3">
+                <div className="flex gap-3">
+                  <span className="text-red-400 mt-0.5">⚠️</span>
+                  <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+                </div>
+                {showRetry && (
+                  <button
+                    onClick={() => handleGenerate(0)}
+                    className="self-end px-4 py-2 bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition"
+                  >
+                    🔄 Retry Now
+                  </button>
+                )}
+              </div>
+            )}
+            
+          </div>
+
+          {/* RIGHT COLUMN: Preview & Results */}
+          <div className="w-full lg:w-7/12 flex flex-col">
+            <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl flex-1 flex flex-col overflow-hidden min-h-[500px]">
+              
+              {/* Output Header */}
+              <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-[#151515]">
+                <h3 className="text-white font-semibold flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-brand-pink"></span>
+                  Output Preview
+                </h3>
+                
+                {/* Usage Stats (Moved to a cleaner spot) */}
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-gray-500 font-medium">Daily Uses: {usageStats.used}/{usageStats.limit}</span>
+                  <div className="w-24 bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-brand-pink h-full transition-all duration-500" 
+                      style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}
+                    />
                   </div>
-                  {showRetry && (
-                    <button 
-                      onClick={() => handleGenerate(0)}
-                      className="ml-4 px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-bold hover:bg-red-600 transition shadow-lg"
-                    >
-                      🔄 Retry Now
-                    </button>
-                  )}
                 </div>
               </div>
-            )}
-          </div>
 
-          {/* Sidebar Controls */}
-          <div className="space-y-6">
-            {type === 'text' && (
-              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-                <label className="text-white font-medium block mb-4">✨ AI Model</label>
-                <select value={model} onChange={(e) => setModel(e.target.value)} className="w-full bg-black/40 border border-gray-700 p-3 rounded-lg text-white focus:border-brand-pink outline-none">
-                  <option value="gpt-4">GPT-4</option>
-                  <option value="gpt-4o">GPT-4o</option>
-                  <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                </select>
+              {/* Output Content Area */}
+              <div className="flex-1 p-6 flex flex-col justify-center bg-black/20">
+                {generating && !result && (
+                  <div className="flex flex-col items-center justify-center animate-pulse">
+                    <div className="relative w-16 h-16 mb-6">
+                      <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
+                      <div className="absolute inset-0 border-4 border-brand-pink rounded-full border-t-transparent animate-spin"></div>
+                    </div>
+                    <p className="text-white font-medium text-lg mb-2">{retryMessage || 'Working on your request...'}</p>
+                    {retryAttempt > 0 && <p className="text-yellow-400 text-sm bg-yellow-400/10 px-3 py-1 rounded-full">Attempt {retryAttempt}/3</p>}
+                  </div>
+                )}
+
+                {result ? (
+                  <div className="w-full h-full flex flex-col h-full">
+                    {result.type === 'image' ? (
+                      <div className="flex flex-col h-full justify-between items-center space-y-6">
+                        <div className="relative w-full max-w-lg mx-auto rounded-xl overflow-hidden shadow-2xl border border-gray-700">
+                          <img src={result.url} alt="Generated Asset" className="w-full h-auto object-contain" />
+                        </div>
+                        <div className="flex w-full max-w-lg gap-3">
+                          <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg">
+                            ↓ Download Image
+                          </a>
+                          <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-[#222] border border-gray-700 text-white py-3.5 rounded-xl font-bold text-center hover:bg-[#333] transition">
+                            ⤢ Open Full Size
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-col h-full">
+                        <div className="flex-1 bg-[#1a1a1a] rounded-xl p-6 overflow-y-auto text-gray-200 text-lg leading-relaxed whitespace-pre-wrap border border-gray-700 custom-scrollbar">
+                          {result.text}
+                        </div>
+                        <button 
+                          onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }} 
+                          className="mt-4 w-full bg-white text-black py-3.5 rounded-xl font-bold hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-2"
+                        >
+                          <span>📋</span> Copy Text to Clipboard
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ) : !generating && (
+                  <div className="text-center flex flex-col items-center justify-center h-full opacity-60">
+                    <div className="w-20 h-20 bg-gray-800 rounded-2xl flex items-center justify-center mb-4 transform -rotate-6">
+                      <span className="text-3xl">{type === 'image' ? '🖼️' : '📝'}</span>
+                    </div>
+                    <h4 className="text-white font-medium text-lg mb-1">Awaiting your prompt</h4>
+                    <p className="text-gray-500 text-sm max-w-xs mx-auto">Fill out the details on the left and hit generate to see your results here.</p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </div>
+          
         </div>
       </div>
     </Layout>
@@ -387,7 +500,16 @@ function GenerateInner() {
 
 export default function Generate() {
   return (
-    <Suspense fallback={<Layout><div className="flex items-center justify-center h-screen"><div className="text-xl text-gray-400">Loading...</div></div></Layout>}>
+    <Suspense fallback={
+      <Layout>
+        <div className="flex items-center justify-center h-screen bg-black">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-4 border-gray-800 border-t-brand-pink rounded-full animate-spin"></div>
+            <div className="text-sm font-medium text-gray-400">Loading Workspace...</div>
+          </div>
+        </div>
+      </Layout>
+    }>
       <GenerateInner />
     </Suspense>
   );
