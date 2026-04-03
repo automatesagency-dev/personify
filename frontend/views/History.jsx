@@ -95,17 +95,15 @@ export default function History() {
 
   return (
     <Layout>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">Generation History</h1>
-          <p className="text-gray-400">
-            View and manage all your AI-Generated content
-          </p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1 md:mb-2">Generation History</h1>
+          <p className="text-gray-400 text-sm md:text-base">View and manage all your AI-Generated content</p>
         </div>
 
         {/* Stats Cards */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
             <p className="text-gray-400 text-sm mb-2">Images Today</p>
             <div className="flex items-end justify-between">
@@ -138,7 +136,7 @@ export default function History() {
         </div>
 
         {/* Filters and Search */}
-        <div className="flex flex-wrap gap-4 items-center justify-between mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 items-start sm:items-center justify-between mb-6">
           {/* Filter Tabs */}
           <div className="flex gap-2 bg-dark-card rounded-xl p-2 border border-gray-800">
             <button
@@ -174,14 +172,14 @@ export default function History() {
           </div>
 
           {/* Search */}
-          <div className="flex gap-2">
-            <div className="relative">
+          <div className="flex gap-2 w-full sm:w-auto">
+            <div className="relative flex-1 sm:flex-none">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search generations..."
-                className="pl-10 pr-4 py-2 bg-dark-card border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition w-64"
+                className="pl-10 pr-4 py-2 bg-dark-card border border-gray-800 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition w-full sm:w-64"
               />
               <svg
                 className="w-5 h-5 text-gray-500 absolute left-3 top-1/2 -translate-y-1/2"
@@ -217,7 +215,7 @@ export default function History() {
             </a>
           </div>
         ) : (
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 md:gap-6">
             {filteredGenerations.map((gen) => (
               <div
                 key={gen.id}

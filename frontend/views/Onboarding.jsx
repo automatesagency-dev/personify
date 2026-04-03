@@ -151,21 +151,21 @@ export default function Onboarding() {
   return (
     <div className="min-h-screen bg-black text-white flex flex-col">
       {/* Header */}
-      <div className="px-8 py-6 flex items-center justify-between border-b border-gray-900">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between border-b border-gray-900">
         <Link href="/" className="flex items-center gap-2">
           <img src="/images/logo.png" alt="Personify" className="w-7 h-7" />
           <span className="text-lg font-semibold">Personify</span>
         </Link>
-        <div className="flex items-center gap-6">
-          <span className="text-gray-400 text-sm">Step {stepIndex + 1} of {STEPS.length}</span>
+        <div className="flex items-center gap-3 sm:gap-6">
+          <span className="text-gray-400 text-xs sm:text-sm">{stepIndex + 1}/{STEPS.length}</span>
           <button onClick={handleSkip} className="text-gray-500 hover:text-gray-300 text-sm transition">
-            Skip for now
+            Skip
           </button>
         </div>
       </div>
 
       {/* Progress Steps */}
-      <div className="px-8 py-6 flex items-start justify-center gap-0">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 flex items-start justify-center gap-0">
         {STEPS.map((step, i) => {
           const isActive = i === stepIndex;
           const isVisited = i <= maxStep;
@@ -175,20 +175,20 @@ export default function Onboarding() {
               <div className="flex flex-col items-center">
                 <div
                   onClick={() => isClickable && setStepIndex(i)}
-                  className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                  className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full flex items-center justify-center transition-all ${
                     isActive ? 'bg-white text-black' :
                     isVisited ? 'bg-white text-black' :
                     'bg-gray-800 text-gray-600'
                   } ${isClickable ? 'cursor-pointer hover:opacity-75' : ''}`}
                 >
                   {isVisited && !isActive
-                    ? <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
-                    : STEP_ICONS[step]
+                    ? <svg className="w-3 h-3 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" /></svg>
+                    : <span className="[&>svg]:w-3 [&>svg]:h-3 sm:[&>svg]:w-5 sm:[&>svg]:h-5">{STEP_ICONS[step]}</span>
                   }
                 </div>
                 <span
                   onClick={() => isClickable && setStepIndex(i)}
-                  className={`text-xs mt-2 font-medium whitespace-nowrap transition-colors ${
+                  className={`hidden sm:block text-xs mt-2 font-medium whitespace-nowrap transition-colors ${
                     isActive ? 'text-white' : isVisited ? 'text-gray-400 cursor-pointer hover:text-white' : 'text-gray-600'
                   }`}
                 >
@@ -196,7 +196,7 @@ export default function Onboarding() {
                 </span>
               </div>
               {i < STEPS.length - 1 && (
-                <div className={`h-px w-16 mt-5 mx-1 transition-all ${i < maxStep + 1 ? 'bg-white' : 'bg-gray-800'}`} />
+                <div className={`h-px w-6 sm:w-16 mt-3.5 sm:mt-5 mx-0.5 sm:mx-1 transition-all ${i < maxStep + 1 ? 'bg-white' : 'bg-gray-800'}`} />
               )}
             </div>
           );
@@ -215,14 +215,14 @@ export default function Onboarding() {
               </svg>
               Build Your Digital Persona
             </div>
-            <h1 className="text-5xl font-bold mb-6 leading-tight">
+            <h1 className="text-3xl sm:text-5xl font-bold mb-4 sm:mb-6 leading-tight">
               Your Creative Journey<br />Starts With You
             </h1>
-            <p className="text-gray-400 text-lg mb-12 max-w-xl mx-auto">
+            <p className="text-gray-400 text-base sm:text-lg mb-8 sm:mb-12 max-w-xl mx-auto">
               Create a personalised AI persona that understands your style, audience and brand.
               Generate stunning content that truly represents who you are.
             </p>
-            <div className="grid grid-cols-3 gap-4 mb-12">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-12">
               {[
                 { icon: '👤', title: 'Your Identity', desc: 'Upload your photos and define your unique style' },
                 { icon: '🎯', title: 'Your Audience', desc: 'Define who you create content for' },
@@ -243,7 +243,7 @@ export default function Onboarding() {
         {currentStep === 'images' && (
           <div className="w-full">
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold mb-4">Upload Your Reference Images</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-4">Upload Your Reference Images</h1>
               <p className="text-gray-400 max-w-md mx-auto">
                 These photos will help AI understand your appearance and style.
                 Upload 3–10 clear photos of yourself in different settings.
@@ -272,7 +272,7 @@ export default function Onboarding() {
               onClick={() => fileInputRef.current?.click()}
               onDrop={(e) => { e.preventDefault(); handleImageAdd(e.dataTransfer.files); }}
               onDragOver={(e) => e.preventDefault()}
-              className="border-2 border-dashed border-gray-700 rounded-xl p-16 text-center cursor-pointer hover:border-gray-500 transition mb-6"
+              className="border-2 border-dashed border-gray-700 rounded-xl p-8 sm:p-16 text-center cursor-pointer hover:border-gray-500 transition mb-6"
             >
               <svg className="w-10 h-10 mx-auto mb-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -297,7 +297,7 @@ export default function Onboarding() {
         {currentStep === 'industry' && (
           <div className="w-full">
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold mb-4">What's Your Industry</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-4">What's Your Industry</h1>
               <p className="text-gray-400">These photos will help AI understand your appearance and style. Upload 3-10 clear photos of yourself in different settings.</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -332,7 +332,7 @@ export default function Onboarding() {
         {currentStep === 'audience' && (
           <div className="w-full">
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold mb-4">Who's Your Audience?</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-4">Who's Your Audience?</h1>
               <p className="text-gray-400">Understanding your audience helps create more targeted content</p>
             </div>
             <div className="mb-8">
@@ -355,7 +355,7 @@ export default function Onboarding() {
             </div>
             <div>
               <p className="text-sm font-medium text-gray-300 mb-4">Demographics</p>
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {DEMOGRAPHICS.map(dem => (
                   <button
                     key={dem}
@@ -378,7 +378,7 @@ export default function Onboarding() {
         {currentStep === 'brandTone' && (
           <div className="w-full">
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold mb-4">Define Your Brand Tone</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-4">Define Your Brand Tone</h1>
               <p className="text-gray-400">Select 1-3 tones that best describe your content style</p>
             </div>
             <div className="grid grid-cols-2 gap-3 mb-6">
@@ -413,7 +413,7 @@ export default function Onboarding() {
         {currentStep === 'review' && (
           <div className="w-full">
             <div className="text-center mb-10">
-              <h1 className="text-4xl font-bold mb-4">Review Your Persona</h1>
+              <h1 className="text-2xl sm:text-4xl font-bold mb-4">Review Your Persona</h1>
               <p className="text-gray-400">Make sure everything looks good before we create your AI persona</p>
             </div>
             <div className="space-y-4 mb-6">
@@ -436,7 +436,7 @@ export default function Onboarding() {
                 {niche && <p className="text-gray-400 text-sm mt-1">{niche}</p>}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="bg-white/5 border border-gray-800 rounded-xl p-5">
                   <p className="text-gray-500 text-sm mb-2">Target Audience</p>
                   <p className="text-white font-semibold">{[ageRange, demographic].filter(Boolean).join(', ') || <span className="text-gray-600">Not specified</span>}</p>
@@ -460,7 +460,7 @@ export default function Onboarding() {
       </div>
 
       {/* Footer nav */}
-      <div className="px-8 py-6 flex items-center justify-between border-t border-gray-900 max-w-3xl mx-auto w-full">
+      <div className="px-4 sm:px-8 py-4 sm:py-6 flex items-center justify-between border-t border-gray-900 max-w-3xl mx-auto w-full">
         <button
           onClick={() => setStepIndex(i => i - 1)}
           disabled={isFirst}

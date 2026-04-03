@@ -175,11 +175,11 @@ export default function Settings() {
 
   return (
     <Layout>
-      <div className="p-8 max-w-6xl mx-auto">
+      <div className="p-4 md:p-8 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">Settings</h1>
-          <p className="text-gray-400">Manage your account and preferences</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1 md:mb-2">Settings</h1>
+          <p className="text-gray-400 text-sm md:text-base">Manage your account and preferences</p>
         </div>
 
         {/* Tabs */}
@@ -287,17 +287,17 @@ export default function Settings() {
                 )}
 
                 {/* Buttons */}
-                <div className="flex gap-4 mt-6">
+                <div className="flex flex-wrap gap-3 mt-6">
                   <button
                     type="submit"
-                    className="px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition"
+                    className="flex-1 sm:flex-none px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition"
                   >
                     Save Changes
                   </button>
                   <button
                     type="button"
                     onClick={loadUserData}
-                    className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
+                    className="flex-1 sm:flex-none px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
                   >
                     Cancel
                   </button>
@@ -481,7 +481,7 @@ export default function Settings() {
               <h2 className="text-xl font-semibold text-white mb-2">Daily Usage</h2>
               <p className="text-sm text-gray-400 mb-6">Track your generation usage for today</p>
 
-              <div className="grid md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                 <div className="bg-black/40 rounded-xl p-6">
                   <p className="text-gray-400 text-sm mb-2">Image Generations</p>
                   <p className="text-3xl font-bold text-white mb-4">{stats.imagesUsedToday}/10</p>
@@ -510,7 +510,7 @@ export default function Settings() {
               <h2 className="text-xl font-semibold text-white mb-2">Total Statistics</h2>
               <p className="text-sm text-gray-400 mb-6">Your all-time generation statistics</p>
 
-              <div className="grid md:grid-cols-4 gap-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
                 <div className="bg-black/40 rounded-xl p-6">
                   <p className="text-gray-400 text-sm mb-2">Total Generations</p>
                   <p className="text-3xl font-bold text-white">{stats.totalGenerations}</p>
@@ -543,7 +543,7 @@ export default function Settings() {
               <p className="text-gray-400">Select the perfect plan for your creative needs</p>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
               {/* Plans omitted for brevity but remain the same as your source */}
               <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
                 <h3 className="text-2xl font-semibold text-white mb-4">Free</h3>

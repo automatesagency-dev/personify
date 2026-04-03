@@ -119,11 +119,11 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="p-8 max-w-7xl mx-auto">
+      <div className="p-4 md:p-8 max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-semibold text-white mb-2">Welcome Back, {user?.name || 'User'}</h1>
-          <p className="text-gray-400">Ready to create something amazing today?</p>
+        <div className="mb-6 md:mb-8">
+          <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1 md:mb-2">Welcome Back, {user?.name || 'User'}</h1>
+          <p className="text-gray-400 text-sm md:text-base">Ready to create something amazing today?</p>
         </div>
 
         {/* Persona Card */}
@@ -139,7 +139,7 @@ export default function Dashboard() {
               </div>
               <Link href="/persona" className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg transition text-sm font-medium">Change Persona</Link>
             </div>
-            <div className="grid grid-cols-3 gap-6 mt-6">
+            <div className="grid grid-cols-3 gap-3 md:gap-6 mt-4 md:mt-6">
               {[
                 { val: persona.personaImages?.length || 0, label: 'Reference Images', isBig: true },
                 { val: persona.targetAudience || 'Young Adults', label: 'Target Audience' },
@@ -269,7 +269,7 @@ export default function Dashboard() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid md:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6 mb-6 md:mb-8">
           {statCardsData.map((stat, idx) => <StatCard key={idx} {...stat} />)}
         </div>
 
@@ -280,7 +280,7 @@ export default function Dashboard() {
               <h2 className="text-xl font-semibold text-white">Recent Generations</h2>
               <Link href="/history" className="text-sm text-brand-pink hover:text-pink-400 font-medium">View All →</Link>
             </div>
-            <div className="grid md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {recentGenerations.map((gen) => (
                 <div key={gen.id} className="bg-black/40 rounded-xl overflow-hidden border border-gray-800 hover:border-gray-700 transition">
                   <div className="h-48 bg-gray-900 flex items-center justify-center">
