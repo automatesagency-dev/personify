@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import Layout from '../components/Layout';
 import { personaAPI } from '../services/api';
+import posthog from 'posthog-js';
 
 export default function Persona() {
   const [persona, setPersona] = useState(null);
@@ -63,6 +64,7 @@ export default function Persona() {
     setSaving(true);
     try {
       await personaAPI.create(formData);
+      posthog.capture('persona_saved', { is_new: !persona });
       notify('success', 'Persona updated successfully!');
       await loadPersona();
     } catch (error) {
@@ -89,6 +91,7 @@ export default function Persona() {
         data.append('image', file);
         await personaAPI.uploadImage(data);
       }
+      posthog.capture('persona_image_uploaded', { count: Array.from(files).length });
       notify('success', 'Images uploaded successfully!');
       await loadPersona();
     } catch (error) {
@@ -104,6 +107,7 @@ export default function Persona() {
 
     try {
       await personaAPI.deleteImage(imageId);
+      posthog.capture('persona_image_deleted');
       setLoadedImages(prev => {
         const next = new Set(prev);
         next.delete(imageId);
