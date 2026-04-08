@@ -1,7 +1,10 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
 import { authAPI } from '../services/api';
+
+const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
+const INACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
 
 const AuthContext = createContext();
 
@@ -9,6 +12,7 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(null);
+  const inactivityTimer = useRef(null);
 
   // Load token from localStorage after mount (client-only)
   useEffect(() => {
@@ -69,11 +73,36 @@ export function AuthProvider({ children }) {
     return response.data;
   };
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-  };
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+  }, []);
+
+  const resetInactivityTimer = useCallback(() => {
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+    inactivityTimer.current = setTimeout(() => {
+      logout();
+    }, INACTIVITY_TIMEOUT);
+  }, [logout]);
+
+  // Set up inactivity tracking when user is logged in
+  useEffect(() => {
+    if (!user) return;
+
+    resetInactivityTimer();
+    INACTIVITY_EVENTS.forEach((event) =>
+      window.addEventListener(event, resetInactivityTimer)
+    );
+
+    return () => {
+      if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+      INACTIVITY_EVENTS.forEach((event) =>
+        window.removeEventListener(event, resetInactivityTimer)
+      );
+    };
+  }, [user, resetInactivityTimer]);
 
   return (
     <AuthContext.Provider value={{

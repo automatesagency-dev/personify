@@ -1,9 +1,11 @@
 module.exports = {
+  darkMode: 'class',
   content: ['./app/**/*.{js,jsx}', './components/**/*.{js,jsx}', './views/**/*.{js,jsx}'],
   theme: {
     extend: {
       fontFamily: {
         'poppins': ['Poppins', 'sans-serif'],
+        'questrial': ['var(--font-questrial)', 'sans-serif'],
       },
       colors: {
         'brand-pink': '#E91E63',
