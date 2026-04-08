@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Layout from '../components/Layout';
 import { generationAPI, personaAPI } from '../services/api';
-import posthog from 'posthog-js';
 
 function GenerateInner() {
   const searchParams = useSearchParams();
@@ -63,7 +62,6 @@ function GenerateInner() {
   const handleAddImage = (e) => {
     const file = e.target.files[0];
     if (!file || referenceImages.length >= 3) return;
-    posthog.capture('reference_image_added', { total_after: referenceImages.length + 1 });
     const reader = new FileReader();
     reader.onload = (ev) => {
       setReferenceImages((prev) => [...prev, { file, preview: ev.target.result }]);
@@ -86,15 +84,6 @@ function GenerateInner() {
     setShowRetry(false);
     if (retryCount === 0) setResult(null);
     setRetryAttempt(retryCount);
-
-    if (retryCount === 0) {
-      posthog.capture('generation_started', {
-        content_type: type,
-        model: useFaceConsistency ? faceModel : model,
-        face_consistency: useFaceConsistency,
-        reference_images: referenceImages.length,
-      });
-    }
 
     try {
       const referenceImagesBase64 = referenceImages.map((img) => img.preview.split(',')[1]);
@@ -120,13 +109,6 @@ function GenerateInner() {
         });
         setResult({ type: 'text', text: response.data.text });
       }
-
-      posthog.capture('generation_completed', {
-        content_type: type,
-        model: useFaceConsistency ? faceModel : model,
-        face_consistency: useFaceConsistency,
-        reference_images: referenceImages.length,
-      });
 
       await loadUsageStats();
       setRetryAttempt(0);
@@ -169,12 +151,6 @@ function GenerateInner() {
       } else {
         setError(errorMessage || 'Failed to generate content');
       }
-      posthog.capture('generation_failed', {
-        content_type: type,
-        model: useFaceConsistency ? faceModel : model,
-        error: errorMessage,
-        service_overload: isServiceOverload,
-      });
     } finally {
       setGenerating(false);
       setRetryAttempt(0);
@@ -192,7 +168,6 @@ function GenerateInner() {
   };
 
   const switchType = (newType) => {
-    posthog.capture('content_type_switched', { to: newType });
     setType(newType);
     setModel(newType === 'text' ? 'gpt-4' : 'dall-e-3');
     setUseFaceConsistency(newType === 'image');
@@ -482,7 +457,7 @@ function GenerateInner() {
                           <img src={result.url} alt="Generated Asset" className="w-full h-auto object-contain" />
                         </div>
                         <div className="flex w-full max-w-lg gap-3">
-                          <a href={result.url} download target="_blank" rel="noreferrer" onClick={() => posthog.capture('image_downloaded')} className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg">
+                          <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg">
                             ↓ Download Image
                           </a>
                           <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-[#222] border border-gray-700 text-white py-3.5 rounded-xl font-bold text-center hover:bg-[#333] transition">
@@ -496,7 +471,7 @@ function GenerateInner() {
                           {result.text}
                         </div>
                         <button 
-                          onClick={() => { navigator.clipboard.writeText(result.text); posthog.capture('text_copied'); alert('Copied!'); }}
+                          onClick={() => { navigator.clipboard.writeText(result.text); alert('Copied!'); }}
                           className="mt-4 w-full bg-white text-black py-3.5 rounded-xl font-bold hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-2"
                         >
                           <span>📋</span> Copy Text to Clipboard
