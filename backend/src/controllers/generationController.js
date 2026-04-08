@@ -20,7 +20,14 @@ async function generateImage(req, res) {
     } = req.body;
 
     // Map aspect ratio to model-specific size strings
-    const falSizeMap = {
+    // nano-banana-2 uses aspect_ratio param with these string values
+    const nanoAspectRatioMap = {
+      square: '1:1',
+      portrait: '9:16',
+      landscape: '16:9'
+    };
+    // seedream uses image_size
+    const seedreamSizeMap = {
       square: 'square_hd',
       portrait: 'portrait_4_3',
       landscape: 'landscape_4_3'
@@ -30,7 +37,8 @@ async function generateImage(req, res) {
       portrait: '1024x1792',
       landscape: '1792x1024'
     };
-    const falImageSize = falSizeMap[aspectRatio] || 'square_hd';
+    const nanoAspectRatio = nanoAspectRatioMap[aspectRatio] || '1:1';
+    const seedreamImageSize = seedreamSizeMap[aspectRatio] || 'square_hd';
     const dalleImageSize = dalleSize[aspectRatio] || '1024x1024';
 
     if (!prompt) {
@@ -127,7 +135,7 @@ async function generateImage(req, res) {
               input: {
                 image_urls: imageUrlsForFal,
                 prompt: enhancedPrompt,
-                image_size: falImageSize,
+                aspect_ratio: nanoAspectRatio,
                 num_inference_steps: 28,
                 guidance_scale: 3.5,
                 num_images: 1,
@@ -145,7 +153,7 @@ async function generateImage(req, res) {
                 input: {
                   image_urls: imageUrlsForFal,
                   prompt: enhancedPrompt,
-                  image_size: falImageSize,
+                  image_size: seedreamImageSize,
                   num_inference_steps: 25,
                   guidance_scale: 7.5,
                   num_images: 1
