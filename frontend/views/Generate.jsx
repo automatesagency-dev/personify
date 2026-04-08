@@ -22,6 +22,7 @@ function GenerateInner() {
 
   const [useFaceConsistency, setUseFaceConsistency] = useState(true);
   const [faceModel, setFaceModel] = useState('nano-banana-2');
+  const [aspectRatio, setAspectRatio] = useState('square');
   const [retryAttempt, setRetryAttempt] = useState(0);
   const [retryMessage, setRetryMessage] = useState('');
 
@@ -98,6 +99,7 @@ function GenerateInner() {
           faceModel,
           referenceImagesBase64,
           referenceImagesMimeTypes,
+          aspectRatio,
         });
         setResult({ type: 'image', url: response.data.imageUrl });
       } else {
@@ -171,6 +173,7 @@ function GenerateInner() {
     setType(newType);
     setModel(newType === 'text' ? 'gpt-4' : 'dall-e-3');
     setUseFaceConsistency(newType === 'image');
+    setAspectRatio('square');
     setResult(null);
     setError('');
     setShowRetry(false);
@@ -276,6 +279,37 @@ function GenerateInner() {
             {/* Settings Area */}
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Generation Settings</h3>
+
+              {/* Aspect Ratio — image mode only */}
+              {type === 'image' && (
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Aspect Ratio</label>
+                  <div className="flex gap-2">
+                    {[
+                      { value: 'square', label: 'Square', icon: '⬛' },
+                      { value: 'portrait', label: 'Portrait', icon: '▬' },
+                      { value: 'landscape', label: 'Landscape', icon: '▭' },
+                    ].map(({ value, label, icon }) => (
+                      <button
+                        key={value}
+                        onClick={() => !generating && setAspectRatio(value)}
+                        disabled={generating}
+                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-medium transition-all ${
+                          aspectRatio === value
+                            ? 'border-brand-pink bg-brand-pink/10 text-white'
+                            : 'border-gray-800 bg-[#111] text-gray-400 hover:border-gray-600'
+                        }`}
+                      >
+                        <span className={`text-base ${value === 'portrait' ? 'rotate-90' : ''}`}>{icon}</span>
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {!useFaceConsistency && model === 'dall-e-2' && aspectRatio !== 'square' && (
+                    <p className="text-yellow-400 text-xs mt-2">⚠️ DALL-E 2 only supports square. Upgrade to DALL-E 3 for other ratios.</p>
+                  )}
+                </div>
+              )}
               
               {type === 'image' ? (
                 <div className="flex flex-col gap-3">

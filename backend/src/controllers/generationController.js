@@ -15,8 +15,23 @@ async function generateImage(req, res) {
       useFaceConsistency = false,
       faceModel = 'nano-banana-2',
       referenceImagesBase64 = [],
-      referenceImagesMimeTypes = []
+      referenceImagesMimeTypes = [],
+      aspectRatio = 'square'
     } = req.body;
+
+    // Map aspect ratio to model-specific size strings
+    const falSizeMap = {
+      square: 'square_hd',
+      portrait: 'portrait_4_3',
+      landscape: 'landscape_4_3'
+    };
+    const dalleSize = {
+      square: '1024x1024',
+      portrait: '1024x1792',
+      landscape: '1792x1024'
+    };
+    const falImageSize = falSizeMap[aspectRatio] || 'square_hd';
+    const dalleImageSize = dalleSize[aspectRatio] || '1024x1024';
 
     if (!prompt) {
       return res.status(400).json({
@@ -112,7 +127,7 @@ async function generateImage(req, res) {
               input: {
                 image_urls: imageUrlsForFal,
                 prompt: enhancedPrompt,
-                image_size: 'square_hd',
+                image_size: falImageSize,
                 num_inference_steps: 28,
                 guidance_scale: 3.5,
                 num_images: 1,
@@ -130,6 +145,7 @@ async function generateImage(req, res) {
                 input: {
                   image_urls: imageUrlsForFal,
                   prompt: enhancedPrompt,
+                  image_size: falImageSize,
                   num_inference_steps: 25,
                   guidance_scale: 7.5,
                   num_images: 1
@@ -164,11 +180,13 @@ async function generateImage(req, res) {
         // =====================================
         console.log('🖼 Using DALL-E...');
 
+        // DALL-E 2 only supports square
+        const effectiveSize = model === 'dall-e-2' ? '1024x1024' : dalleImageSize;
         const response = await openai.images.generate({
           model: model,
           prompt: enhancedPrompt,
           n: 1,
-          size: '1024x1024',
+          size: effectiveSize,
           quality: model === 'dall-e-3' ? 'standard' : undefined
         });
 
