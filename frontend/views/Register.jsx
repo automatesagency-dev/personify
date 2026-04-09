@@ -249,10 +249,7 @@ export default function Register() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent"></div>
         <div className="absolute bottom-12 left-12 right-12 text-white text-center">
           <h2 className="text-3xl font-semibold mb-4">Level Up Your Personal Brand</h2>
-          <p className="text-lg text-white/90">
-            No Professional Photos? No Problem. We Generate Highly Realistic Images Of You Anywhere - In An Office, Desert, Or Underwater. Take Your Social Media To The Next Level.
-          </p>
-        </div>
+         </div>
       </div>
     </div>
   );
