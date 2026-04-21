@@ -21,6 +21,23 @@ export default function History() {
     loadGenerations();
   }, [filter]);
 
+  const handleDownload = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `personify-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
   const loadGenerations = async () => {
     try {
       const type = filter === 'all' ? undefined : filter;
@@ -253,11 +270,11 @@ export default function History() {
                   {/* Actions */}
                   <div className="flex items-center gap-1.5 flex-shrink-0" onClick={e => e.stopPropagation()}>
                     {gen.type === 'image' && gen.result && (
-                      <a href={gen.result} download className="p-2 bg-white/10 rounded-lg text-white">
+                      <button onClick={() => handleDownload(gen.result)} className="p-2 bg-white/10 rounded-lg text-white">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                         </svg>
-                      </a>
+                      </button>
                     )}
                     {gen.type === 'text' && gen.result && (
                       <button onClick={() => { navigator.clipboard.writeText(gen.result); alert('Copied!'); }} className="p-2 bg-white/10 rounded-lg text-white">
@@ -295,9 +312,9 @@ export default function History() {
                     )}
                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-3">
                       {gen.type === 'image' && gen.result && (
-                        <a href={gen.result} download onClick={(e) => e.stopPropagation()} className="p-3 bg-white rounded-full hover:bg-gray-200 transition" title="Download">
+                        <button onClick={(e) => { e.stopPropagation(); handleDownload(gen.result); }} className="p-3 bg-white rounded-full hover:bg-gray-200 transition" title="Download">
                           <svg className="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                        </a>
+                        </button>
                       )}
                       {gen.type === 'text' && gen.result && (
                         <button onClick={(e) => { e.stopPropagation(); navigator.clipboard.writeText(gen.result); alert('Copied to clipboard!'); }} className="p-3 bg-white rounded-full hover:bg-gray-200 transition" title="Copy">
@@ -366,15 +383,12 @@ export default function History() {
                     )}
                     {selectedGeneration.status === 'completed' && selectedGeneration.result && (
                       <div className="grid grid-cols-2 gap-3">
-                        <a
-                          href={selectedGeneration.result}
-                          download
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          onClick={() => handleDownload(selectedGeneration.result)}
                           className="bg-white text-black py-3 rounded-lg font-semibold hover:bg-gray-200 transition text-center"
                         >
                           Download Image
-                        </a>
+                        </button>
                         
                         <a
                           href={selectedGeneration.result}

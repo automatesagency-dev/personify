@@ -31,6 +31,23 @@ function GenerateInner() {
   const fileInputRef = useRef(null);
   const resultRef = useRef(null);
 
+  const handleDownload = async (url) => {
+    try {
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `personify-${Date.now()}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(url, '_blank');
+    }
+  };
+
   const loadUsageStats = useCallback(async () => {
     try {
       const response = await generationAPI.getAll();
@@ -481,9 +498,9 @@ function GenerateInner() {
                           <img src={result.url} alt="Generated Asset" className="w-full h-auto object-contain" />
                         </div>
                         <div className="flex flex-col sm:flex-row w-full max-w-lg gap-3">
-                          <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg text-sm md:text-base">
+                          <button onClick={() => handleDownload(result.url)} className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg text-sm md:text-base">
                             ↓ Download Image
-                          </a>
+                          </button>
                           <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-[#222] border border-gray-700 text-white py-3.5 rounded-xl font-bold text-center hover:bg-[#333] transition text-sm md:text-base">
                             ⤢ Open Full Size
                           </a>
