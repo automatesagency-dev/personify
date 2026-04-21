@@ -29,6 +29,7 @@ function GenerateInner() {
   // Up to 3 reference images: [{ file, preview }]
   const [referenceImages, setReferenceImages] = useState([]);
   const fileInputRef = useRef(null);
+  const resultRef = useRef(null);
 
   const loadUsageStats = useCallback(async () => {
     try {
@@ -59,6 +60,13 @@ function GenerateInner() {
     loadPersona();
     loadUsageStats();
   }, [loadUsageStats]);
+
+  // Auto-scroll to result on mobile when generation completes
+  useEffect(() => {
+    if (result && resultRef.current && window.innerWidth < 1024) {
+      setTimeout(() => resultRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [result]);
 
   const handleAddImage = (e) => {
     const file = e.target.files[0];
@@ -182,20 +190,20 @@ function GenerateInner() {
 
   return (
     <Layout>
-      <div className="p-6 lg:p-10 max-w-[1400px] mx-auto min-h-screen flex flex-col">
-        
+      <div className="p-4 md:p-6 lg:p-10 max-w-[1400px] mx-auto min-h-screen flex flex-col">
+
         {/* Header & Main Toggles */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 gap-3 md:gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Create Content</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Create Content</h1>
             <p className="text-gray-400 text-sm">Turn your ideas into high-quality assets</p>
           </div>
-          
-          <div className="flex bg-black/40 p-1 rounded-xl border border-gray-800">
+
+          <div className="flex bg-black/40 p-1 rounded-xl border border-gray-800 w-full md:w-auto">
             <button
               onClick={() => switchType('image')}
               disabled={generating}
-              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 type === 'image' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -204,7 +212,7 @@ function GenerateInner() {
             <button
               onClick={() => switchType('text')}
               disabled={generating}
-              className={`px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
+              className={`flex-1 md:flex-none px-6 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 type === 'text' ? 'bg-white text-black shadow-sm' : 'text-gray-400 hover:text-white hover:bg-white/5'
               }`}
             >
@@ -214,167 +222,162 @@ function GenerateInner() {
         </div>
 
         {!persona && (
-          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 mb-8 flex items-center gap-3 text-yellow-500 text-sm font-medium">
-            <span className="text-xl">⚠️</span>
-            You haven't created a persona yet. Your generated content won't include personalized context or your face.
+          <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-3 md:p-4 mb-4 md:mb-8 flex items-center gap-2 md:gap-3 text-yellow-500 text-xs md:text-sm font-medium">
+            <span>⚠️</span>
+            No persona yet — generated content won't include your face.
           </div>
         )}
 
         {/* Main Workspace - 2 Columns */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 flex-1">
+        <div className="flex flex-col lg:flex-row gap-6 lg:gap-12 flex-1">
           
           {/* LEFT COLUMN: Input & Settings */}
-          <div className="w-full lg:w-5/12 flex flex-col gap-6">
-            
+          <div className="w-full lg:w-5/12 flex flex-col gap-4 md:gap-6">
+
             {/* The Prompt Box */}
             <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl overflow-hidden focus-within:border-brand-pink transition-colors">
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                rows={5}
-                className="w-full px-5 py-4 bg-transparent text-white outline-none resize-none placeholder-gray-600 text-base"
+                rows={3}
+                className="w-full px-4 md:px-5 py-3 md:py-4 bg-transparent text-white outline-none resize-none placeholder-gray-600 text-sm md:text-base"
                 placeholder={type === 'image' ? "Describe the image you want to create..." : "What do you want to write about?"}
                 disabled={generating}
               />
-              
-              {/* Reference Images Toolbar within Prompt */}
-              <div className="bg-[#1a1a1a] px-5 py-3 border-t border-gray-800 flex items-center justify-between">
+
+              {/* Reference Images Toolbar */}
+              <div className="bg-[#1a1a1a] px-4 md:px-5 py-2 md:py-3 border-t border-gray-800 flex items-center justify-between">
                 <div className="flex items-center gap-2 overflow-x-auto">
                   {referenceImages.map((img, i) => (
                     <div key={i} className="relative group flex-shrink-0">
-                      <img
-                        src={img.preview}
-                        alt={`ref-${i}`}
-                        className="w-10 h-10 object-cover rounded-md border border-gray-600 opacity-80 group-hover:opacity-100 transition"
-                      />
-                      <button
-                        onClick={() => removeReferenceImage(i)}
-                        disabled={generating}
-                        className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 hover:bg-red-400 rounded-full text-white flex items-center justify-center text-[10px] shadow-sm"
-                      >
-                        ✕
-                      </button>
+                      <img src={img.preview} alt={`ref-${i}`} className="w-8 h-8 md:w-10 md:h-10 object-cover rounded-md border border-gray-600 opacity-80 group-hover:opacity-100 transition" />
+                      <button onClick={() => removeReferenceImage(i)} disabled={generating} className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 hover:bg-red-400 rounded-full text-white flex items-center justify-center text-[10px] shadow-sm">✕</button>
                     </div>
                   ))}
-                  
                   {referenceImages.length < 3 && (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      disabled={generating}
-                      className="w-10 h-10 rounded-md border border-dashed border-gray-600 hover:border-gray-400 flex items-center justify-center text-gray-500 hover:text-gray-300 transition flex-shrink-0 bg-black/20"
-                      title="Attach reference image"
-                    >
-                      <span className="text-lg leading-none">+</span>
+                    <button onClick={() => fileInputRef.current?.click()} disabled={generating} className="w-8 h-8 md:w-10 md:h-10 rounded-md border border-dashed border-gray-600 hover:border-gray-400 flex items-center justify-center text-gray-500 hover:text-gray-300 transition flex-shrink-0 bg-black/20" title="Attach reference image">
+                      <span className="text-base leading-none">+</span>
                     </button>
                   )}
                   <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleAddImage} className="hidden" />
                 </div>
-                
-                <span className="text-xs text-gray-500 whitespace-nowrap ml-4">
-                  {referenceImages.length}/3 attached
-                </span>
+                <span className="text-xs text-gray-500 whitespace-nowrap ml-3">{referenceImages.length}/3</span>
               </div>
             </div>
 
             {/* Settings Area */}
-            <div className="space-y-4">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Generation Settings</h3>
+            <div className="space-y-3">
+              <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Settings</h3>
 
               {/* Aspect Ratio — image mode only */}
               {type === 'image' && (
-                <div>
-                  <label className="block text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Aspect Ratio</label>
-                  <div className="flex gap-2">
-                    {[
-                      { value: 'square', label: 'Square', icon: '⬛' },
-                      { value: 'portrait', label: 'Portrait', icon: '▬' },
-                      { value: 'landscape', label: 'Landscape', icon: '▭' },
-                    ].map(({ value, label, icon }) => (
-                      <button
-                        key={value}
-                        onClick={() => !generating && setAspectRatio(value)}
-                        disabled={generating}
-                        className={`flex-1 flex flex-col items-center gap-1.5 py-3 rounded-xl border-2 text-xs font-medium transition-all ${
-                          aspectRatio === value
-                            ? 'border-brand-pink bg-brand-pink/10 text-white'
-                            : 'border-gray-800 bg-[#111] text-gray-400 hover:border-gray-600'
-                        }`}
-                      >
-                        <span className={`text-base ${value === 'portrait' ? 'rotate-90' : ''}`}>{icon}</span>
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                  {!useFaceConsistency && model === 'dall-e-2' && aspectRatio !== 'square' && (
-                    <p className="text-yellow-400 text-xs mt-2">⚠️ DALL-E 2 only supports square. Upgrade to DALL-E 3 for other ratios.</p>
-                  )}
+                <div className="flex gap-2">
+                  {[
+                    { value: 'square', label: 'Square' },
+                    { value: 'portrait', label: 'Portrait' },
+                    { value: 'landscape', label: 'Landscape' },
+                  ].map(({ value, label }) => (
+                    <button
+                      key={value}
+                      onClick={() => !generating && setAspectRatio(value)}
+                      disabled={generating}
+                      className={`flex-1 py-2 rounded-lg border text-xs font-medium transition-all ${
+                        aspectRatio === value
+                          ? 'border-brand-pink bg-brand-pink/10 text-white'
+                          : 'border-gray-800 bg-[#111] text-gray-400'
+                      }`}
+                    >
+                      {label}
+                    </button>
+                  ))}
                 </div>
               )}
-              
+
               {type === 'image' ? (
-                <div className="flex flex-col gap-3">
-                  {/* Option 1: Persona Mode */}
-                  <div 
+                <div className="flex flex-col gap-2">
+
+                  {/* ── MOBILE: compact pill toggle ── */}
+                  <div className="flex md:hidden gap-2">
+                    <button
+                      onClick={() => !generating && setUseFaceConsistency(true)}
+                      className={`flex-1 flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-medium transition-all ${
+                        useFaceConsistency ? 'border-brand-pink bg-brand-pink/10 text-white' : 'border-gray-800 bg-[#111] text-gray-400'
+                      }`}
+                    >
+                      <span>🧬 Brand Persona</span>
+                      <span className="text-[10px] font-normal text-gray-500 mt-0.5">Uses your face and persona details</span>
+                    </button>
+                    <button
+                      onClick={() => !generating && setUseFaceConsistency(false)}
+                      className={`flex-1 flex flex-col items-center py-2.5 px-2 rounded-xl border text-xs font-medium transition-all ${
+                        !useFaceConsistency ? 'border-white/50 bg-white/5 text-white' : 'border-gray-800 bg-[#111] text-gray-400'
+                      }`}
+                    >
+                      <span>🎨 Freestyle</span>
+                      <span className="text-[10px] font-normal text-gray-500 mt-0.5">Uses generic details</span>
+                    </button>
+                  </div>
+
+                  {/* Mobile: model dropdown (always visible once mode chosen) */}
+                  <div className="md:hidden" onClick={e => e.stopPropagation()}>
+                    {useFaceConsistency ? (
+                      <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} disabled={generating} className="w-full bg-[#111] border border-gray-800 px-3 py-2.5 rounded-xl text-xs text-white outline-none focus:border-brand-pink">
+                        <option value="nano-banana-2">Nano Banana 2 (High Quality)</option>
+                        <option value="bytedance-seedream">ByteDance SeeDream</option>
+                      </select>
+                    ) : (
+                      <select value={model} onChange={(e) => setModel(e.target.value)} disabled={generating} className="w-full bg-[#111] border border-gray-800 px-3 py-2.5 rounded-xl text-xs text-white outline-none focus:border-brand-pink">
+                        <option value="dall-e-3">DALL-E 3 (Creative)</option>
+                        <option value="dall-e-2">DALL-E 2 (Fast)</option>
+                      </select>
+                    )}
+                    {useFaceConsistency && !persona && (
+                      <p className="text-yellow-400 text-xs mt-1.5">⚠️ Complete your persona first.</p>
+                    )}
+                    {!useFaceConsistency && model === 'dall-e-2' && aspectRatio !== 'square' && (
+                      <p className="text-yellow-400 text-xs mt-1.5">⚠️ DALL-E 2 only supports square.</p>
+                    )}
+                  </div>
+
+                  {/* ── DESKTOP: original full cards ── */}
+                  <div
                     onClick={() => !generating && setUseFaceConsistency(true)}
-                    className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`hidden md:block relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       useFaceConsistency ? 'border-brand-pink bg-brand-pink/5' : 'border-gray-800 bg-[#111] hover:border-gray-700'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${useFaceConsistency ? 'bg-brand-pink/20 text-brand-pink' : 'bg-gray-800 text-gray-400'}`}>
-                        🧬
-                      </div>
+                      <div className={`p-2 rounded-lg ${useFaceConsistency ? 'bg-brand-pink/20 text-brand-pink' : 'bg-gray-800 text-gray-400'}`}>🧬</div>
                       <div className="flex-1">
                         <h4 className="text-white font-medium mb-1">Brand Persona Mode</h4>
-                        <p className="text-gray-400 text-xs leading-relaxed mb-3">
-                          Uses your uploaded photos to generate a facially consistent image. Ideal for professional headshots and branded content.
-                        </p>
-                        
+                        <p className="text-gray-400 text-xs leading-relaxed mb-3">Uses your uploaded photos to generate a facially consistent image. Ideal for professional headshots and branded content.</p>
                         {useFaceConsistency && (
                           <div onClick={e => e.stopPropagation()}>
-                            <select
-                              value={faceModel}
-                              onChange={(e) => setFaceModel(e.target.value)}
-                              disabled={generating}
-                              className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink"
-                            >
+                            <select value={faceModel} onChange={(e) => setFaceModel(e.target.value)} disabled={generating} className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-brand-pink">
                               <option value="nano-banana-2">Model: Nano Banana 2 (High Quality)</option>
                               <option value="bytedance-seedream">Model: ByteDance SeeDream</option>
                             </select>
                           </div>
                         )}
-                        {useFaceConsistency && !persona && (
-                          <p className="text-yellow-400 text-xs mt-2 font-medium">⚠️ Complete your persona first.</p>
-                        )}
+                        {useFaceConsistency && !persona && <p className="text-yellow-400 text-xs mt-2 font-medium">⚠️ Complete your persona first.</p>}
                       </div>
                     </div>
                   </div>
 
-                  {/* Option 2: Normal Mode */}
-                  <div 
+                  <div
                     onClick={() => !generating && setUseFaceConsistency(false)}
-                    className={`relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    className={`hidden md:block relative p-4 rounded-xl border-2 cursor-pointer transition-all ${
                       !useFaceConsistency ? 'border-white/60 bg-white/5' : 'border-gray-800 bg-[#111] hover:border-gray-700'
                     }`}
                   >
                     <div className="flex items-start gap-3">
-                      <div className={`p-2 rounded-lg ${!useFaceConsistency ? 'bg-white/20 text-white' : 'bg-gray-800 text-gray-400'}`}>
-                        🎨
-                      </div>
+                      <div className={`p-2 rounded-lg ${!useFaceConsistency ? 'bg-white/20 text-white' : 'bg-gray-800 text-gray-400'}`}>🎨</div>
                       <div className="flex-1">
                         <h4 className="text-white font-medium mb-1">Freestyle Mode</h4>
-                        <p className="text-gray-400 text-xs leading-relaxed mb-3">
-                          Generates images purely from your prompt without using your face. Best for abstract art, scenes, and concepts.
-                        </p>
-                        
+                        <p className="text-gray-400 text-xs leading-relaxed mb-3">Generates images purely from your prompt without using your face. Best for abstract art, scenes, and concepts.</p>
                         {!useFaceConsistency && (
                           <div onClick={e => e.stopPropagation()}>
-                            <select
-                              value={model}
-                              onChange={(e) => setModel(e.target.value)}
-                              disabled={generating}
-                              className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-white/50"
-                            >
+                            <select value={model} onChange={(e) => setModel(e.target.value)} disabled={generating} className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-white/50">
                               <option value="dall-e-3">Model: DALL-E 3 (Creative)</option>
                               <option value="dall-e-2">Model: DALL-E 2 (Fast)</option>
                             </select>
@@ -383,87 +386,74 @@ function GenerateInner() {
                       </div>
                     </div>
                   </div>
+
                 </div>
               ) : (
                 /* Text Mode Settings */
-                <div className="bg-[#111] rounded-xl border border-gray-800 p-5">
-                  <label className="text-white font-medium block mb-2">Select AI Model</label>
-                  <p className="text-gray-400 text-xs mb-4">Choose the intelligence engine for your text.</p>
-                  <select 
-                    value={model} 
-                    onChange={(e) => setModel(e.target.value)} 
-                    disabled={generating} 
-                    className="w-full bg-black border border-gray-700 p-3 rounded-lg text-white text-sm focus:border-brand-pink outline-none"
-                  >
-                    <option value="gpt-4">GPT-4 (Best for logic & reasoning)</option>
-                    <option value="gpt-4o">GPT-4o (Fastest & most capable)</option>
+                <div className="bg-[#111] rounded-xl border border-gray-800 p-3 md:p-5">
+                  <label className="text-white text-sm font-medium block mb-1 md:mb-2">AI Model</label>
+                  <select value={model} onChange={(e) => setModel(e.target.value)} disabled={generating} className="w-full bg-black border border-gray-700 p-2.5 md:p-3 rounded-lg text-white text-xs md:text-sm focus:border-brand-pink outline-none">
+                    <option value="gpt-4">GPT-4 (Logic & reasoning)</option>
+                    <option value="gpt-4o">GPT-4o (Fastest)</option>
                     <option value="gpt-3.5-turbo">GPT-3.5 Turbo (Quick drafts)</option>
                   </select>
                   {referenceImages.length > 0 && (
-                    <div className="mt-3 bg-blue-500/10 border border-blue-500/20 rounded-lg p-3">
-                      <p className="text-blue-400 text-xs flex items-center gap-2">
-                        <span>⚡</span> GPT-4o will be used automatically to process your attached images.
-                      </p>
-                    </div>
+                    <p className="text-blue-400 text-xs mt-2 flex items-center gap-1.5"><span>⚡</span> GPT-4o will process your images automatically.</p>
                   )}
                 </div>
               )}
             </div>
 
             {/* Action Buttons */}
-            <div className="mt-4 flex flex-col gap-3">
+            <div className="flex flex-col gap-2">
               <button
                 onClick={() => handleGenerate(0)}
                 disabled={generating || !prompt.trim()}
-                className="w-full bg-white text-black py-4 rounded-xl font-bold text-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform active:scale-[0.98] shadow-lg"
+                className="w-full bg-white text-black py-3 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-[0.98] shadow-lg"
               >
                 {generating ? 'Processing...' : `Generate ${type === 'image' ? 'Image' : 'Text'}`}
               </button>
-              
               {result && (
-                <button onClick={handleReset} className="w-full py-3 text-gray-400 hover:text-white transition text-sm font-medium">
+                <button onClick={handleReset} className="w-full py-2.5 text-gray-400 hover:text-white transition text-xs md:text-sm font-medium">
                   Clear and start over
                 </button>
               )}
             </div>
-            
-            {/* Error Message Inline */}
+
+            {/* Error */}
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4 flex flex-col gap-3">
-                <div className="flex gap-3">
-                  <span className="text-red-400 mt-0.5">⚠️</span>
-                  <p className="text-red-300 text-sm leading-relaxed">{error}</p>
+              <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 md:p-4 flex flex-col gap-2 md:gap-3">
+                <div className="flex gap-2 md:gap-3">
+                  <span className="text-red-400">⚠️</span>
+                  <p className="text-red-300 text-xs md:text-sm leading-relaxed">{error}</p>
                 </div>
                 {showRetry && (
-                  <button
-                    onClick={() => handleGenerate(0)}
-                    className="self-end px-4 py-2 bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition"
-                  >
-                    🔄 Retry Now
+                  <button onClick={() => handleGenerate(0)} className="self-end px-3 py-1.5 bg-red-500/20 text-red-300 hover:bg-red-500 hover:text-white rounded-lg text-xs font-bold transition">
+                    🔄 Retry
                   </button>
                 )}
               </div>
             )}
-            
+
           </div>
 
           {/* RIGHT COLUMN: Preview & Results */}
-          <div className="w-full lg:w-7/12 flex flex-col">
-            <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl flex-1 flex flex-col overflow-hidden min-h-[500px]">
-              
+          <div ref={resultRef} className="w-full lg:w-7/12 flex flex-col">
+            <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl flex-1 flex flex-col overflow-hidden min-h-[260px] md:min-h-[500px]">
+
               {/* Output Header */}
-              <div className="px-6 py-4 border-b border-gray-800 flex justify-between items-center bg-[#151515]">
-                <h3 className="text-white font-semibold flex items-center gap-2">
+              <div className="px-4 md:px-6 py-3 md:py-4 border-b border-gray-800 flex justify-between items-center bg-[#151515]">
+                <h3 className="text-white font-semibold flex items-center gap-2 text-sm md:text-base">
                   <span className="w-2 h-2 rounded-full bg-brand-pink"></span>
                   Output Preview
                 </h3>
-                
-                {/* Usage Stats (Moved to a cleaner spot) */}
-                <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 font-medium">Daily Uses: {usageStats.used}/{usageStats.limit}</span>
-                  <div className="w-24 bg-gray-800 h-1.5 rounded-full overflow-hidden">
-                    <div 
-                      className="bg-brand-pink h-full transition-all duration-500" 
+
+                {/* Usage Stats */}
+                <div className="flex items-center gap-2 md:gap-3">
+                  <span className="text-xs text-gray-500 font-medium">{usageStats.used}/{usageStats.limit}</span>
+                  <div className="w-16 md:w-24 bg-gray-800 h-1.5 rounded-full overflow-hidden">
+                    <div
+                      className="bg-brand-pink h-full transition-all duration-500"
                       style={{ width: `${Math.min((usageStats.used / usageStats.limit) * 100, 100)}%` }}
                     />
                   </div>
@@ -471,15 +461,15 @@ function GenerateInner() {
               </div>
 
               {/* Output Content Area */}
-              <div className="flex-1 p-6 flex flex-col justify-center bg-black/20">
+              <div className="flex-1 p-4 md:p-6 flex flex-col justify-center bg-black/20">
                 {generating && !result && (
-                  <div className="flex flex-col items-center justify-center animate-pulse">
-                    <div className="relative w-16 h-16 mb-6">
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="relative w-12 h-12 md:w-16 md:h-16 mb-4 md:mb-6">
                       <div className="absolute inset-0 border-4 border-gray-800 rounded-full"></div>
                       <div className="absolute inset-0 border-4 border-brand-pink rounded-full border-t-transparent animate-spin"></div>
                     </div>
-                    <p className="text-white font-medium text-lg mb-2">{retryMessage || 'Working on your request...'}</p>
-                    {retryAttempt > 0 && <p className="text-yellow-400 text-sm bg-yellow-400/10 px-3 py-1 rounded-full">Attempt {retryAttempt}/3</p>}
+                    <p className="text-white font-medium text-sm md:text-lg mb-1 md:mb-2">{retryMessage || 'Working on it...'}</p>
+                    {retryAttempt > 0 && <p className="text-yellow-400 text-xs bg-yellow-400/10 px-3 py-1 rounded-full">Attempt {retryAttempt}/3</p>}
                   </div>
                 )}
 
@@ -490,11 +480,11 @@ function GenerateInner() {
                         <div className="relative w-full max-w-lg mx-auto rounded-xl overflow-hidden shadow-2xl border border-gray-700">
                           <img src={result.url} alt="Generated Asset" className="w-full h-auto object-contain" />
                         </div>
-                        <div className="flex w-full max-w-lg gap-3">
-                          <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg">
+                        <div className="flex flex-col sm:flex-row w-full max-w-lg gap-3">
+                          <a href={result.url} download target="_blank" rel="noreferrer" className="flex-1 bg-white text-black py-3.5 rounded-xl font-bold text-center hover:bg-gray-200 transition shadow-lg text-sm md:text-base">
                             ↓ Download Image
                           </a>
-                          <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-[#222] border border-gray-700 text-white py-3.5 rounded-xl font-bold text-center hover:bg-[#333] transition">
+                          <a href={result.url} target="_blank" rel="noreferrer" className="flex-1 bg-[#222] border border-gray-700 text-white py-3.5 rounded-xl font-bold text-center hover:bg-[#333] transition text-sm md:text-base">
                             ⤢ Open Full Size
                           </a>
                         </div>

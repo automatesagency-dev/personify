@@ -131,12 +131,12 @@ export default function Persona() {
 
   return (
     <Layout>
-      <div className="p-6 lg:p-10 max-w-[1400px] mx-auto min-h-screen flex flex-col">
-        
+      <div className="p-4 md:p-6 lg:p-10 max-w-[1400px] mx-auto min-h-screen flex flex-col">
+
         {/* Header & Notifications */}
-        <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div className="mb-6 md:mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-3 md:gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Brand Persona</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-white mb-1 md:mb-2">Brand Persona</h1>
             <p className="text-gray-400 text-sm">Define your digital identity to generate highly personalized AI content.</p>
           </div>
 
@@ -152,145 +152,202 @@ export default function Persona() {
           )}
         </div>
 
-        {/* Main Grid: Left (Text Identity) & Right (Visual Identity) */}
-        <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 flex-1">
-          
-          {/* ── LEFT COLUMN: Text Identity Form ── */}
-          <div className="w-full lg:w-5/12 flex flex-col">
+        {/* ── MOBILE LAYOUT ── */}
+        <div className="md:hidden flex flex-col gap-4">
+
+          {/* 1. Visual Identity */}
+          <div className="bg-[#111] rounded-2xl border border-gray-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-800 bg-[#151515] flex justify-between items-center">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                <span className="text-brand-pink">📸</span> Reference Photos
+              </h2>
+              <span className="text-xs text-gray-500">{images.length}/4</span>
+            </div>
+
+            <div className="p-4">
+              <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => uploadImages(e.target.files)} className="hidden" />
+
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Existing images */}
+                {images.map((image) => {
+                  const isLoaded = loadedImages.has(image.id);
+                  return (
+                    <div key={image.id} className="relative w-20 h-20 rounded-xl overflow-hidden border border-gray-800 flex-shrink-0">
+                      {!isLoaded && (
+                        <div className="absolute inset-0 z-10 flex items-center justify-center bg-[#151515]">
+                          <div className="w-4 h-4 border-2 border-brand-pink border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                      )}
+                      <img
+                        src={image.imageUrl || image.url}
+                        alt="Persona Reference"
+                        loading="lazy"
+                        onLoad={() => setLoadedImages(prev => new Set(prev).add(image.id))}
+                        onError={(e) => { setLoadedImages(prev => new Set(prev).add(image.id)); e.target.src = 'https://via.placeholder.com/400?text=Error'; }}
+                        className={`w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                      />
+                      <button
+                        onClick={() => handleDeleteImage(image.id)}
+                        className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center shadow"
+                      >
+                        <svg className="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  );
+                })}
+
+                {/* Add More button */}
+                {images.length < 4 && (
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploading}
+                    className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-700 flex flex-col items-center justify-center gap-1 text-gray-500 hover:border-brand-pink hover:text-brand-pink transition flex-shrink-0"
+                  >
+                    {uploading ? (
+                      <div className="w-5 h-5 border-2 border-brand-pink border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <span className="text-xl leading-none">+</span>
+                        <span className="text-[10px]">Add photo</span>
+                      </>
+                    )}
+                  </button>
+                )}
+              </div>
+
+              {images.length === 0 && (
+                <p className="text-xs text-gray-600 mt-3">Add up to 4 reference photos for face-consistent AI images.</p>
+              )}
+            </div>
+          </div>
+
+          {/* 2. Written Identity */}
+          <div className="bg-[#111] rounded-2xl border border-gray-800 overflow-hidden">
+            <div className="px-4 py-3 border-b border-gray-800 bg-[#151515]">
+              <h2 className="text-white font-semibold text-sm flex items-center gap-2">
+                <span className="text-brand-pink">✍️</span> Written Identity
+              </h2>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-4 flex flex-col gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Bio</label>
+                <textarea
+                  name="bio"
+                  value={formData.bio}
+                  onChange={handleChange}
+                  rows={3}
+                  className="w-full px-3 py-2.5 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition resize-none placeholder-gray-600"
+                  placeholder="Your expertise, background, and what you do..."
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Industry</label>
+                  <input type="text" name="industry" value={formData.industry} onChange={handleChange}
+                    className="w-full px-3 py-2.5 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
+                    placeholder="e.g., Real Estate" />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-1">Brand Tone</label>
+                  <input type="text" name="brandTone" value={formData.brandTone} onChange={handleChange}
+                    className="w-full px-3 py-2.5 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
+                    placeholder="e.g., Professional" />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-1">Target Audience</label>
+                <input type="text" name="targetAudience" value={formData.targetAudience} onChange={handleChange}
+                  className="w-full px-3 py-2.5 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
+                  placeholder="Who are you trying to reach?" />
+              </div>
+
+              <button type="submit" disabled={saving}
+                className="w-full bg-white text-black py-3 rounded-xl font-bold text-sm hover:bg-gray-200 transition disabled:opacity-50 active:scale-[0.98] mt-1">
+                {saving ? 'Saving...' : (persona ? 'Save Changes' : 'Create Persona')}
+              </button>
+            </form>
+          </div>
+
+        </div>
+
+        {/* ── DESKTOP LAYOUT (unchanged) ── */}
+        <div className="hidden md:flex flex-row gap-12 flex-1">
+
+          {/* LEFT COLUMN: Text Identity Form */}
+          <div className="w-5/12 flex flex-col">
             <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl overflow-hidden flex flex-col h-full">
-              
               <div className="px-6 py-4 border-b border-gray-800 bg-[#151515]">
                 <h2 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-brand-pink">✍️</span> Written Identity
                 </h2>
               </div>
-
               <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-6 flex-1">
-                
-                {/* Bio */}
                 <div>
                   <label className="block text-sm font-bold text-white mb-1">Professional Bio</label>
                   <p className="text-xs text-gray-500 mb-2">Describe your expertise, background, and what you do.</p>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleChange}
-                    rows={4}
+                  <textarea name="bio" value={formData.bio} onChange={handleChange} rows={4}
                     className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white focus:border-brand-pink outline-none transition resize-none text-sm placeholder-gray-600"
-                    placeholder="e.g., I am a digital marketer with 5 years of experience helping SaaS companies scale..."
-                  />
+                    placeholder="e.g., I am a digital marketer with 5 years of experience helping SaaS companies scale..." />
                 </div>
-
-                {/* Industry & Tone */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-bold text-white mb-1">Industry / Niche</label>
-                    <input
-                      type="text"
-                      name="industry"
-                      value={formData.industry}
-                      onChange={handleChange}
+                    <input type="text" name="industry" value={formData.industry} onChange={handleChange}
                       className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
-                      placeholder="e.g., Real Estate"
-                    />
+                      placeholder="e.g., Real Estate" />
                   </div>
                   <div>
                     <label className="block text-sm font-bold text-white mb-1">Brand Tone</label>
-                    <input
-                      type="text"
-                      name="brandTone"
-                      value={formData.brandTone}
-                      onChange={handleChange}
+                    <input type="text" name="brandTone" value={formData.brandTone} onChange={handleChange}
                       className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
-                      placeholder="e.g., Professional, witty"
-                    />
+                      placeholder="e.g., Professional, witty" />
                   </div>
                 </div>
-
-                {/* Target Audience */}
                 <div>
                   <label className="block text-sm font-bold text-white mb-1">Target Audience</label>
                   <p className="text-xs text-gray-500 mb-2">Who are you trying to reach with your content?</p>
-                  <input
-                    type="text"
-                    name="targetAudience"
-                    value={formData.targetAudience}
-                    onChange={handleChange}
+                  <input type="text" name="targetAudience" value={formData.targetAudience} onChange={handleChange}
                     className="w-full px-4 py-3 bg-black border border-gray-700 rounded-xl text-white text-sm focus:border-brand-pink outline-none transition placeholder-gray-600"
-                    placeholder="e.g., First-time home buyers in Austin, Texas"
-                  />
+                    placeholder="e.g., First-time home buyers in Austin, Texas" />
                 </div>
-
-                {/* Action Buttons */}
                 <div className="mt-auto pt-6 flex flex-col gap-3 border-t border-gray-800">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full bg-white text-black py-3.5 rounded-xl font-bold hover:bg-gray-200 transition disabled:opacity-50 active:scale-[0.98] shadow-lg"
-                  >
+                  <button type="submit" disabled={saving}
+                    className="w-full bg-white text-black py-3.5 rounded-xl font-bold hover:bg-gray-200 transition disabled:opacity-50 active:scale-[0.98] shadow-lg">
                     {saving ? 'Syncing Profile...' : (persona ? 'Save Changes' : 'Create Persona')}
                   </button>
-                  
                   {persona && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (confirm('Revert changes to last saved version?')) {
-                          setFormData({
-                            bio: persona.bio || '',
-                            industry: persona.industry || '',
-                            targetAudience: persona.targetAudience || '',
-                            brandTone: persona.brandTone || ''
-                          });
-                        }
-                      }}
-                      className="w-full py-3 text-gray-400 hover:text-white transition text-sm font-medium"
-                    >
+                    <button type="button" onClick={() => { if (confirm('Revert changes to last saved version?')) { setFormData({ bio: persona.bio || '', industry: persona.industry || '', targetAudience: persona.targetAudience || '', brandTone: persona.brandTone || '' }); } }}
+                      className="w-full py-3 text-gray-400 hover:text-white transition text-sm font-medium">
                       Undo unsaved changes
                     </button>
                   )}
                 </div>
               </form>
             </div>
-
-            {/* Contextual Tip */}
             <div className="mt-4 bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 flex gap-3">
               <span className="text-blue-400">💡</span>
-              <p className="text-xs text-blue-300/80 leading-relaxed">
-                <strong className="text-blue-400">Pro Tip:</strong> Specificity is key! Your Brand Tone affects both text style and the lighting/mood of your generated images.
-              </p>
+              <p className="text-xs text-blue-300/80 leading-relaxed"><strong className="text-blue-400">Pro Tip:</strong> Specificity is key! Your Brand Tone affects both text style and the lighting/mood of your generated images.</p>
             </div>
           </div>
 
-          {/* ── RIGHT COLUMN: Visual Identity (Images) ── */}
-          <div className="w-full lg:w-7/12 flex flex-col">
+          {/* RIGHT COLUMN: Visual Identity */}
+          <div className="w-7/12 flex flex-col">
             <div className="bg-[#111] rounded-2xl border border-gray-800 shadow-xl overflow-hidden flex flex-col h-full">
-              
               <div className="px-6 py-4 border-b border-gray-800 bg-[#151515] flex justify-between items-center">
                 <h2 className="text-white font-semibold flex items-center gap-2">
                   <span className="text-brand-pink">📸</span> Visual Identity
                 </h2>
-                <span className="text-xs text-gray-500 font-medium">{images.length}/4 Reference Photos</span>
+                <span className="text-xs text-gray-500 font-medium">{images.length}/4 Photos</span>
               </div>
-
               <div className="p-6 flex flex-col gap-6 h-full">
-                
-                {/* Upload Zone */}
-                <div
-                  onDrop={(e) => { e.preventDefault(); uploadImages(e.dataTransfer.files); }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="w-full border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-brand-pink hover:bg-brand-pink/5 transition-all cursor-pointer bg-black/20 group relative overflow-hidden"
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    multiple
-                    onChange={(e) => uploadImages(e.target.files)}
-                    className="hidden"
-                  />
-                  
+                <div onDrop={(e) => { e.preventDefault(); uploadImages(e.dataTransfer.files); }} onDragOver={(e) => e.preventDefault()} onClick={() => fileInputRef.current?.click()}
+                  className="w-full border-2 border-dashed border-gray-700 rounded-xl p-8 text-center hover:border-brand-pink hover:bg-brand-pink/5 transition-all cursor-pointer bg-black/20 group relative overflow-hidden">
+                  <input ref={fileInputRef} type="file" accept="image/*" multiple onChange={(e) => uploadImages(e.target.files)} className="hidden" />
                   {uploading ? (
                     <div className="text-white relative z-10 flex flex-col items-center justify-center py-2">
                       <div className="w-8 h-8 border-4 border-gray-700 border-t-brand-pink rounded-full animate-spin mb-3"></div>
@@ -306,9 +363,7 @@ export default function Persona() {
                     </div>
                   )}
                 </div>
-
-                {/* Images Grid */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-2">
+                <div className="grid grid-cols-4 gap-4 mt-2">
                   {images.map((image) => {
                     const isLoaded = loadedImages.has(image.id);
                     return (
@@ -318,29 +373,13 @@ export default function Persona() {
                             <div className="w-5 h-5 border-2 border-brand-pink border-t-transparent rounded-full animate-spin"></div>
                           </div>
                         )}
-
-                        <img
-                          src={image.imageUrl || image.url}
-                          alt="Persona Reference"
-                          loading="lazy"
+                        <img src={image.imageUrl || image.url} alt="Persona Reference" loading="lazy"
                           onLoad={() => setLoadedImages(prev => new Set(prev).add(image.id))}
-                          onError={(e) => {
-                            console.error('Image load error:', image.id);
-                            setLoadedImages(prev => new Set(prev).add(image.id));
-                            e.target.src = 'https://via.placeholder.com/400?text=Error';
-                          }}
-                          className={`w-full h-full object-cover transition-opacity duration-500 ${
-                            isLoaded ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        />
-                        
-                        {/* Hover Overlay */}
+                          onError={(e) => { setLoadedImages(prev => new Set(prev).add(image.id)); e.target.src = 'https://via.placeholder.com/400?text=Error'; }}
+                          className={`w-full h-full object-cover transition-opacity duration-500 ${isLoaded ? 'opacity-100' : 'opacity-0'}`} />
                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); handleDeleteImage(image.id); }}
-                            className="bg-red-500/90 text-white p-2.5 rounded-full hover:bg-red-500 transition-all shadow-lg transform translate-y-2 group-hover:translate-y-0"
-                            title="Delete Image"
-                          >
+                          <button onClick={(e) => { e.stopPropagation(); handleDeleteImage(image.id); }}
+                            className="bg-red-500/90 text-white p-2.5 rounded-full hover:bg-red-500 transition-all shadow-lg" title="Delete Image">
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                             </svg>
@@ -349,24 +388,17 @@ export default function Persona() {
                       </div>
                     );
                   })}
-                  
-                  {/* Empty Slots */}
                   {[...Array(Math.max(0, 4 - images.length))].map((_, i) => (
                     <div key={`empty-${i}`} className="aspect-square border border-dashed border-gray-700 rounded-xl flex items-center justify-center bg-black/10 opacity-50">
                       <span className="text-2xl text-gray-700 font-light">+</span>
                     </div>
                   ))}
                 </div>
-
               </div>
             </div>
-
-            {/* Contextual Tip */}
             <div className="mt-4 bg-blue-500/5 border border-blue-500/10 rounded-xl p-4 flex gap-3">
               <span className="text-blue-400">💡</span>
-              <p className="text-xs text-blue-300/80 leading-relaxed">
-                <strong className="text-blue-400">Pro Tip:</strong> For the best AI face consistency, ensure your reference photos have clear, well-lit, and unobstructed views of your face from different angles.
-              </p>
+              <p className="text-xs text-blue-300/80 leading-relaxed"><strong className="text-blue-400">Pro Tip:</strong> For the best AI face consistency, ensure your reference photos have clear, well-lit, and unobstructed views of your face from different angles.</p>
             </div>
           </div>
 

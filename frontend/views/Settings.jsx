@@ -183,12 +183,12 @@ export default function Settings() {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-6 mb-8 border-b border-gray-800 overflow-x-auto">
+        <div className="flex gap-3 md:gap-6 mb-6 md:mb-8 border-b border-gray-800 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
           {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'notifications'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-4 px-2 font-medium whitespace-nowrap transition ${
+              className={`pb-3 md:pb-4 px-1 text-xs md:text-sm font-medium whitespace-nowrap transition flex-shrink-0 ${
                 activeTab === tab
                   ? 'text-white border-b-2 border-white'
                   : 'text-gray-400 hover:text-white'
@@ -197,9 +197,9 @@ export default function Settings() {
               {tab === 'account' && 'Account'}
               {tab === 'preferences' && 'Preferences'}
               {tab === 'aimodel' && 'AI Model'}
-              {tab === 'usage' && 'Usage & Limits'}
+              {tab === 'usage' && 'Usage'}
               {tab === 'pricing' && 'Pricing'}
-              {tab === 'notifications' && 'Notifications'}
+              {tab === 'notifications' && 'Alerts'}
             </button>
           ))}
         </div>
@@ -481,10 +481,10 @@ export default function Settings() {
               <h2 className="text-xl font-semibold text-white mb-2">Daily Usage</h2>
               <p className="text-sm text-gray-400 mb-6">Track your generation usage for today</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Image Generations</p>
-                  <p className="text-3xl font-bold text-white mb-4">{stats.imagesUsedToday}/10</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
+                <div className="bg-black/40 rounded-xl p-4 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Image Generations</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">{stats.imagesUsedToday}/10</p>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-purple-500 h-2 rounded-full transition-all"
@@ -493,9 +493,9 @@ export default function Settings() {
                   </div>
                 </div>
 
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Text Generations</p>
-                  <p className="text-3xl font-bold text-white mb-4">{stats.textUsedToday}/50</p>
+                <div className="bg-black/40 rounded-xl p-4 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Text Generations</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">{stats.textUsedToday}/50</p>
                   <div className="w-full bg-gray-700 rounded-full h-2">
                     <div
                       className="bg-green-500 h-2 rounded-full transition-all"
@@ -511,24 +511,24 @@ export default function Settings() {
               <p className="text-sm text-gray-400 mb-6">Your all-time generation statistics</p>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-6">
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Total Generations</p>
-                  <p className="text-3xl font-bold text-white">{stats.totalGenerations}</p>
+                <div className="bg-black/40 rounded-xl p-3 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Total</p>
+                  <p className="text-xl md:text-3xl font-bold text-white">{stats.totalGenerations}</p>
                 </div>
 
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Images Created</p>
-                  <p className="text-3xl font-bold text-white">{stats.imagesCreated}</p>
+                <div className="bg-black/40 rounded-xl p-3 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Images</p>
+                  <p className="text-xl md:text-3xl font-bold text-white">{stats.imagesCreated}</p>
                 </div>
 
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Text Generated</p>
-                  <p className="text-3xl font-bold text-white">{stats.textGenerated}</p>
+                <div className="bg-black/40 rounded-xl p-3 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Texts</p>
+                  <p className="text-xl md:text-3xl font-bold text-white">{stats.textGenerated}</p>
                 </div>
 
-                <div className="bg-black/40 rounded-xl p-6">
-                  <p className="text-gray-400 text-sm mb-2">Member Since</p>
-                  <p className="text-3xl font-bold text-white">{stats.memberSince}</p>
+                <div className="bg-black/40 rounded-xl p-3 md:p-6">
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Since</p>
+                  <p className="text-base md:text-2xl font-bold text-white">{stats.memberSince}</p>
                 </div>
               </div>
             </div>
