@@ -377,7 +377,7 @@ export default function FounderPage() {
               <div className="grid md:grid-cols-2 gap-4 md:gap-6">
                 <ImageUpload label="Logo (Square · 500×500px)" id="logo-upload" onUpload={file => handleImageUpload(file, 'basicInfo.logoUrl')} imageUrl={formData.basicInfo.logoUrl} uploading={uploading} />
                 <ImageUpload label="Hero Image (1920×1080px)" id="hero-upload" onUpload={file => handleImageUpload(file, 'basicInfo.heroImageUrl')} imageUrl={formData.basicInfo.heroImageUrl} uploading={uploading} />
-                <TextInput className="md:col-span-2" label="Username *" value={formData.username} prefix="personify-alpha.vercel.app/" onChange={e => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
+                <TextInput className="md:col-span-2" label="Username *" value={formData.username} prefix="personify.so/" onChange={e => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
                 <TextInput label="Name" value={formData.basicInfo.name} onChange={e => updateNested('basicInfo', 'name', e.target.value)} />
                 <TextInput label="Professional Title" value={formData.basicInfo.title} onChange={e => updateNested('basicInfo', 'title', e.target.value)} />
                 <TextArea className="md:col-span-2" label="About" value={formData.basicInfo.about1} onChange={e => updateNested('basicInfo', 'about1', e.target.value)} rows={4} />
