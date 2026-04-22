@@ -58,7 +58,7 @@ function PublicFounderPageInner() {
         <div className="text-6xl mb-4">😕</div>
         <h1 className="text-2xl mb-2">Page Not Found</h1>
         <p className="text-gray-400 mb-6">{error || 'This page does not exist.'}</p>
-        <a href="https://personify-alpha.vercel.app" className="inline-block px-6 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition">
+        <a href="https://personify.so" className="inline-block px-6 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition">
           Go to Personify
         </a>
       </div>
@@ -208,7 +208,7 @@ function VisionaryTemplate({ page }) {
 
       <footer className="bg-gray-900 text-white py-12 text-center mt-20">
         <p className="text-gray-400 text-sm">
-          Created with <a href="https://personify-alpha.vercel.app" className="text-white hover:underline font-semibold">Personify</a>
+          Created with <a href="https://personify.so" className="text-white hover:underline font-semibold">Personify</a>
         </p>
       </footer>
     </div>
@@ -306,7 +306,7 @@ function StorytellerTemplate({ page }) {
 
       <footer className="py-12 border-t border-zinc-900 text-center">
         <p className="text-zinc-500 text-sm tracking-widest uppercase">
-          Powered by <a href="https://personify-alpha.vercel.app" className="text-white hover:text-brand-pink transition">Personify</a>
+          Powered by <a href="https://personify.so" className="text-white hover:text-brand-pink transition">Personify</a>
         </p>
       </footer>
     </div>

@@ -95,7 +95,7 @@ export default function Dashboard() {
   };
 
   const copyUrl = () => {
-    navigator.clipboard.writeText(`https://personify-alpha.vercel.app/${founderPage.username}`);
+    navigator.clipboard.writeText(`https://personify.so/${founderPage.username}`);
     alert('URL copied to clipboard!');
   };
 
@@ -201,7 +201,7 @@ export default function Dashboard() {
                   <p className="text-sm font-semibold text-white">Page Live</p>
                   <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full">Live</span>
                 </div>
-                <code className="text-xs text-gray-500 truncate block">personify-alpha.vercel.app/{founderPage.username}</code>
+                <code className="text-xs text-gray-500 truncate block">personify.so/{founderPage.username}</code>
               </div>
               <div className="flex gap-1.5 flex-shrink-0">
                 <button onClick={copyUrl} className="px-2.5 py-1.5 bg-white/10 text-white rounded-lg text-xs font-medium">Copy</button>
@@ -287,7 +287,7 @@ export default function Dashboard() {
                   <div className="bg-black/40 rounded-lg p-3 mb-4">
                     <p className="text-gray-500 text-xs mb-1">Your page URL</p>
                     <div className="flex items-center gap-2">
-                      <code className="flex-1 text-white text-xs truncate">personify-alpha.vercel.app/{founderPage.username}</code>
+                      <code className="flex-1 text-white text-xs truncate">personify.so/{founderPage.username}</code>
                       <button onClick={copyUrl} className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded text-xs transition flex-shrink-0">Copy</button>
                     </div>
                   </div>
