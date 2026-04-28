@@ -4,17 +4,84 @@ import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import founderPageAPI from '../services/founderPageAPI';
 
-// --- SHARED HELPERS ---
-const SectionTitle = ({ title, design, centered }) => (
-  <h2 className={`text-4xl font-bold mb-12 ${centered ? 'text-center' : ''}`} 
-      style={{ fontFamily: design.titleFont, color: design.primaryColor }}>
-    {title}
-  </h2>
-);
+// ── Helpers ──────────────────────────────────────────────────────────────────
 
-const Grid = ({ items, renderItem, gap = "gap-8", cols = "md:grid-cols-3" }) => (
-  <div className={`grid ${cols} ${gap}`}>{items.map(renderItem)}</div>
-);
+const ph = (val, fallback) => (val && val.trim()) ? val : fallback;
+
+function ShareButton({ username, name, light = false }) {
+  const [copied, setCopied] = useState(false);
+  const url = `https://personify.so/${username}`;
+
+  const share = async () => {
+    if (navigator.share) {
+      try { await navigator.share({ title: `${name}'s Founder Page`, url }); return; } catch {}
+    }
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <button
+      onClick={share}
+      className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-semibold border transition hover:opacity-70 ${
+        light ? 'border-white/30 text-white' : 'border-gray-300 text-gray-700'
+      }`}
+    >
+      {copied ? '✓ Copied!' : '↗ Share'}
+    </button>
+  );
+}
+
+const FAQ_PRESET_QUESTIONS = {
+  connections: 'How will your connections help me grow my business?',
+  contact: 'Where can I contact you?',
+};
+
+const STATIC_FAQS = [
+  {
+    q: 'What is Personify?',
+    a: 'Personify is a personal branding platform built for founders, creators, and professionals. It combines AI-powered content generation with beautifully designed Founder Pages, so you can showcase who you are, what you do, and how you can help others — all from one place. Think of it as your personal brand engine.',
+  },
+  {
+    q: 'What is a Founder Page?',
+    a: "A Founder Page is your dedicated home on the internet — a professionally designed page that brings together your story, services, portfolio, and contact details. It's built for founders and professionals who want a polished, memorable online presence without the complexity of building a full website.",
+  },
+];
+
+function FAQAccordion({ faqs, dark = false }) {
+  const [open, setOpen] = useState(null);
+  const allFaqs = [
+    ...STATIC_FAQS,
+    ...(faqs || []).map(item => ({
+      q: item.type === 'custom' ? item.customQuestion : FAQ_PRESET_QUESTIONS[item.type],
+      a: item.answer,
+    })).filter(f => f.q && f.a),
+  ];
+
+  return (
+    <div className="space-y-3 max-w-3xl mx-auto">
+      {allFaqs.map((faq, i) => (
+        <div key={i} className={`rounded-2xl border overflow-hidden transition-all ${dark ? 'border-white/10 bg-white/5' : 'border-gray-200 bg-white shadow-sm'}`}>
+          <button
+            onClick={() => setOpen(open === i ? null : i)}
+            className={`w-full flex items-center justify-between px-6 py-5 text-left font-semibold text-base transition ${dark ? 'text-white hover:bg-white/5' : 'text-gray-900 hover:bg-gray-50'}`}
+          >
+            <span>{faq.q}</span>
+            <span className={`ml-4 flex-shrink-0 text-2xl font-light transition-transform duration-200 ${open === i ? 'rotate-45' : ''}`}>+</span>
+          </button>
+          {open === i && (
+            <div className={`px-6 pb-5 text-sm leading-relaxed ${dark ? 'text-gray-400' : 'text-gray-600'}`}>
+              {faq.a}
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Router ───────────────────────────────────────────────────────────────────
 
 function PublicFounderPageInner() {
   const params = useParams();
@@ -34,7 +101,6 @@ function PublicFounderPageInner() {
           : await founderPageAPI.getPublic(username);
         setPage(response.data.founderPage);
       } catch (err) {
-        console.error('Failed to load page:', err);
         setError(err.response?.data?.error || 'Page not found');
       } finally {
         setLoading(false);
@@ -68,14 +134,16 @@ function PublicFounderPageInner() {
   return (
     <>
       {isPreview && (
-        <div className="sticky top-0 z-[9999] bg-yellow-500 text-black text-sm font-semibold text-center py-2 px-4">
-          👁️ Preview Mode — This is how your page will look. It is not live yet.{' '}
-          <button onClick={() => window.close()} className="underline ml-2">Close Preview</button>
+        <div className="fixed top-0 left-0 right-0 z-[9999] bg-yellow-400 text-black text-sm font-semibold text-center py-2.5 px-4">
+          👁️ Preview Mode — This is how your page will look when published.{' '}
+          <button onClick={() => window.close()} className="underline ml-2">Close</button>
         </div>
       )}
       {page.template === 'visionary'
-        ? <VisionaryTemplate page={page} />
-        : <StorytellerTemplate page={page} />}
+        ? <VisionaryTemplate page={page} isPreview={isPreview} />
+        : page.template === 'executive'
+        ? <ExecutiveTemplate page={page} isPreview={isPreview} />
+        : <StorytellerTemplate page={page} isPreview={isPreview} />}
     </>
   );
 }
@@ -88,225 +156,674 @@ export default function PublicFounderPage() {
   );
 }
 
-// --- VISIONARY TEMPLATE ---
-function VisionaryTemplate({ page }) {
-  const { design, basicInfo, contact, services = [], portfolio = {}, featured = [] } = page;
+// ── VISIONARY TEMPLATE ────────────────────────────────────────────────────────
+
+function VisionaryTemplate({ page, isPreview }) {
+  const { design, basicInfo, contact, services = [], portfolio = {}, featured = [], faq = [], username } = page;
+  const pc = design.primaryColor;
+  const sc = design.secondaryColor;
 
   return (
-    <div className="min-h-screen bg-gray-50" style={{ fontFamily: design.bodyFont }}>
-      <header className="bg-white border-b border-gray-200 sticky top-0 z-50 px-6 py-4">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
+    <div className="min-h-screen bg-white text-gray-900" style={{ fontFamily: design.bodyFont }}>
+
+      {/* ── Sticky Header ── */}
+      <header className={`fixed left-0 right-0 z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 ${isPreview ? 'top-10' : 'top-0'}`}>
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            {basicInfo.logoUrl && <img src={basicInfo.logoUrl} alt="Logo" className="h-8" />}
-            <span className="text-xl font-bold" style={{ fontFamily: design.titleFont, color: design.primaryColor }}>
-              {basicInfo.name || page.username}
+            {basicInfo.logoUrl
+              ? <img src={basicInfo.logoUrl} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+              : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold" style={{ backgroundColor: pc }}>{(basicInfo.name || 'P')[0]}</div>
+            }
+            <span className="text-lg font-bold" style={{ fontFamily: design.titleFont, color: pc }}>
+              {ph(basicInfo.name, 'Your Name')}
             </span>
           </div>
-          <nav className="hidden md:flex gap-6 text-sm font-medium text-gray-600">
-             <a href="#about" className="hover:text-black">About</a>
-             <a href="#portfolio" className="hover:text-black">Portfolio</a>
-             <a href="#contact" className="hover:text-black">Contact</a>
+          <nav className="hidden md:flex items-center gap-8 text-sm font-medium text-gray-500">
+            <a href="#about" className="hover:text-gray-900 transition">About</a>
+            {services.some(s => s.title) && <a href="#services" className="hover:text-gray-900 transition">Services</a>}
+            {portfolio?.images?.some(i => i?.url) && <a href="#portfolio" className="hover:text-gray-900 transition">Work</a>}
+            <a href="#contact" className="hover:text-gray-900 transition">Contact</a>
           </nav>
-        </div>
-      </header>
-
-      <section className="bg-gray-100 py-20 px-6">
-        <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-          <div>
-            <h1 className="text-5xl md:text-6xl font-bold mb-4" style={{ fontFamily: design.titleFont, color: design.primaryColor }}>
-              {basicInfo.name}
-            </h1>
-            <p className="text-2xl mb-6" style={{ color: design.secondaryColor }}>{basicInfo.title}</p>
-            <p className="text-gray-600 mb-8">{basicInfo.tagline}</p>
-            <a href="#contact" className="inline-block px-6 py-3 rounded-lg font-semibold text-white" style={{ backgroundColor: design.primaryColor }}>
+          <div className="flex items-center gap-3">
+            <ShareButton username={username} name={basicInfo.name} />
+            <a href="#contact" className="hidden md:inline-flex px-5 py-2.5 rounded-xl text-white text-sm font-bold hover:opacity-90 transition" style={{ backgroundColor: pc }}>
               Get In Touch
             </a>
           </div>
-          {basicInfo.heroImageUrl && (
-            <div className="rounded-2xl overflow-hidden shadow-2xl">
-              <img src={basicInfo.heroImageUrl} alt={basicInfo.name} className="w-full h-full object-cover" />
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className={`min-h-screen flex items-center relative overflow-hidden ${isPreview ? 'pt-28' : 'pt-20'}`}>
+        {/* Background radial accent */}
+        <div className="absolute top-0 right-0 w-2/3 h-full pointer-events-none" style={{ background: `radial-gradient(ellipse at 80% 40%, ${pc}12 0%, transparent 65%)` }} />
+        <div className="absolute bottom-0 left-0 w-64 h-64 rounded-full pointer-events-none" style={{ background: `radial-gradient(circle, ${sc}15 0%, transparent 70%)` }} />
+
+        <div className="max-w-7xl mx-auto px-6 grid md:grid-cols-2 gap-12 lg:gap-20 items-center py-16 w-full">
+          {/* Left: text */}
+          <div className="space-y-7">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-sm font-semibold border" style={{ borderColor: pc + '30', color: pc, backgroundColor: pc + '08' }}>
+              <span className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: pc }} />
+              {ph(basicInfo.title, 'Founder · Speaker · Creator')}
             </div>
-          )}
+
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight" style={{ fontFamily: design.titleFont, color: pc }}>
+              {ph(basicInfo.name, 'Your Name Here')}
+            </h1>
+
+            {(basicInfo.tagline || true) && (
+              <p className="text-xl md:text-2xl font-medium" style={{ color: sc }}>
+                {ph(basicInfo.tagline, 'A short tagline that captures what you stand for')}
+              </p>
+            )}
+
+            <p className="text-gray-500 text-lg leading-relaxed max-w-lg">
+              {ph(basicInfo.about1?.substring(0, 220), 'A compelling intro about what you do, who you help, and why you do it. Share what makes you uniquely positioned to serve your audience.')}
+            </p>
+
+            <div className="flex flex-wrap gap-4">
+              <a href="#contact" className="px-8 py-4 rounded-xl text-white font-bold text-base hover:opacity-90 transition shadow-md" style={{ backgroundColor: pc }}>
+                Work With Me →
+              </a>
+              <a href="#portfolio" className="px-8 py-4 rounded-xl border-2 text-gray-700 font-bold text-base hover:bg-gray-50 transition" style={{ borderColor: pc + '30' }}>
+                See My Work
+              </a>
+            </div>
+
+            {(contact.social1 || contact.social2) && (
+              <div className="flex items-center gap-4 pt-1">
+                <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">Find me on</span>
+                <div className="flex gap-3">
+                  {contact.social1 && <span className="text-sm font-bold" style={{ color: pc }}>{contact.social1}</span>}
+                  {contact.social2 && <span className="text-sm font-bold" style={{ color: pc }}>{contact.social2}</span>}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Right: hero image */}
+          <div className="relative flex justify-center md:justify-end">
+            <div className="relative w-full max-w-sm">
+              {basicInfo.heroImageUrl ? (
+                <div className="rounded-3xl overflow-hidden shadow-2xl aspect-[3/4]">
+                  <img src={basicInfo.heroImageUrl} alt={basicInfo.name} className="w-full h-full object-cover" />
+                  <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{ background: `linear-gradient(to top, ${pc}50 0%, transparent 50%)` }} />
+                </div>
+              ) : (
+                <div className="rounded-3xl aspect-[3/4] flex flex-col items-center justify-center gap-3" style={{ background: `linear-gradient(135deg, ${pc}12, ${sc}12)`, border: `2px dashed ${pc}25` }}>
+                  <div className="text-5xl opacity-25">📸</div>
+                  <p className="text-sm text-gray-400">Your hero photo</p>
+                </div>
+              )}
+              {/* Floating card */}
+              <div className="absolute -bottom-5 -left-5 bg-white rounded-2xl shadow-xl p-4 border border-gray-100">
+                <p className="text-xs text-gray-400 mb-0.5">Available for</p>
+                <p className="text-sm font-bold" style={{ color: pc }}>{ph(basicInfo.title, 'New Opportunities')}</p>
+              </div>
+              {/* Accent dot */}
+              <div className="absolute -top-4 -right-4 w-14 h-14 rounded-2xl flex items-center justify-center text-white font-bold text-lg shadow-lg" style={{ backgroundColor: sc }}>
+                ✦
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      <main className="max-w-6xl mx-auto px-6 space-y-32 py-20">
-        <section id="about" className="max-w-4xl mx-auto">
-          <SectionTitle title="About" design={design} />
-          <div className="space-y-6 text-gray-700 text-lg leading-relaxed">
-            <p>{basicInfo.about1}</p>
-            {basicInfo.about2 && <p>{basicInfo.about2}</p>}
+      {/* ── Brand strip ── */}
+      <div className="py-5 border-y" style={{ borderColor: pc + '15', backgroundColor: pc + '06' }}>
+        <div className="max-w-7xl mx-auto px-6 flex flex-wrap items-center justify-center gap-x-10 gap-y-2">
+          {['Founder', 'Speaker', 'Advisor', 'Creator', 'Connector'].map((tag, i) => (
+            <span key={i} className="text-[11px] font-bold tracking-[0.2em] uppercase" style={{ color: pc + '70' }}>
+              {tag}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <main className="max-w-7xl mx-auto px-6 py-24 space-y-28">
+
+        {/* ── About ── */}
+        <section id="about">
+          <div className="grid md:grid-cols-[280px_1fr] gap-12 lg:gap-20 items-start">
+            <div>
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: pc }}>About</p>
+              <h2 className="text-3xl md:text-4xl font-bold leading-tight" style={{ fontFamily: design.titleFont, color: pc }}>
+                The Story Behind the Work
+              </h2>
+              <div className="mt-6 w-12 h-1 rounded-full" style={{ backgroundColor: sc }} />
+            </div>
+            <div className="space-y-6 text-gray-600 text-lg leading-relaxed">
+              <p>{ph(basicInfo.about1, 'Share your story here — what drives you, what you have built, and what you believe in. This is your chance to connect authentically with the people visiting your page.')}</p>
+              {basicInfo.about2 && <p>{basicInfo.about2}</p>}
+            </div>
           </div>
         </section>
 
-        {services.length > 0 && (
+        {/* ── Services ── */}
+        {services.some(s => s.title) && (
           <section id="services">
-            <SectionTitle title="Services" design={design} centered />
-            <Grid items={services} renderItem={(s, i) => (
-              <div key={i} className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
-                <h3 className="text-xl font-bold mb-3" style={{ color: design.primaryColor }}>{s.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{s.description}</p>
+            <div className="flex items-end justify-between mb-12">
+              <div>
+                <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: pc }}>Services</p>
+                <h2 className="text-3xl md:text-4xl font-bold" style={{ fontFamily: design.titleFont, color: pc }}>How I Can Help</h2>
               </div>
-            )} />
+            </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {services.filter(s => s.title).map((s, i) => (
+                <div key={i} className="group relative p-8 rounded-2xl border border-gray-100 bg-white hover:shadow-xl transition-all duration-300 overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full rounded-l-2xl" style={{ backgroundColor: pc }} />
+                  <div className="w-12 h-12 rounded-xl mb-6 flex items-center justify-center font-bold text-lg" style={{ backgroundColor: pc + '12', color: pc }}>
+                    {String(i + 1).padStart(2, '0')}
+                  </div>
+                  <h3 className="text-xl font-bold mb-3" style={{ color: pc }}>{s.title}</h3>
+                  <p className="text-gray-500 leading-relaxed text-sm">{ph(s.description, 'Description of this service and the results it delivers for your clients.')}</p>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
-        {portfolio?.images?.length > 0 && (
+        {/* ── Portfolio ── */}
+        {portfolio?.images?.some(i => i?.url) && (
           <section id="portfolio">
-            <SectionTitle title="Portfolio" design={design} centered />
-            <Grid 
-              items={portfolio.images.filter(img => img?.url)} 
-              cols="md:grid-cols-3" 
-              gap="gap-4"
-              renderItem={(img, i) => (
-                <div key={i} className="aspect-square rounded-lg overflow-hidden bg-gray-200">
-                  <img src={img.url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" alt="Work" />
+            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: pc }}>Portfolio</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-12" style={{ fontFamily: design.titleFont, color: pc }}>Selected Work</h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {portfolio.images.filter(img => img?.url).map((img, i) => (
+                <div key={i} className="group relative aspect-square rounded-2xl overflow-hidden bg-gray-100">
+                  <img src={img.url} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" alt="Portfolio" />
+                  <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center" style={{ backgroundColor: pc + 'CC' }}>
+                    <span className="text-white text-3xl">↗</span>
+                  </div>
                 </div>
-              )} 
-            />
+              ))}
+            </div>
           </section>
         )}
 
-        {featured.length > 0 && (
+        {/* ── Featured ── */}
+        {featured.filter(f => f.imageUrl).length > 0 && (
           <section id="featured">
-            <SectionTitle title="Featured Work" design={design} centered />
-            <Grid items={featured.filter(f => f.imageUrl)} renderItem={(work, i) => (
-              <div key={i} className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
-                <img src={work.imageUrl} className="w-full h-64 object-cover" alt={work.title} />
-                <div className="p-6">
-                  <h3 className="font-bold text-lg mb-1">{work.title}</h3>
-                  <p className="text-gray-600 text-sm mb-2">{work.subtitle}</p>
-                  <p className="text-gray-400 text-xs font-medium uppercase tracking-wider">{work.year}</p>
+            <p className="text-xs font-bold tracking-widest uppercase mb-3" style={{ color: pc }}>Featured</p>
+            <h2 className="text-3xl md:text-4xl font-bold mb-12" style={{ fontFamily: design.titleFont, color: pc }}>Featured Work</h2>
+            <div className="space-y-8">
+              {featured.filter(f => f.imageUrl).map((work, i) => (
+                <div key={i} className={`grid md:grid-cols-2 gap-8 items-center ${i % 2 === 1 ? 'md:[direction:rtl]' : ''}`}>
+                  <div className="rounded-2xl overflow-hidden shadow-lg aspect-video [direction:ltr]">
+                    <img src={work.imageUrl} className="w-full h-full object-cover" alt={work.title} />
+                  </div>
+                  <div className="space-y-4 [direction:ltr]">
+                    <p className="text-xs font-bold tracking-widest uppercase text-gray-400">{work.year}</p>
+                    <h3 className="text-2xl md:text-3xl font-bold" style={{ color: pc }}>{work.title}</h3>
+                    <p className="text-gray-500 text-lg">{work.subtitle}</p>
+                  </div>
                 </div>
-              </div>
-            )} />
+              ))}
+            </div>
           </section>
         )}
+      </main>
 
-        <section id="contact" className="text-center py-10">
-          <SectionTitle title={contact.ctaText || "Let's Work Together"} design={design} centered />
-          <p className="text-gray-600 text-lg mb-12 max-w-2xl mx-auto">{contact.ctaDescription}</p>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto">
+      {/* ── CTA ── */}
+      <section id="contact" className="py-28 px-6 relative overflow-hidden" style={{ background: `linear-gradient(135deg, ${pc} 0%, ${sc} 100%)` }}>
+        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 20% 50%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '60px 60px' }} />
+        <div className="max-w-4xl mx-auto text-center text-white relative z-10">
+          <h2 className="text-4xl md:text-5xl font-bold mb-6" style={{ fontFamily: design.titleFont }}>
+            {ph(contact.ctaText, "Let's Work Together")}
+          </h2>
+          <p className="text-white/80 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+            {ph(contact.ctaDescription, "Ready to take your brand to the next level? Reach out and let's build something meaningful together.")}
+          </p>
+          <div className="flex flex-wrap justify-center gap-4">
             {contact.email && (
-              <a href={`mailto:${contact.email}`} className="flex items-center justify-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition">
-                <span>📧</span><span className="text-gray-700 font-medium">{contact.email}</span>
+              <a href={`mailto:${contact.email}`} className="px-8 py-4 bg-white rounded-xl font-bold text-base hover:bg-gray-100 transition shadow-lg" style={{ color: pc }}>
+                📧 {contact.email}
               </a>
             )}
             {contact.phone && (
-              <a href={`tel:${contact.phone}`} className="flex items-center justify-center gap-3 p-5 bg-white border border-gray-200 rounded-xl hover:shadow-md transition">
-                <span>📱</span><span className="text-gray-700 font-medium">{contact.phone}</span>
+              <a href={`tel:${contact.phone}`} className="px-8 py-4 bg-white/20 border border-white/40 backdrop-blur rounded-xl font-bold text-white text-base hover:bg-white/30 transition">
+                📱 {contact.phone}
               </a>
             )}
             {contact.location && (
-              <div className="flex items-center justify-center gap-3 p-5 bg-white border border-gray-200 rounded-xl text-gray-700 font-medium">
-                <span>📍</span><span>{contact.location}</span>
+              <div className="px-8 py-4 bg-white/20 border border-white/40 backdrop-blur rounded-xl font-bold text-white text-base">
+                📍 {contact.location}
               </div>
             )}
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
 
-      <footer className="bg-gray-900 text-white py-12 text-center mt-20">
+      {/* ── FAQ ── */}
+      <section className="py-24 px-6 bg-gray-50">
+        <div className="max-w-7xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-center mb-3" style={{ color: pc }}>FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont, color: pc }}>Common Questions</h2>
+          <FAQAccordion faqs={faq} dark={false} />
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="py-10 border-t border-gray-100 text-center">
         <p className="text-gray-400 text-sm">
-          Created with <a href="https://personify.so" className="text-white hover:underline font-semibold">Personify</a>
+          Made with ❤️ by <span className="font-semibold text-gray-600">{basicInfo.name || username}</span> · Powered by{' '}
+          <a href="https://personify.so" className="font-semibold hover:underline" style={{ color: pc }}>Personify</a>
         </p>
       </footer>
     </div>
   );
 }
 
-// --- STORYTELLER TEMPLATE ---
-function StorytellerTemplate({ page }) {
-  const { design, basicInfo, contact, services = [], portfolio = {}, featured = [] } = page;
+// ── STORYTELLER TEMPLATE ──────────────────────────────────────────────────────
+
+function StorytellerTemplate({ page, isPreview }) {
+  const { design, basicInfo, contact, services = [], portfolio = {}, featured = [], faq = [], username } = page;
+  const pc = design.primaryColor;
+  const sc = design.secondaryColor;
 
   return (
-    <div className="min-h-screen bg-black text-white" style={{ fontFamily: design.bodyFont }}>
-      <section className="relative h-screen flex items-center justify-center text-center px-6">
-        {basicInfo.heroImageUrl && (
+    <div className="min-h-screen bg-[#080808] text-white" style={{ fontFamily: design.bodyFont }}>
+
+      {/* ── Hero ── */}
+      <section className={`relative min-h-screen flex flex-col items-center justify-center text-center px-6 overflow-hidden ${isPreview ? 'pt-10' : ''}`}>
+        {basicInfo.heroImageUrl ? (
           <div className="absolute inset-0 z-0">
-            <img src={basicInfo.heroImageUrl} className="w-full h-full object-cover opacity-50" alt="Hero" />
-            <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-black"></div>
+            <img src={basicInfo.heroImageUrl} className="w-full h-full object-cover" alt="Hero" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(8,8,8,0.4) 0%, rgba(8,8,8,0.7) 50%, #080808 100%)' }} />
           </div>
+        ) : (
+          <div className="absolute inset-0 z-0" style={{ background: `radial-gradient(ellipse at 50% 50%, ${pc}25 0%, #080808 65%)` }} />
         )}
-        <div className="relative z-10">
-          <h1 className="text-7xl md:text-9xl font-bold mb-4" style={{ fontFamily: design.titleFont }}>
-            {basicInfo.name}
+
+        {/* Logo / avatar */}
+        <div className="relative z-10 mb-auto pt-12 flex items-center gap-3">
+          {basicInfo.logoUrl
+            ? <img src={basicInfo.logoUrl} alt="Logo" className="h-10 rounded-full object-cover border border-white/20" />
+            : <div className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold border border-white/20 text-sm" style={{ backgroundColor: pc + '50' }}>{(basicInfo.name || 'P')[0]}</div>
+          }
+          <span className="text-sm font-semibold text-white/60">{ph(basicInfo.name, 'Your Name')}</span>
+        </div>
+
+        {/* Main hero text */}
+        <div className="relative z-10 space-y-6 max-w-5xl my-auto">
+          <p className="text-xs font-bold tracking-[0.35em] uppercase text-white/40">
+            {ph(basicInfo.title, 'Founder · Speaker · Creator')}
+          </p>
+          <h1 className="text-6xl md:text-8xl lg:text-9xl font-bold leading-none" style={{ fontFamily: design.titleFont, color: sc }}>
+            {ph(basicInfo.name, 'Your Name')}
           </h1>
-          <p className="text-2xl md:text-3xl font-light" style={{ color: design.secondaryColor }}>{basicInfo.title}</p>
+          <p className="text-xl md:text-2xl text-white/50 max-w-2xl mx-auto font-light">
+            {ph(basicInfo.tagline, 'A short tagline that captures your essence')}
+          </p>
+          <div className="flex items-center justify-center gap-4 pt-4 flex-wrap">
+            <a href="#story" className="px-8 py-4 rounded-full font-bold text-black hover:opacity-90 transition shadow-xl" style={{ backgroundColor: sc }}>
+              Read My Story ↓
+            </a>
+            <ShareButton username={username} name={basicInfo.name} light />
+          </div>
+        </div>
+
+        {/* Scroll indicator */}
+        <div className="relative z-10 mb-10 mt-auto flex flex-col items-center gap-2 text-white/25">
+          <span className="text-[10px] tracking-widest uppercase">Scroll</span>
+          <div className="w-px h-10 bg-gradient-to-b from-white/25 to-transparent" />
         </div>
       </section>
 
-      <main className="max-w-6xl mx-auto px-6 space-y-32 py-20">
-        <section id="about" className="max-w-4xl mx-auto text-center">
-          <SectionTitle title="The Story" design={design} centered />
-          <div className="space-y-8 text-gray-300 text-xl leading-relaxed">
-            <p>{basicInfo.about1}</p>
-            {basicInfo.about2 && <p>{basicInfo.about2}</p>}
+      <main className="max-w-6xl mx-auto px-6 space-y-36 py-32">
+
+        {/* ── Story / About ── */}
+        <section id="story">
+          <div className="grid md:grid-cols-[220px_1fr] gap-12 lg:gap-20 items-start">
+            <div className="md:sticky md:top-28">
+              <p className="text-xs font-bold tracking-widest uppercase mb-4" style={{ color: sc }}>The Story</p>
+              <div className="w-10 h-px mb-6" style={{ backgroundColor: sc }} />
+              {basicInfo.logoUrl && (
+                <img src={basicInfo.logoUrl} alt={basicInfo.name} className="w-16 h-16 rounded-full object-cover border border-white/10 mt-4" />
+              )}
+            </div>
+            <div className="space-y-8">
+              <p className="text-2xl md:text-3xl font-light leading-relaxed italic" style={{ color: 'rgba(255,255,255,0.85)' }}>
+                "{ph(basicInfo.about1, 'Share your story here — what drives you, what you have built, and what you believe in. This is your chance to connect authentically with people.')}"
+              </p>
+              {basicInfo.about2 && (
+                <p className="text-lg text-gray-400 leading-relaxed">{basicInfo.about2}</p>
+              )}
+            </div>
           </div>
         </section>
 
-        {portfolio?.images?.length > 0 && (
+        {/* ── Visuals / Portfolio ── */}
+        {portfolio?.images?.some(i => i?.url) && (
           <section id="portfolio">
-            <SectionTitle title="Visuals" design={design} centered />
-            <Grid 
-              items={portfolio.images.filter(img => img?.url)} 
-              renderItem={(img, i) => (
-                <div key={i} className="aspect-square rounded-xl overflow-hidden grayscale hover:grayscale-0 transition-all duration-700">
-                  <img src={img.url} className="w-full h-full object-cover" alt="Portfolio" />
+            <p className="text-xs font-bold tracking-widest uppercase mb-12" style={{ color: sc }}>Visuals</p>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {portfolio.images.filter(img => img?.url).map((img, i) => (
+                <div key={i} className={`group relative overflow-hidden rounded-2xl bg-zinc-900 ${i === 0 ? 'row-span-2' : ''}`}
+                  style={{ aspectRatio: i === 0 ? '1/2.1' : '1/1' }}>
+                  <img src={img.url} className="w-full h-full object-cover grayscale group-hover:grayscale-0 scale-105 group-hover:scale-100 transition-all duration-700" alt="Visual" />
                 </div>
-              )} 
-            />
+              ))}
+            </div>
           </section>
         )}
 
-        {services.length > 0 && (
+        {/* ── Expertise / Services ── */}
+        {services.some(s => s.title) && (
           <section id="services">
-            <SectionTitle title="Expertise" design={design} centered />
-            <Grid items={services} cols="md:grid-cols-2" renderItem={(s, i) => (
-              <div key={i} className="bg-zinc-900/50 p-10 rounded-2xl border border-zinc-800">
-                <h3 className="text-3xl font-bold mb-4" style={{ color: design.secondaryColor }}>{s.title}</h3>
-                <p className="text-gray-400 text-lg">{s.description}</p>
-              </div>
-            )} />
-          </section>
-        )}
-
-        {featured.length > 0 && (
-          <section id="featured">
-            <SectionTitle title="Selected Works" design={design} centered />
-            <Grid items={featured.filter(f => f.imageUrl)} renderItem={(work, i) => (
-              <div key={i} className="group relative overflow-hidden rounded-2xl">
-                <img src={work.imageUrl} className="w-full h-[500px] object-cover transition-transform duration-1000 group-hover:scale-110" alt={work.title} />
-                <div className="absolute inset-0 bg-black/60 flex flex-col justify-end p-8 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <h3 className="text-2xl font-bold">{work.title}</h3>
-                  <p className="text-gray-300">{work.subtitle}</p>
+            <p className="text-xs font-bold tracking-widest uppercase mb-12" style={{ color: sc }}>Expertise</p>
+            <div className="grid md:grid-cols-2 gap-5">
+              {services.filter(s => s.title).map((s, i) => (
+                <div key={i} className="relative p-8 rounded-2xl bg-zinc-900/60 border border-white/5 hover:border-white/10 transition-all group overflow-hidden">
+                  <div className="absolute left-0 top-0 bottom-0 w-[3px] rounded-l-2xl" style={{ backgroundColor: sc }} />
+                  <p className="text-xs font-bold tracking-widest uppercase mb-4 text-white/25">{String(i + 1).padStart(2, '0')}</p>
+                  <h3 className="text-2xl font-bold mb-4" style={{ color: sc }}>{s.title}</h3>
+                  <p className="text-gray-400 leading-relaxed">{ph(s.description, 'How this expertise creates value and the results you deliver.')}</p>
                 </div>
-              </div>
-            )} />
+              ))}
+            </div>
           </section>
         )}
 
-        <section id="contact" className="text-center py-20">
-          <SectionTitle title={contact.ctaText || "Let's Connect"} design={design} centered />
-          <p className="text-gray-400 text-xl mb-12 max-w-2xl mx-auto">{contact.ctaDescription}</p>
-          <div className="flex flex-wrap justify-center gap-6">
-            {contact.email && (
-              <a href={`mailto:${contact.email}`} className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-gray-200 transition">
-                Email Me
-              </a>
-            )}
-            {contact.social1 && (
-              <a href={`https://instagram.com/${contact.social1.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="px-8 py-4 border border-zinc-700 rounded-full font-bold hover:bg-zinc-900 transition">
-                Instagram
-              </a>
-            )}
+        {/* ── Featured Works ── */}
+        {featured.filter(f => f.imageUrl).length > 0 && (
+          <section id="featured">
+            <p className="text-xs font-bold tracking-widest uppercase mb-12" style={{ color: sc }}>Selected Works</p>
+            <div className="space-y-4">
+              {featured.filter(f => f.imageUrl).map((work, i) => (
+                <div key={i} className="group relative overflow-hidden rounded-3xl" style={{ height: '440px' }}>
+                  <img src={work.imageUrl} className="w-full h-full object-cover transition-transform duration-[1500ms] group-hover:scale-105" alt={work.title} />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
+                  <div className="absolute bottom-0 left-0 right-0 p-8 translate-y-2 group-hover:translate-y-0 transition-transform duration-500">
+                    <p className="text-[11px] font-bold tracking-widest uppercase mb-2 text-white/40">{work.year}</p>
+                    <h3 className="text-3xl font-bold mb-1">{work.title}</h3>
+                    <p className="text-gray-300 text-base">{work.subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Contact / CTA ── */}
+        <section id="contact" className="text-center py-16 relative">
+          <div className="absolute inset-0 rounded-3xl pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 50%, ${pc}18 0%, transparent 70%)` }} />
+          <div className="relative z-10">
+            <p className="text-xs font-bold tracking-widest uppercase mb-5" style={{ color: sc }}>Connect</p>
+            <h2 className="text-5xl md:text-6xl font-bold mb-6" style={{ fontFamily: design.titleFont }}>
+              {ph(contact.ctaText, "Let's Connect")}
+            </h2>
+            <p className="text-gray-400 text-xl mb-12 max-w-2xl mx-auto leading-relaxed">
+              {ph(contact.ctaDescription, "I'm always open to interesting conversations, collaborations, and opportunities.")}
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {contact.email && (
+                <a href={`mailto:${contact.email}`} className="px-8 py-4 bg-white text-black rounded-full font-bold hover:bg-gray-100 transition text-sm">
+                  Email Me →
+                </a>
+              )}
+              {contact.social1 && (
+                <a href="#" className="px-8 py-4 border border-white/15 rounded-full font-bold hover:bg-white/5 transition text-sm">
+                  {contact.social1}
+                </a>
+              )}
+              {contact.social2 && (
+                <a href="#" className="px-8 py-4 border border-white/15 rounded-full font-bold hover:bg-white/5 transition text-sm">
+                  {contact.social2}
+                </a>
+              )}
+              {contact.phone && (
+                <a href={`tel:${contact.phone}`} className="px-8 py-4 border border-white/15 rounded-full font-bold hover:bg-white/5 transition text-sm">
+                  {contact.phone}
+                </a>
+              )}
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="py-12 border-t border-zinc-900 text-center">
-        <p className="text-zinc-500 text-sm tracking-widest uppercase">
-          Powered by <a href="https://personify.so" className="text-white hover:text-brand-pink transition">Personify</a>
+      {/* ── FAQ ── */}
+      <section className="py-24 px-6 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-center mb-3" style={{ color: sc }}>FAQ</p>
+          <h2 className="text-3xl md:text-4xl font-bold text-center mb-12">Common Questions</h2>
+          <FAQAccordion faqs={faq} dark={true} />
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="py-12 border-t border-white/5 text-center">
+        <p className="text-white/20 text-xs tracking-widest uppercase">
+          Crafted by <span className="text-white/35">{basicInfo.name || username}</span> · Powered by{' '}
+          <a href="https://personify.so" className="text-white/35 hover:text-white/55 transition">Personify</a>
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+// ── EXECUTIVE TEMPLATE ────────────────────────────────────────────────────────
+
+function ExecutiveTemplate({ page, isPreview }) {
+  const { design, basicInfo, contact, services = [], portfolio = {}, featured = [], faq = [], username } = page;
+  const pc = design.primaryColor;
+  const sc = design.secondaryColor;
+
+  const portfolioImages = (portfolio?.images || []).filter(i => i?.url);
+  const featuredItems = (featured || []).filter(f => f.imageUrl);
+
+  const fanConfig = [
+    { rotate: -28, tx: -160, ty: 20, z: 1 },
+    { rotate: -14, tx: -85,  ty: 8,  z: 2 },
+    { rotate: -4,  tx: -15,  ty: 0,  z: 4 },
+    { rotate: 8,   tx: 55,   ty: 6,  z: 3 },
+    { rotate: 20,  tx: 125,  ty: 18, z: 2 },
+    { rotate: 32,  tx: 185,  ty: 30, z: 1 },
+  ];
+
+  return (
+    <div className="min-h-screen bg-[#0c0c0c] text-white" style={{ fontFamily: design.bodyFont }}>
+
+      {/* ── Nav ── */}
+      <nav className={`fixed left-0 right-0 z-50 flex items-center justify-between px-6 md:px-10 py-5 ${isPreview ? 'top-10' : 'top-0'}`}
+        style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.75) 0%, transparent 100%)' }}>
+        <span className="text-base md:text-lg font-bold tracking-[0.12em] uppercase" style={{ fontFamily: design.titleFont }}>
+          {ph(basicInfo.name, 'Your Name')}
+        </span>
+        <div className="flex items-center gap-3">
+          <ShareButton username={username} name={basicInfo.name} light />
+          <a href="#contact" className="w-10 h-10 rounded-full border border-white/20 flex items-center justify-center text-lg hover:bg-white/10 transition">
+            ☰
+          </a>
+        </div>
+      </nav>
+
+      {/* ── Hero ── */}
+      <section className="relative min-h-screen flex flex-col justify-end overflow-hidden">
+        {basicInfo.heroImageUrl ? (
+          <div className="absolute inset-0">
+            <img src={basicInfo.heroImageUrl} className="w-full h-full object-cover object-top" alt="Hero" />
+            <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.25) 35%, rgba(12,12,12,0.75) 65%, #0c0c0c 100%)' }} />
+          </div>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: `radial-gradient(ellipse at 50% 30%, ${pc}25 0%, #0c0c0c 65%)` }}>
+            <div className="text-center text-gray-600">
+              <div className="text-6xl mb-3 opacity-40">📸</div>
+              <p className="text-sm">Add your hero photo in Basic Info</p>
+            </div>
+          </div>
+        )}
+
+        <div className="relative z-10 px-6 md:px-10 pb-0">
+          <div className="flex items-start justify-between pt-28 pb-10 md:pb-16">
+            <div className="max-w-xs">
+              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/20 text-xs font-semibold text-white/80 mb-5 backdrop-blur-sm" style={{ backgroundColor: 'rgba(255,255,255,0.05)' }}>
+                <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
+                {ph(contact.ctaText, 'BOOK A STRATEGY CALL')}
+              </div>
+              <p className="text-white text-base md:text-lg font-semibold leading-snug max-w-[220px]" style={{ fontFamily: design.titleFont }}>
+                {ph(basicInfo.title, 'Personal Brand Strategist & Founder')}
+              </p>
+            </div>
+            <div className="hidden md:flex flex-col items-end max-w-xs text-right">
+              <p className="text-white/55 text-sm leading-relaxed mb-5">
+                {ph(basicInfo.about1?.substring(0, 160), 'Driven by strategy and powered by systems that turn personal stories into scalable digital influence.')}
+              </p>
+              <a href="#contact" className="inline-flex items-center gap-2 px-6 py-3 rounded-full font-bold text-sm hover:opacity-90 transition shadow-xl" style={{ backgroundColor: sc, color: '#000' }}>
+                ✦ WORK WITH ME
+              </a>
+            </div>
+          </div>
+          <h1 className="font-black leading-none tracking-tight uppercase text-white" style={{ fontFamily: design.titleFont, fontSize: 'clamp(3rem, 13vw, 11rem)' }}>
+            {ph(basicInfo.name, 'YOUR NAME')}
+          </h1>
+        </div>
+      </section>
+
+      {/* ── Tagline + Photo Grid ── */}
+      <section className="px-6 md:px-10 py-20 md:py-28">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-3xl md:text-5xl font-bold text-center mb-5 leading-tight max-w-3xl mx-auto" style={{ fontFamily: design.titleFont }}>
+            {ph(basicInfo.about1, 'Turning Human Stories Into Scalable Digital Leverage')}
+          </h2>
+          <p className="text-gray-400 text-center max-w-2xl mx-auto mb-14 leading-relaxed text-base md:text-lg">
+            {ph(contact.ctaDescription, 'I help founders, entrepreneurs, and professionals build powerful personal brands using AI-first systems that drive visibility, authority, and growth.')}
+          </p>
+          {portfolioImages.length > 0 && (
+            <div className="grid grid-cols-3 gap-3 md:gap-4">
+              {portfolioImages.slice(0, 3).map((img, i) => (
+                <div key={i} className="rounded-2xl overflow-hidden aspect-[3/4]">
+                  <img src={img.url} className="w-full h-full object-cover hover:scale-105 transition-transform duration-700" alt="" />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Services ── */}
+      {services.some(s => s.title) && (
+        <section id="services" className="px-6 md:px-10 py-20 border-t border-white/5">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl md:text-4xl font-bold mb-3 leading-tight" style={{ fontFamily: design.titleFont }}>
+              Building Powerful Brand Systems
+            </h2>
+            <p className="text-gray-400 max-w-2xl mb-12 leading-relaxed">
+              I design and implement strategies that transform how you create content, build your brand, and grow your business.
+            </p>
+            <div className="grid md:grid-cols-3 gap-4">
+              {services.filter(s => s.title).map((s, i) => (
+                <div key={i} className="bg-[#141414] rounded-2xl p-7 border border-white/5 hover:border-white/10 transition-all">
+                  <p className="text-2xl font-bold mb-5" style={{ color: sc }}>{String(i + 1).padStart(2, '0')}</p>
+                  <h3 className="text-lg font-bold text-white mb-3">{s.title}</h3>
+                  <p className="text-gray-500 text-sm leading-relaxed">{ph(s.description, 'Description of this service and the value it delivers.')}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Featured ── */}
+      {featuredItems.length > 0 && (
+        <section id="featured" className="px-6 md:px-10 py-20 border-t border-white/5">
+          <div className="max-w-6xl mx-auto">
+            <h2 className="text-3xl font-bold mb-3" style={{ fontFamily: design.titleFont }}>Featured Systems & Projects</h2>
+            <p className="text-gray-500 mb-10 text-sm">A showcase of content systems, brand frameworks, and digital infrastructures built to turn identity into leverage.</p>
+            <div className="grid md:grid-cols-2 gap-4">
+              {featuredItems.map((work, i) => (
+                <div key={i} className="group relative rounded-2xl overflow-hidden aspect-video bg-zinc-900">
+                  <img src={work.imageUrl} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt={work.title} />
+                  <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 55%)' }} />
+                  <div className="absolute bottom-0 left-0 right-0 p-6">
+                    <p className="text-[10px] text-white/35 uppercase tracking-widest mb-1.5 font-bold">{work.year}</p>
+                    <h3 className="text-xl font-bold">{work.title}</h3>
+                    <p className="text-gray-400 text-sm mt-1">{work.subtitle}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Fan Gallery + Personify Promo ── */}
+      <section className="py-24 md:py-32 px-6 border-t border-white/5 relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 60%, ${pc}10 0%, transparent 65%)` }} />
+        {portfolioImages.length > 0 && (
+          <div className="relative flex justify-center items-end h-52 md:h-64 mb-16">
+            {portfolioImages.slice(0, Math.min(6, portfolioImages.length)).map((img, i) => {
+              const cfg = fanConfig[i] || fanConfig[0];
+              return (
+                <div
+                  key={i}
+                  className="absolute w-24 h-36 md:w-32 md:h-48 rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl"
+                  style={{ transform: `rotate(${cfg.rotate}deg) translateX(${cfg.tx}px) translateY(${cfg.ty}px)`, zIndex: cfg.z, transformOrigin: 'bottom center' }}
+                >
+                  <img src={img.url} className="w-full h-full object-cover" alt="" />
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <div className="relative z-10 text-center max-w-2xl mx-auto">
+          <h2 className="text-3xl md:text-5xl font-bold mb-2 leading-tight" style={{ fontFamily: design.titleFont }}>
+            Let's Create Something<br />Extraordinary
+          </h2>
+          <p className="text-gray-500 mb-8 text-sm">By Using Personify</p>
+          <a href="https://personify.so" className="inline-flex items-center gap-2 px-8 py-4 rounded-full font-bold text-sm hover:opacity-90 transition shadow-xl" style={{ backgroundColor: sc, color: '#000' }}>
+            ✦ TRY PERSONIFY NOW
+          </a>
+        </div>
+      </section>
+
+      {/* ── Contact ── */}
+      <section id="contact" className="px-6 md:px-10 py-20 border-t border-white/5">
+        <div className="max-w-6xl mx-auto">
+          <h2 className="text-4xl md:text-5xl font-bold text-center mb-4" style={{ fontFamily: design.titleFont }}>
+            Let's Work Together
+          </h2>
+          <p className="text-gray-400 text-center max-w-xl mx-auto mb-14 leading-relaxed">
+            {ph(contact.ctaDescription, 'Available for virtual consultations, in-person meetings, conference appearances, and more.')}
+          </p>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              contact.email    && { icon: '📧', label: 'Email Address', value: contact.email,    href: `mailto:${contact.email}` },
+              contact.phone    && { icon: '📱', label: 'Phone Number',  value: contact.phone,    href: `tel:${contact.phone}` },
+              contact.location && { icon: '📍', label: 'Location',      value: contact.location, href: null },
+              contact.social1  && { icon: '✦',  label: 'Social',        value: contact.social1,  href: null },
+            ].filter(Boolean).map((item, i) => {
+              const inner = (
+                <div className="flex items-center gap-3 p-5 rounded-2xl bg-[#141414] border border-white/5 hover:border-white/10 transition w-full h-full">
+                  <div className="w-9 h-9 rounded-xl flex-shrink-0 flex items-center justify-center text-sm" style={{ backgroundColor: sc + '22', color: sc }}>
+                    {item.icon}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-gray-500 mb-0.5 uppercase tracking-wider font-semibold">{item.label}</p>
+                    <p className="text-sm font-semibold text-white truncate">{item.value}</p>
+                  </div>
+                </div>
+              );
+              return item.href ? <a key={i} href={item.href}>{inner}</a> : <div key={i}>{inner}</div>;
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* ── FAQ ── */}
+      <section className="py-20 px-6 md:px-10 border-t border-white/5">
+        <div className="max-w-4xl mx-auto">
+          <p className="text-xs font-bold tracking-widest uppercase text-center mb-3" style={{ color: sc }}>FAQ</p>
+          <h2 className="text-3xl font-bold text-center mb-10" style={{ fontFamily: design.titleFont }}>Common Questions</h2>
+          <FAQAccordion faqs={faq} dark={true} />
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="py-8 border-t border-white/5 text-center">
+        <p className="text-white/20 text-xs tracking-wider">
+          Creator Identity Pages Designed And Supported By{' '}
+          <a href="https://personify.so" className="text-white/40 hover:text-white/60 transition">Personify</a>
         </p>
       </footer>
     </div>

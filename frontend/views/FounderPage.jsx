@@ -70,12 +70,19 @@ export default function FounderPage() {
     contact: { email: '', phone: '', location: '', social1: '', social2: '', ctaText: "Let's Work Together", ctaDescription: '' },
     services: [{ id: '1', title: '', description: '' }, { id: '2', title: '', description: '' }],
     portfolio: { images: [] },
-    featured: []
+    featured: [],
+    faq: []
   });
 
-  const tabs = ['design', 'basicInfo', 'contact', 'services', 'portfolio', 'featured'];
-  const tabLabels = { design: 'Design', basicInfo: 'Basic Info', contact: 'Contact', services: 'Services', portfolio: 'Portfolio', featured: 'Featured' };
-  const tabLabelsMobile = { design: 'Design', basicInfo: 'Info', contact: 'Contact', services: 'Services', portfolio: 'Gallery', featured: 'Featured' };
+  const tabs = ['design', 'basicInfo', 'contact', 'services', 'portfolio', 'featured', 'faq'];
+  const tabLabels = { design: 'Design', basicInfo: 'Basic Info', contact: 'Contact', services: 'Services', portfolio: 'Portfolio', featured: 'Featured', faq: 'FAQ' };
+  const tabLabelsMobile = { design: 'Design', basicInfo: 'Info', contact: 'Contact', services: 'Services', portfolio: 'Gallery', featured: 'Featured', faq: 'FAQ' };
+
+  const FAQ_PRESETS = [
+    { value: 'connections', label: 'How will your connections help me grow my business?' },
+    { value: 'contact', label: 'Where can I contact you?' },
+    { value: 'custom', label: 'Other (write your own)' },
+  ];
 
   useEffect(() => { loadFounderPage(); }, []);
 
@@ -164,15 +171,67 @@ export default function FounderPage() {
         id: 'visionary',
         icon: '🚀',
         title: 'The Visionary',
-        subtitle: 'Bold & Inspiring',
-        subtitleColor: 'text-green-400',
-        description: 'Large hero headline, minimal layout. Perfect for thought leaders & startup founders.',
+        subtitle: 'Light · Professional · Bold',
+        subtitleColor: 'text-emerald-400',
+        description: 'Clean white layout with strong typography. Split hero, service cards, gradient CTA. Perfect for founders & thought leaders.',
         preview: (
-          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
-            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-green-600" /><div className="h-2 w-28 bg-gray-600 rounded" /></div>
-            <div className="h-2 w-full bg-gray-700 rounded" />
-            <div className="h-2 w-4/5 bg-gray-700 rounded" />
-            <div className="h-6 w-16 bg-green-700 rounded mt-2" />
+          <div className="mt-4 rounded-xl overflow-hidden ring-1 ring-white/10 bg-white text-black select-none pointer-events-none">
+            {/* Nav */}
+            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 bg-white">
+              <div className="flex items-center gap-1.5">
+                <div className="w-4 h-4 rounded-full bg-[#623437]" />
+                <div className="w-10 h-1.5 bg-gray-700 rounded" />
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-5 h-1 bg-gray-300 rounded" /><div className="w-5 h-1 bg-gray-300 rounded" /><div className="w-5 h-1 bg-gray-300 rounded" />
+                <div className="w-10 h-2.5 bg-[#623437] rounded-md" />
+              </div>
+            </div>
+            {/* Hero */}
+            <div className="bg-gray-50 px-3 py-4 flex gap-3">
+              <div className="flex-1 space-y-1.5">
+                <div className="w-16 h-1 bg-[#623437]/40 rounded" />
+                <div className="w-20 h-4 bg-[#623437] rounded" />
+                <div className="w-12 h-1.5 bg-[#f5a623]/80 rounded" />
+                <div className="w-full h-1 bg-gray-300 rounded mt-1" />
+                <div className="w-4/5 h-1 bg-gray-300 rounded" />
+                <div className="w-3/4 h-1 bg-gray-200 rounded" />
+                <div className="flex gap-1.5 mt-2">
+                  <div className="w-12 h-3 bg-[#623437] rounded-lg" />
+                  <div className="w-12 h-3 border border-gray-300 rounded-lg" />
+                </div>
+              </div>
+              <div className="w-16 h-24 rounded-xl bg-gradient-to-br from-gray-200 to-gray-300 flex-shrink-0 relative overflow-hidden">
+                <div className="absolute bottom-0 left-0 right-0 h-8 bg-gradient-to-t from-[#623437]/40 to-transparent" />
+                <div className="absolute bottom-1 left-1 right-1 bg-white rounded-lg p-1">
+                  <div className="w-full h-0.5 bg-[#623437]/60 rounded" />
+                  <div className="w-3/4 h-0.5 bg-gray-300 rounded mt-0.5" />
+                </div>
+              </div>
+            </div>
+            {/* Services */}
+            <div className="px-3 py-3 bg-white">
+              <div className="w-8 h-0.5 bg-[#623437]/50 rounded mb-1" />
+              <div className="w-14 h-2 bg-gray-800 rounded mb-2.5" />
+              <div className="grid grid-cols-3 gap-1.5">
+                {[0,1,2].map(i => (
+                  <div key={i} className="bg-white border border-gray-200 rounded-lg p-1.5 shadow-sm space-y-1">
+                    <div className="w-4 h-4 rounded bg-[#623437]/10 flex items-center justify-center">
+                      <div className="w-1.5 h-2 bg-[#623437]/50 rounded-sm" />
+                    </div>
+                    <div className="w-full h-0.5 bg-gray-300 rounded" />
+                    <div className="w-3/4 h-0.5 bg-gray-200 rounded" />
+                    <div className="w-1/2 h-0.5 bg-gray-200 rounded" />
+                  </div>
+                ))}
+              </div>
+            </div>
+            {/* CTA gradient */}
+            <div className="px-3 py-4 text-center" style={{ background: 'linear-gradient(135deg, #623437 0%, #f5a623 100%)' }}>
+              <div className="w-20 h-2.5 bg-white/60 rounded mx-auto mb-1.5" />
+              <div className="w-28 h-1 bg-white/30 rounded mx-auto mb-3" />
+              <div className="w-16 h-3 bg-white rounded-xl mx-auto" />
+            </div>
           </div>
         )
       },
@@ -180,15 +239,115 @@ export default function FounderPage() {
         id: 'storyteller',
         icon: '✍️',
         title: 'The Storyteller',
-        subtitle: 'Warm & Personal',
-        subtitleColor: 'text-orange-400',
-        description: 'Narrative-driven bio with a warm, human feel. Great for coaches & speakers.',
+        subtitle: 'Dark · Cinematic · Editorial',
+        subtitleColor: 'text-amber-400',
+        description: 'Full-screen dark hero with dramatic typography. Grayscale-to-color gallery, editorial story layout. Great for creatives & speakers.',
         preview: (
-          <div className="bg-black/40 rounded-lg p-4 mt-4 space-y-2">
-            <div className="flex items-center gap-2"><div className="w-5 h-5 rounded-full bg-orange-700" /><div className="h-2 w-32 bg-gray-600 rounded" /></div>
-            <div className="h-2 w-full bg-gray-700 rounded" />
-            <div className="h-2 w-3/4 bg-gray-700 rounded" />
-            <div className="h-6 w-16 bg-orange-800 rounded mt-2" />
+          <div className="mt-4 rounded-xl overflow-hidden ring-1 ring-white/10 bg-[#080808] select-none pointer-events-none">
+            {/* Hero */}
+            <div className="relative px-3 py-5 flex flex-col items-center justify-center text-center overflow-hidden" style={{ background: 'linear-gradient(to bottom, rgba(98,52,55,0.35) 0%, #080808 100%)' }}>
+              <div className="absolute inset-0 opacity-15" style={{ backgroundImage: 'radial-gradient(circle at 50% 50%, #f5a623 1px, transparent 1px)', backgroundSize: '12px 12px' }} />
+              <div className="w-5 h-5 rounded-full bg-white/10 border border-white/20 mb-1.5 relative z-10" />
+              <div className="w-3 h-0.5 bg-[#f5a623]/60 rounded mb-2 relative z-10" />
+              <div className="w-24 h-5 bg-[#f5a623]/80 rounded mb-1 relative z-10" />
+              <div className="w-16 h-1 bg-white/20 rounded mb-3 relative z-10" />
+              <div className="w-14 h-3 rounded-full bg-[#f5a623] relative z-10" />
+            </div>
+            {/* Story section */}
+            <div className="px-3 py-3 border-t border-white/5">
+              <div className="w-6 h-0.5 bg-[#f5a623]/50 rounded mb-2" />
+              <div className="space-y-1">
+                <div className="w-full h-1 bg-white/12 rounded italic" />
+                <div className="w-full h-1 bg-white/12 rounded" />
+                <div className="w-3/4 h-1 bg-white/8 rounded" />
+              </div>
+            </div>
+            {/* Visuals grid */}
+            <div className="px-3 py-2">
+              <div className="grid grid-cols-3 gap-1" style={{ gridTemplateRows: 'auto auto' }}>
+                <div className="row-span-2 bg-zinc-700/60 rounded-lg" style={{ height: '44px' }} />
+                <div className="bg-zinc-800 rounded-lg" style={{ height: '20px' }} />
+                <div className="bg-zinc-700/50 rounded-lg" style={{ height: '20px' }} />
+                <div className="bg-zinc-700/50 rounded-lg" style={{ height: '20px' }} />
+                <div className="bg-zinc-800 rounded-lg" style={{ height: '20px' }} />
+              </div>
+            </div>
+            {/* Services */}
+            <div className="px-3 py-2 grid grid-cols-2 gap-1.5">
+              {[0,1].map(i => (
+                <div key={i} className="bg-zinc-900/80 rounded-lg p-2 border-l-2 border-[#f5a623]/60">
+                  <div className="w-6 h-0.5 bg-[#f5a623]/40 rounded mb-1" />
+                  <div className="w-full h-0.5 bg-white/10 rounded" />
+                  <div className="w-3/4 h-0.5 bg-white/8 rounded mt-0.5" />
+                </div>
+              ))}
+            </div>
+            {/* CTA */}
+            <div className="px-3 py-4 text-center border-t border-white/5" style={{ background: 'radial-gradient(ellipse at 50% 50%, rgba(98,52,55,0.25) 0%, transparent 70%)' }}>
+              <div className="w-16 h-2.5 bg-white/50 rounded mx-auto mb-1.5" />
+              <div className="w-24 h-1 bg-white/15 rounded mx-auto mb-3" />
+              <div className="w-16 h-3 bg-white rounded-full mx-auto" />
+            </div>
+          </div>
+        )
+      }
+      ,
+      {
+        id: 'executive',
+        icon: '⚡',
+        title: 'The Executive',
+        subtitle: 'Dark · Premium · Full-Bleed',
+        subtitleColor: 'text-yellow-400',
+        description: 'Full-screen hero with giant name overlay, numbered service cards, fan photo gallery, and a cinematic dark aesthetic. Built for personal brand powerhouses.',
+        preview: (
+          <div className="mt-4 rounded-xl overflow-hidden ring-1 ring-white/10 bg-[#0c0c0c] select-none pointer-events-none">
+            {/* Nav */}
+            <div className="flex items-center justify-between px-3 py-2" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.6), transparent)' }}>
+              <div className="w-12 h-1.5 bg-white/70 rounded" />
+              <div className="w-5 h-3.5 flex flex-col justify-between"><div className="w-full h-0.5 bg-white/40 rounded"/><div className="w-full h-0.5 bg-white/40 rounded"/><div className="w-full h-0.5 bg-white/40 rounded"/></div>
+            </div>
+            {/* Hero */}
+            <div className="relative px-3 pt-2 pb-0 overflow-hidden" style={{ height: '80px', background: 'linear-gradient(135deg, rgba(98,52,55,0.4) 0%, rgba(12,12,12,0.9) 100%)' }}>
+              {/* Top row */}
+              <div className="flex justify-between items-start mb-2">
+                <div>
+                  <div className="w-12 h-1 bg-white/20 rounded-full mb-1" />
+                  <div className="w-16 h-1.5 bg-white/60 rounded" />
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <div className="w-14 h-0.5 bg-white/20 rounded" />
+                  <div className="w-10 h-0.5 bg-white/15 rounded" />
+                  <div className="w-10 h-2 rounded-full" style={{ backgroundColor: '#f5a623' }} />
+                </div>
+              </div>
+              {/* Giant name */}
+              <div className="w-full h-5 bg-white/80 rounded" style={{ marginTop: '14px' }} />
+            </div>
+            {/* Photo grid */}
+            <div className="px-3 py-2 grid grid-cols-3 gap-1">
+              {[0,1,2].map(i => <div key={i} className="bg-zinc-800 rounded-lg aspect-[3/4]" />)}
+            </div>
+            {/* Service cards */}
+            <div className="px-3 py-2 grid grid-cols-3 gap-1">
+              {[0,1,2].map(i => (
+                <div key={i} className="bg-[#141414] rounded-lg p-1.5 border border-white/5">
+                  <div className="text-[8px] font-bold mb-1" style={{ color: '#f5a623' }}>{String(i+1).padStart(2,'0')}</div>
+                  <div className="w-full h-0.5 bg-white/20 rounded mb-0.5" />
+                  <div className="w-3/4 h-0.5 bg-white/10 rounded" />
+                </div>
+              ))}
+            </div>
+            {/* Fan promo */}
+            <div className="px-3 py-3 text-center border-t border-white/5 relative overflow-hidden">
+              <div className="flex justify-center items-end h-8 mb-2 relative">
+                {[-20,-8,4,16].map((r, i) => (
+                  <div key={i} className="absolute w-5 h-7 bg-zinc-700 rounded border border-white/10"
+                    style={{ transform: `rotate(${r}deg) translateX(${(i-1.5)*14}px)`, zIndex: i }} />
+                ))}
+              </div>
+              <div className="w-20 h-2 bg-white/40 rounded mx-auto mb-1.5" />
+              <div className="w-16 h-3 rounded-full mx-auto" style={{ backgroundColor: '#f5a623' }} />
+            </div>
           </div>
         )
       }
@@ -355,10 +514,10 @@ export default function FounderPage() {
 
     <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 md:p-4 mb-4 md:mb-6">
       <p className="text-blue-400 text-xs md:text-sm">
-        Template: <strong className="capitalize">{formData.template === 'visionary' ? '🚀 The Visionary' : '🎨 The Storyteller'}</strong>
+        Template: <strong className="capitalize">{formData.template === 'visionary' ? '🚀 The Visionary' : formData.template === 'executive' ? '⚡ The Executive' : '✍️ The Storyteller'}</strong>
       </p>
       <p className="text-blue-300 text-xs mt-0.5">
-        {formData.template === 'visionary' ? 'Bold & Inspiring (Light Theme)' : 'Warm & Personal (Dark Theme)'}
+        {formData.template === 'visionary' ? 'Bold & Inspiring (Light Theme)' : formData.template === 'executive' ? 'Dark & Premium (Full-Bleed)' : 'Warm & Personal (Dark Theme)'}
       </p>
     </div>
 
@@ -462,6 +621,77 @@ export default function FounderPage() {
                     </div>
                     <TextInput label="Year" placeholder="2024" value={work.year} onChange={e => updateArray('featured', work.id, 'year', e.target.value)} />
                     <ImageUpload label="Project Image (1200×800px)" id={`featured-${work.id}`} onUpload={file => handleFeaturedImageUpload(file, work.id)} imageUrl={work.imageUrl} uploading={uploading} />
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {activeTab === 'faq' && (
+            <div className="space-y-4 md:space-y-6">
+              <div className="flex justify-between items-center mb-4 md:mb-6">
+                <div>
+                  <h2 className="text-lg md:text-2xl font-semibold text-white">FAQ</h2>
+                  <p className="text-gray-400 text-xs md:text-sm mt-0.5">Up to 4 custom questions — shown after the 2 standard ones</p>
+                </div>
+                {(formData.faq || []).length < 4 && (
+                  <button
+                    onClick={() => addArrayItem('faq', { type: 'connections', customQuestion: '', answer: '' })}
+                    className="px-4 md:px-6 py-2 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition"
+                  >+ Add</button>
+                )}
+              </div>
+
+              {/* Static previews */}
+              <div className="space-y-3">
+                <p className="text-xs text-gray-500 uppercase tracking-wider font-semibold">Always shown on your page</p>
+                {[
+                  'What is Personify?',
+                  'What is a Founder Page?',
+                ].map((q, i) => (
+                  <div key={i} className="bg-black/10 rounded-xl p-4 border border-gray-800 flex items-center gap-3 opacity-60">
+                    <span className="text-gray-500 text-xs">Q{i + 1}</span>
+                    <p className="text-sm text-gray-400">{q}</p>
+                    <span className="ml-auto text-[10px] text-gray-600 bg-gray-800 px-2 py-0.5 rounded">Static</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* User FAQs */}
+              {(formData.faq || []).length === 0 ? (
+                <div className="text-center py-8 text-gray-500 text-sm">No custom FAQs yet. Tap "+ Add" to add one.</div>
+              ) : (
+                (formData.faq || []).map((item, index) => (
+                  <div key={item.id} className="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-700 space-y-3 md:space-y-4">
+                    <div className="flex justify-between items-start">
+                      <h3 className="text-white text-sm md:text-base font-semibold">FAQ {index + 1}</h3>
+                      <button onClick={() => deleteArrayItem('faq', item.id)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>
+                    </div>
+                    <div>
+                      <label className="block text-xs md:text-sm font-medium text-white mb-1.5">Question</label>
+                      <select
+                        value={item.type}
+                        onChange={e => updateArray('faq', item.id, 'type', e.target.value)}
+                        className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-black/40 border border-gray-700 rounded-lg text-sm text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
+                      >
+                        {FAQ_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+                      </select>
+                    </div>
+                    {item.type === 'custom' && (
+                      <TextInput
+                        label="Your question"
+                        placeholder="Type your question here..."
+                        value={item.customQuestion}
+                        onChange={e => updateArray('faq', item.id, 'customQuestion', e.target.value)}
+                      />
+                    )}
+                    <TextArea
+                      label="Your answer"
+                      placeholder="Write your answer here..."
+                      value={item.answer}
+                      onChange={e => updateArray('faq', item.id, 'answer', e.target.value)}
+                      rows={3}
+                    />
                   </div>
                 ))
               )}
