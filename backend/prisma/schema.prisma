@@ -75,6 +75,7 @@ model FounderPage {
   services    Json?    // [{id, title, description}, ...]
   portfolio   Json?    // {images: [{id, url}, ...]}
   featured    Json?    // [{id, title, subtitle, year, imageUrl}, ...]
+  faq         Json?    // [{id, type, customQuestion, answer}, ...]
   
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
