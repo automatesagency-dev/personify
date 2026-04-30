@@ -91,8 +91,16 @@ export default function FounderPage() {
       setLoading(true);
       const { data } = await founderPageAPI.get();
       if (data.founderPage) {
-        setFormData(prev => ({ ...prev, ...data.founderPage, services: data.founderPage.services?.length ? data.founderPage.services : prev.services }));
-        setShowTemplateSelector(!data.founderPage.template);
+        const fp = data.founderPage;
+        setFormData(prev => ({
+          ...prev,
+          ...fp,
+          services: fp.services?.length ? fp.services : prev.services,
+          featured: Array.isArray(fp.featured) ? fp.featured : [],
+          faq: Array.isArray(fp.faq) ? fp.faq : [],
+          portfolio: { images: Array.isArray(fp.portfolio?.images) ? fp.portfolio.images : [] }
+        }));
+        setShowTemplateSelector(!fp.template);
       } else {
         setShowTemplateSelector(true);
       }
@@ -156,12 +164,12 @@ export default function FounderPage() {
   };
 
   const updateNested = (parent, field, value) => setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [field]: value } }));
-  const updateArray = (arrName, id, field, value) => setFormData(prev => ({ ...prev, [arrName]: prev[arrName].map(item => item.id === id ? { ...item, [field]: value } : item) }));
+  const updateArray = (arrName, id, field, value) => setFormData(prev => ({ ...prev, [arrName]: (prev[arrName] || []).map(item => item.id === id ? { ...item, [field]: value } : item) }));
   const deleteArrayItem = (arrName, id, min = 0) => {
-    if (formData[arrName].length <= min) return alert(`You must have at least ${min} items`);
-    setFormData(prev => ({ ...prev, [arrName]: formData[arrName].filter(item => item.id !== id) }));
+    if ((formData[arrName] || []).length <= min) return alert(`You must have at least ${min} items`);
+    setFormData(prev => ({ ...prev, [arrName]: (prev[arrName] || []).filter(item => item.id !== id) }));
   };
-  const addArrayItem = (arrName, defaultObj) => setFormData(prev => ({ ...prev, [arrName]: [...prev[arrName], { id: Date.now().toString(), ...defaultObj }] }));
+  const addArrayItem = (arrName, defaultObj) => setFormData(prev => ({ ...prev, [arrName]: [...(prev[arrName] || []), { id: Date.now().toString(), ...defaultObj }] }));
 
   if (loading) return <Layout><div className="p-8 flex items-center justify-center min-h-screen text-white">Loading...</div></Layout>;
 
@@ -701,7 +709,10 @@ export default function FounderPage() {
           <div className="flex justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-700">
             <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="px-4 md:px-6 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">← Prev</button>
             <button onClick={() => handleAction('save')} disabled={saving} className="px-4 md:px-6 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">{saving ? 'Saving...' : 'Save Draft'}</button>
-            <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} disabled={activeTab === tabs[tabs.length - 1]} className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">Next →</button>
+            {activeTab === tabs[tabs.length - 1]
+              ? <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
+              : <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Next →</button>
+            }
           </div>
         </div>
       </div>
