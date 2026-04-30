@@ -8,7 +8,6 @@ import { generationAPI, authAPI } from '../services/api';
 export default function Settings() {
   const { user, refreshUser } = useAuth();
   const [activeTab, setActiveTab] = useState('account');
-  const [generations, setGenerations] = useState([]); // eslint-disable-line no-unused-vars
   const [uploading, setUploading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
   const [passwordMsg, setPasswordMsg] = useState(null);
@@ -109,7 +108,6 @@ export default function Settings() {
     try {
       const response = await generationAPI.getAll();
       const allGenerations = response.data.generations || [];
-      setGenerations(allGenerations);
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);

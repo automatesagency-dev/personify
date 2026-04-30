@@ -35,6 +35,13 @@ const FeatureItem = ({ title, desc }) => (
   </div>
 );
 
+const FP_FEATURES = [
+  { title: '2 Templates', desc: 'Choose from professional designs' },
+  { title: '1-Click Publish', desc: 'Go live instantly' },
+  { title: 'Custom URL', desc: 'personify.io/yourname' },
+  { title: 'Portfolio Showcase', desc: 'Display your best work' }
+];
+
 // --- MAIN COMPONENT ---
 
 export default function Dashboard() {
@@ -112,13 +119,6 @@ export default function Dashboard() {
     { title: 'Text Today', value: `${stats.textUsedToday}/50`, subtitle: `${50 - stats.textUsedToday} remaining`, icon: '📝', colorClass: 'bg-green-500/20' },
     { title: 'Total', value: stats.totalGenerations, subtitle: 'All time', icon: '✨', colorClass: 'bg-blue-500/20' },
     { title: 'Top Model', value: stats.favoriteModel, subtitle: 'Most used', icon: '🤖', colorClass: 'bg-brand-pink/20' }
-  ];
-
-  const fpFeaturesData = [
-    { title: '2 Templates', desc: 'Choose from professional designs' },
-    { title: '1-Click Publish', desc: 'Go live instantly' },
-    { title: 'Custom URL', desc: 'personify.io/yourname' },
-    { title: 'Portfolio Showcase', desc: 'Display your best work' }
   ];
 
   const statItemsData = [
@@ -324,7 +324,7 @@ export default function Dashboard() {
                     <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-semibold rounded-full">FREE</span>
                   </div>
                   <div className="space-y-3 mb-6 flex-1">
-                    {fpFeaturesData.map((f, i) => <FeatureItem key={i} title={f.title} desc={f.desc} />)}
+                    {FP_FEATURES.map((f, i) => <FeatureItem key={i} title={f.title} desc={f.desc} />)}
                   </div>
                   <button onClick={() => router.push('/founder-page')} className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-sm">Create Your Page</button>
                 </div>

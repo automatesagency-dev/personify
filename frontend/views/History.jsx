@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Layout from '../components/Layout';
 import { generationAPI } from '../services/api';
 
@@ -93,12 +93,11 @@ export default function History() {
     }
   };
 
-  const filteredGenerations = generations.filter(gen => {
-    if (searchQuery) {
-      return gen.prompt.toLowerCase().includes(searchQuery.toLowerCase());
-    }
-    return true;
-  });
+  const filteredGenerations = useMemo(() => {
+    if (!searchQuery) return generations;
+    const q = searchQuery.toLowerCase();
+    return generations.filter(gen => gen.prompt.toLowerCase().includes(q));
+  }, [generations, searchQuery]);
 
   if (loading) {
     return (

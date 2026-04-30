@@ -3,6 +3,10 @@ const { openai } = require('../config/ai');
 const { fal } = require('../config/fal');
 const { uploadToR2 } = require('../config/r2');
 
+const NANO_ASPECT_RATIO_MAP = { square: '1:1', portrait: '9:16', landscape: '16:9' };
+const SEEDREAM_SIZE_MAP = { square: 'square_hd', portrait: 'portrait_4_3', landscape: 'landscape_4_3' };
+const DALLE_SIZE = { square: '1024x1024', portrait: '1024x1792', landscape: '1792x1024' };
+
 // =====================================
 // Generate Image
 // =====================================
@@ -19,27 +23,9 @@ async function generateImage(req, res) {
       aspectRatio = 'square'
     } = req.body;
 
-    // Map aspect ratio to model-specific size strings
-    // nano-banana-2 uses aspect_ratio param with these string values
-    const nanoAspectRatioMap = {
-      square: '1:1',
-      portrait: '9:16',
-      landscape: '16:9'
-    };
-    // seedream uses image_size
-    const seedreamSizeMap = {
-      square: 'square_hd',
-      portrait: 'portrait_4_3',
-      landscape: 'landscape_4_3'
-    };
-    const dalleSize = {
-      square: '1024x1024',
-      portrait: '1024x1792',
-      landscape: '1792x1024'
-    };
-    const nanoAspectRatio = nanoAspectRatioMap[aspectRatio] || '1:1';
-    const seedreamImageSize = seedreamSizeMap[aspectRatio] || 'square_hd';
-    const dalleImageSize = dalleSize[aspectRatio] || '1024x1024';
+    const nanoAspectRatio = NANO_ASPECT_RATIO_MAP[aspectRatio] || '1:1';
+    const seedreamImageSize = SEEDREAM_SIZE_MAP[aspectRatio] || 'square_hd';
+    const dalleImageSize = DALLE_SIZE[aspectRatio] || '1024x1024';
 
     if (!prompt) {
       return res.status(400).json({
@@ -47,10 +33,12 @@ async function generateImage(req, res) {
       });
     }
 
-    // Get persona
+    // Get persona — include images only when face consistency is needed
     const persona = await prisma.persona.findUnique({
       where: { userId },
-      include: { personaImages: true }
+      ...(useFaceConsistency
+        ? { include: { personaImages: true } }
+        : { select: { bio: true, industry: true, brandTone: true } })
     });
 
     // Enhance prompt with persona
