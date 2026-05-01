@@ -487,12 +487,54 @@ export default function FounderPage() {
           </div>
         </div>
 
-        <div className="mb-4 md:mb-8 overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        {/* Mobile stepper */}
+        <div className="md:hidden mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => activeTab !== tabs[0] && setActiveTab(tabs[tabs.indexOf(activeTab) - 1])}
+              disabled={activeTab === tabs[0]}
+              className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-30 active:bg-white/20 transition"
+            >
+              ‹
+            </button>
+            <div className="text-center">
+              <p className="text-white font-semibold text-sm">{tabLabels[activeTab]}</p>
+              <p className="text-gray-500 text-xs">{tabs.indexOf(activeTab) + 1} of {tabs.length}</p>
+            </div>
+            {activeTab === tabs[tabs.length - 1] ? (
+              <button
+                onClick={() => handleAction('publish', true)}
+                disabled={saving}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white text-black disabled:opacity-50 text-lg active:bg-gray-200 transition"
+              >
+                🚀
+              </button>
+            ) : (
+              <button
+                onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])}
+                className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20 transition"
+              >
+                ›
+              </button>
+            )}
+          </div>
+          <div className="flex gap-1">
+            {tabs.map((tab, i) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`h-1 rounded-full flex-1 transition-all ${activeTab === tab ? 'bg-white' : i < tabs.indexOf(activeTab) ? 'bg-gray-500' : 'bg-gray-700'}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop tab bar */}
+        <div className="hidden md:block mb-8">
           <div className="bg-dark-card rounded-xl p-1.5 inline-flex gap-1">
             {tabs.map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2.5 md:px-6 py-1.5 md:py-3 rounded-lg text-xs md:text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
-                <span className="md:hidden">{tabLabelsMobile[tab]}</span>
-                <span className="hidden md:inline">{tabLabels[tab]}</span>
+              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
+                {tabLabels[tab]}
               </button>
             ))}
           </div>
@@ -706,12 +748,20 @@ export default function FounderPage() {
             </div>
           )}
 
-          <div className="flex justify-between mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-700">
-            <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="px-4 md:px-6 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">← Prev</button>
-            <button onClick={() => handleAction('save')} disabled={saving} className="px-4 md:px-6 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">{saving ? 'Saving...' : 'Save Draft'}</button>
+          {/* Mobile: save draft only */}
+          <div className="md:hidden mt-6 pt-4 border-t border-gray-700">
+            <button onClick={() => handleAction('save')} disabled={saving} className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">
+              {saving ? 'Saving...' : 'Save Draft'}
+            </button>
+          </div>
+
+          {/* Desktop: full prev/save/next row */}
+          <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-gray-700">
+            <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">← Prev</button>
+            <button onClick={() => handleAction('save')} disabled={saving} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">{saving ? 'Saving...' : 'Save Draft'}</button>
             {activeTab === tabs[tabs.length - 1]
-              ? <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
-              : <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} className="px-4 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Next →</button>
+              ? <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
+              : <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Next →</button>
             }
           </div>
         </div>

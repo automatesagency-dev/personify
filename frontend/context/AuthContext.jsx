@@ -54,11 +54,18 @@ export function AuthProvider({ children }) {
   const login = async (email, password) => {
     const response = await authAPI.login({ email, password });
     const { user, token } = response.data;
-
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);
+    return response.data;
+  };
 
+  const loginWithGoogle = async (credential) => {
+    const response = await authAPI.googleAuth(credential);
+    const { user, token } = response.data;
+    localStorage.setItem('token', token);
+    setToken(token);
+    setUser(user);
     return response.data;
   };
 
@@ -110,6 +117,7 @@ export function AuthProvider({ children }) {
       token,
       loading,
       login,
+      loginWithGoogle,
       register,
       logout,
       refreshUser,

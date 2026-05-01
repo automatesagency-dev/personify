@@ -26,11 +26,13 @@ api.interceptors.request.use((config) => {
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
+  googleAuth: (credential) => api.post('/auth/google', { credential }),
   getMe: () => api.get('/auth/me'),
   updateProfilePicture: (profilePictureUrl) =>
     api.patch('/auth/profile-picture', { profilePictureUrl }),
   updateProfile: (data) => api.patch('/auth/profile', data),
   updatePassword: (data) => api.patch('/auth/password', data),
+  getAdminUsers: () => api.get('/auth/admin/users'),
 };
 
 // Persona API

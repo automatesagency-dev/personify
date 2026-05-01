@@ -15,6 +15,7 @@ model User {
   password              String
   name                  String?
   profilePictureUrl     String?
+  googleId              String?  @unique
   resetPasswordToken    String?
   resetPasswordExpires  DateTime?
   createdAt             DateTime @default(now())

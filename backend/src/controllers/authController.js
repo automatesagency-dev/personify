@@ -1,6 +1,9 @@
 const { prisma } = require('../config/database');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
+const { OAuth2Client } = require('google-auth-library');
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 /**
  * Register new user
@@ -251,11 +254,89 @@ async function updatePassword(req, res) {
   }
 }
 
+async function googleAuth(req, res) {
+  try {
+    const { credential } = req.body;
+    if (!credential) return res.status(400).json({ error: 'Google credential is required' });
+
+    // Verify access token by fetching user info from Google
+    const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
+      headers: { Authorization: `Bearer ${credential}` }
+    });
+    if (!googleRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
+    const { email, name, picture, sub: googleId } = await googleRes.json();
+
+    let user = await prisma.user.findUnique({ where: { email } });
+
+    if (user) {
+      // Update googleId and picture if missing
+      if (!user.googleId || !user.profilePictureUrl) {
+        user = await prisma.user.update({
+          where: { email },
+          data: {
+            googleId: user.googleId || googleId,
+            profilePictureUrl: user.profilePictureUrl || picture
+          },
+          select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
+        });
+      }
+    } else {
+      user = await prisma.user.create({
+        data: {
+          email,
+          name: name || email.split('@')[0],
+          password: await hashPassword(googleId + process.env.JWT_SECRET),
+          googleId,
+          profilePictureUrl: picture
+        },
+        select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
+      });
+    }
+
+    const token = generateToken(user.id);
+    res.json({ message: 'Google login successful', user, token });
+  } catch (error) {
+    console.error('Google auth error:', error);
+    res.status(401).json({ error: 'Google authentication failed' });
+  }
+}
+
+const ADMIN_EMAIL = 'admin@automatesagency.com';
+
+async function getAdminUsers(req, res) {
+  try {
+    if (req.user.email !== ADMIN_EMAIL) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        createdAt: true,
+        profilePictureUrl: true,
+        googleId: true,
+        _count: { select: { generations: true } },
+        founderPage: { select: { username: true, published: true, template: true } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    res.json({ users, total: users.length });
+  } catch (error) {
+    console.error('Admin users error:', error);
+    res.status(500).json({ error: 'Failed to get users' });
+  }
+}
+
 module.exports = {
   register,
   login,
   getMe,
   updateProfilePicture,
   updateProfile,
-  updatePassword
+  updatePassword,
+  googleAuth,
+  getAdminUsers
 };

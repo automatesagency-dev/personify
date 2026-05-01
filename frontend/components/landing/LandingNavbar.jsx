@@ -25,6 +25,12 @@ export function LandingNavbar({ isAuthenticated }) {
         </div>
 
         <div className="flex items-center gap-3">
+          <Link
+            href="/blog"
+            className="px-3 py-2 text-sm font-medium text-zinc-700 dark:text-zinc-300 hover:text-zinc-900 dark:hover:text-white transition-colors hidden sm:block"
+          >
+            Blog
+          </Link>
           <ThemeToggle />
           {isAuthenticated ? (
             <Link

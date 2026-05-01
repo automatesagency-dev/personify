@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next'
 import Script from 'next/script'
 import { Questrial, Poppins } from 'next/font/google'
 import { ThemeProvider } from '../components/landing/ThemeProvider'
+import { GoogleOAuthProvider } from '@react-oauth/google'
 
 const questrial = Questrial({
   variable: '--font-questrial',
@@ -38,7 +39,9 @@ export default function RootLayout({ children }) {
       </head>
       <body>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <AuthProvider>{children}</AuthProvider>
+          <GoogleOAuthProvider clientId={process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID}>
+            <AuthProvider>{children}</AuthProvider>
+          </GoogleOAuthProvider>
         </ThemeProvider>
         <Analytics />
       </body>

@@ -177,9 +177,16 @@ export default function Dashboard() {
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
 
         {/* Header */}
-        <div className="mb-5 md:mb-8">
-          <h1 className="text-xl md:text-3xl font-semibold text-white mb-1">Welcome Back, {user?.name || 'User'} 👋</h1>
-          <p className="text-gray-400 text-sm">Ready to create something amazing today?</p>
+        <div className="mb-5 md:mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-xl md:text-3xl font-semibold text-white mb-1">Welcome Back, {user?.name || 'User'} 👋</h1>
+            <p className="text-gray-400 text-sm">Ready to create something amazing today?</p>
+          </div>
+          {user?.email === 'admin@automatesagency.com' && (
+            <Link href="/admin" className="px-3 py-1.5 bg-brand-pink/20 text-brand-pink rounded-lg text-xs font-semibold hover:bg-brand-pink/30 transition">
+              Admin →
+            </Link>
+          )}
         </div>
 
         {/* ── MOBILE LAYOUT (flex-col with order) ── */}

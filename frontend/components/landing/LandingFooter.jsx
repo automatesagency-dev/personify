@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import Link from 'next/link';
 
 export function LandingFooter() {
   return (
@@ -21,6 +22,11 @@ export function LandingFooter() {
               height={32}
             />
             <span className="ml-10 text-xl font-bold tracking-wide">Personify</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm">
+            <Link href="/blog" className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">Blog</Link>
+            <Link href="/login" className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">Login</Link>
+            <Link href="/register" className="text-zinc-600 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors">Sign Up</Link>
           </div>
           <p className="text-sm text-zinc-600 dark:text-zinc-400 text-center">
             AI-Powered Personal Branding That Makes You Stand Out.
