@@ -28,6 +28,7 @@ function GenerateInner() {
 
   // Up to 3 reference images: [{ file, preview }]
   const [referenceImages, setReferenceImages] = useState([]);
+  const [showRefImageTip, setShowRefImageTip] = useState(false);
   const fileInputRef = useRef(null);
   const resultRef = useRef(null);
 
@@ -272,7 +273,15 @@ function GenerateInner() {
                     </div>
                   ))}
                   {referenceImages.length < 3 && (
-                    <button onClick={() => fileInputRef.current?.click()} disabled={generating} className="w-8 h-8 md:w-10 md:h-10 rounded-md border border-dashed border-gray-600 hover:border-gray-400 flex items-center justify-center text-gray-500 hover:text-gray-300 transition flex-shrink-0 bg-black/20" title="Attach reference image">
+                    <button
+                      onClick={() => {
+                        setShowRefImageTip(true);
+                        fileInputRef.current?.click();
+                      }}
+                      disabled={generating}
+                      className="w-8 h-8 md:w-10 md:h-10 rounded-md border border-dashed border-gray-600 hover:border-gray-400 flex items-center justify-center text-gray-500 hover:text-gray-300 transition flex-shrink-0 bg-black/20"
+                      title="Attach reference image"
+                    >
                       <span className="text-base leading-none">+</span>
                     </button>
                   )}
@@ -281,6 +290,38 @@ function GenerateInner() {
                 <span className="text-xs text-gray-500 whitespace-nowrap ml-3">{referenceImages.length}/3</span>
               </div>
             </div>
+
+            {/* Desktop hint — always visible below the prompt box */}
+            <p className="hidden md:block text-xs text-gray-500 -mt-1">
+              Reference images give the AI visual context for your prompt (e.g. a mood, style, or scene). Your face is already saved in your Persona — you don't need to re-upload it here.
+            </p>
+
+            {/* Mobile popup tip */}
+            {showRefImageTip && (
+              <div className="md:hidden fixed inset-0 z-50 flex items-end justify-center px-4 pb-8" onClick={() => setShowRefImageTip(false)}>
+                <div className="absolute inset-0 bg-black/50" />
+                <div className="relative w-full max-w-sm bg-[#1c1c1c] border border-gray-700 rounded-2xl p-5 shadow-2xl" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-start gap-3 mb-4">
+                    <span className="text-xl">💡</span>
+                    <div>
+                      <p className="text-white font-semibold text-sm mb-1">What's a reference image?</p>
+                      <p className="text-gray-400 text-sm leading-relaxed">
+                        A reference image gives the AI visual context — like a style, mood, or scene you want to match. It's <span className="text-white font-medium">not</span> for your face or identity.
+                      </p>
+                      <p className="text-gray-400 text-sm leading-relaxed mt-2">
+                        Your photos are already saved in your <span className="text-brand-pink font-medium">Persona</span>. The AI uses them automatically for every generation — no need to re-upload here.
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowRefImageTip(false)}
+                    className="w-full py-2.5 bg-brand-pink text-white rounded-full text-sm font-semibold"
+                  >
+                    Got it
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Settings Area */}
             <div className="space-y-3">
