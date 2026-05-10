@@ -20,19 +20,19 @@ export default function Layout({ children }) {
 
   // ── Desktop sidebar items (unchanged) ──
   const sidebarItems = [
-    { name: 'Dashboard', path: '/dashboard', icon: '🏠' },
-    { name: 'Generate', path: '/generate', icon: '✨' },
-    { name: 'History', path: '/history', icon: '🕒' },
-    { name: 'Persona', path: '/persona', icon: '👤' },
-    { name: 'Settings', path: '/settings', icon: '⚙️' },
+    { name: 'Dashboard', path: '/dashboard', icon: '/images/icon-dashboard.png' },
+    { name: 'Generate', path: '/generate', icon: '/images/icon-generate.png' },
+    { name: 'History', path: '/history', icon: '/images/icon-history.png' },
+    { name: 'Persona', path: '/persona', icon: '/images/icon-persona.png' },
+    { name: 'Settings', path: '/settings', icon: '/images/icon-settings.png' },
   ];
 
   // ── Mobile bottom bar tabs (4 tabs + center FAB) ──
   const mobileTabItems = [
-    { name: 'Home', path: '/dashboard', icon: '🏠' },
-    { name: 'Persona', path: '/persona', icon: '👤' },
-    { name: 'History', path: '/history', icon: '🕒' },
-    { name: 'More', path: null, icon: '☰' },
+    { name: 'Home', path: '/dashboard', icon: '/images/icon-dashboard.png' },
+    { name: 'Persona', path: '/persona', icon: '/images/icon-persona.png' },
+    { name: 'History', path: '/history', icon: '/images/icon-history.png' },
+    { name: 'More', path: null, icon: null },
   ];
 
   const getInitials = (name) => {
@@ -65,7 +65,7 @@ export default function Layout({ children }) {
                   isActive ? 'bg-white/10 text-white' : 'text-gray-400 hover:bg-white/5 hover:text-white'
                 }`}
               >
-                <span className="text-xl">{item.icon}</span>
+                <img src={item.icon} alt="" className={`w-5 h-5 flex-shrink-0 transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`} />
                 <span className="font-medium">{item.name}</span>
               </Link>
             );
@@ -77,10 +77,25 @@ export default function Layout({ children }) {
               pathname === '/founder-page' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            <span className="text-xl">✨</span>
+            <svg className={`w-5 h-5 flex-shrink-0 transition-opacity ${pathname === '/founder-page' ? 'opacity-100' : 'opacity-40'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h14a2 2 0 012 2v3H3V5z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8h6v13H5a2 2 0 01-2-2V8zm6 0h12v11a2 2 0 01-2 2H9V8z" />
+            </svg>
             <span>Founder Page</span>
             <span className="ml-auto bg-green-500 text-white text-xs px-2 py-0.5 rounded">NEW</span>
           </Link>
+
+          <a
+            href="https://chat.whatsapp.com/L4wfh1pqe6vAE8vpGFGxEu"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg transition text-gray-400 hover:text-white hover:bg-white/5 group"
+          >
+            <svg className="w-5 h-5 flex-shrink-0 opacity-40 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="font-medium">Community</span>
+          </a>
         </nav>
 
         {/* User Profile */}
@@ -161,10 +176,26 @@ export default function Layout({ children }) {
                   pathname === '/founder-page' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5'
                 }`}
               >
-                <span className="text-xl">🚀</span>
+                <svg className="w-5 h-5 flex-shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 5a2 2 0 012-2h14a2 2 0 012 2v3H3V5z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 8h6v13H5a2 2 0 01-2-2V8zm6 0h12v11a2 2 0 01-2 2H9V8z" />
+                </svg>
                 <span className="font-medium">Founder Page</span>
                 <span className="ml-auto bg-green-500 text-white text-xs px-2 py-0.5 rounded">NEW</span>
               </Link>
+
+              <a
+                href="https://chat.whatsapp.com/L4wfh1pqe6vAE8vpGFGxEu"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setSheetOpen(false)}
+                className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors text-gray-300 hover:bg-white/5"
+              >
+                <svg className="w-5 h-5 flex-shrink-0 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span className="font-medium">Community</span>
+              </a>
 
               <Link
                 href="/settings"
@@ -173,7 +204,7 @@ export default function Layout({ children }) {
                   pathname === '/settings' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5'
                 }`}
               >
-                <span className="text-xl">⚙️</span>
+                <img src="/images/icon-settings.png" alt="" className="w-5 h-5 opacity-70" />
                 <span className="font-medium">Settings</span>
               </Link>
 
@@ -206,7 +237,7 @@ export default function Layout({ children }) {
                   isActive ? 'text-white' : 'text-gray-500'
                 }`}
               >
-                <span className="text-xl leading-none">{item.icon}</span>
+                <img src={item.icon} alt="" className={`w-6 h-6 transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`} />
                 <span className="text-[10px] font-medium">{item.name}</span>
                 {isActive && <span className="w-1 h-1 bg-white rounded-full" />}
               </Link>
@@ -223,7 +254,7 @@ export default function Layout({ children }) {
                   : 'bg-gradient-to-br from-brand-pink to-purple-600'
               }`}
             >
-              <span className="text-2xl leading-none">✨</span>
+              <img src="/images/icon-generate.png" alt="" className="w-7 h-7" />
             </Link>
             <span className={`text-[10px] font-medium mt-0.5 ${pathname === '/generate' ? 'text-white' : 'text-gray-500'}`}>Generate</span>
           </div>
@@ -240,7 +271,9 @@ export default function Layout({ children }) {
                   sheetOpen ? 'text-white' : 'text-gray-500'
                 }`}
               >
-                <span className="text-xl leading-none">{item.icon}</span>
+                <svg className={`w-6 h-6 transition-opacity ${sheetOpen ? 'opacity-100' : 'opacity-40'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
                 <span className="text-[10px] font-medium">{item.name}</span>
               </button>
             ) : (
@@ -251,7 +284,7 @@ export default function Layout({ children }) {
                   isActive ? 'text-white' : 'text-gray-500'
                 }`}
               >
-                <span className="text-xl leading-none">{item.icon}</span>
+                <img src={item.icon} alt="" className={`w-6 h-6 transition-opacity ${isActive ? 'opacity-100' : 'opacity-40'}`} />
                 <span className="text-[10px] font-medium">{item.name}</span>
                 {isActive && <span className="w-1 h-1 bg-white rounded-full" />}
               </Link>
