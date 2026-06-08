@@ -143,6 +143,10 @@ function PublicFounderPageInner() {
         ? <VisionaryTemplate page={page} isPreview={isPreview} />
         : page.template === 'executive'
         ? <ExecutiveTemplate page={page} isPreview={isPreview} />
+        : page.template === 'ecommerce-classic'
+        ? <EcommerceTemplate page={page} isPreview={isPreview} dark={false} />
+        : page.template === 'ecommerce-bold'
+        ? <EcommerceTemplate page={page} isPreview={isPreview} dark={true} />
         : <StorytellerTemplate page={page} isPreview={isPreview} />}
     </>
   );
@@ -824,6 +828,314 @@ function ExecutiveTemplate({ page, isPreview }) {
         <p className="text-white/20 text-xs tracking-wider">
           Creator Identity Pages Designed And Supported By{' '}
           <a href="https://personify.so" className="text-white/40 hover:text-white/60 transition">Personify</a>
+        </p>
+      </footer>
+    </div>
+  );
+}
+
+// ── VIDEO EMBED HELPER ────────────────────────────────────────────────────────
+
+function parseVideoUrl(url) {
+  if (!url?.trim()) return null;
+  const yt = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/shorts\/)([a-zA-Z0-9_-]{11})/);
+  if (yt) return { platform: 'youtube', embedUrl: `https://www.youtube.com/embed/${yt[1]}?rel=0` };
+  const tt = url.match(/tiktok\.com\/@[\w.]+\/video\/(\d+)/);
+  if (tt) return { platform: 'tiktok', embedUrl: `https://www.tiktok.com/embed/v2/${tt[1]}` };
+  const ig = url.match(/instagram\.com\/(?:p|reel)\/([A-Za-z0-9_-]+)/);
+  if (ig) return { platform: 'instagram', embedUrl: `https://www.instagram.com/p/${ig[1]}/embed` };
+  return null;
+}
+
+function VideoGrid({ videos }) {
+  const valid = (videos || []).map(v => ({ ...v, parsed: parseVideoUrl(v.url) })).filter(v => v.parsed);
+  if (!valid.length) return null;
+  const count = valid.length;
+  const gridClass = count === 1
+    ? 'grid-cols-1 max-w-lg mx-auto'
+    : count === 2 ? 'grid-cols-2'
+    : count === 3 ? 'grid-cols-1 sm:grid-cols-3'
+    : 'grid-cols-2 md:grid-cols-4';
+
+  return (
+    <div className={`grid gap-3 md:gap-4 ${gridClass}`}>
+      {valid.map((v, i) => (
+        <div key={i} className={`rounded-2xl overflow-hidden bg-black ${v.parsed.platform === 'tiktok' ? 'aspect-[9/16]' : 'aspect-video'}`}>
+          <iframe src={v.parsed.embedUrl} className="w-full h-full" frameBorder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowFullScreen title={`Video ${i + 1}`} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── ECOMMERCE TEMPLATE ────────────────────────────────────────────────────────
+
+function EcommerceTemplate({ page, isPreview, dark }) {
+  const { design, faq = [], username } = page;
+  const ec = page.ecommerce || {};
+  const contact = page.contact || {};
+  const pc = design.primaryColor;
+  const sc = design.secondaryColor;
+
+  const bg       = dark ? '#0a0a0a' : '#faf8f5';
+  const bgCard   = dark ? '#111111' : '#ffffff';
+  const bgMuted  = dark ? '#161616' : '#f4f0eb';
+  const textCol  = dark ? '#ffffff' : '#1a1a1a';
+  const textMuted = dark ? '#aaaaaa' : '#666666';
+  const border   = dark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)';
+
+  const fp = ec.featuredProduct || {};
+  const collection = ec.collection || [];
+  const reviews = ec.reviews || [];
+  const standards = ec.standards || [];
+
+  const [faqOpen, setFaqOpen] = useState(null);
+
+  const STATIC_FAQS_EC = [
+    { q: 'What is Personify?', a: 'Personify is a personal branding platform built for founders, creators, and professionals. It combines AI-powered content generation with beautifully designed Founder Pages.' },
+    { q: 'What is a Founder Page?', a: "A Founder Page is your dedicated home on the internet — a professionally designed page that brings together your story, products, and contact details." },
+  ];
+  const allFaqs = [
+    ...STATIC_FAQS_EC,
+    ...(faq || []).map(item => ({
+      q: item.type === 'custom' ? item.customQuestion : (item.type === 'connections' ? 'How will your connections help me grow my business?' : 'Where can I contact you?'),
+      a: item.answer,
+    })).filter(f => f.q && f.a),
+  ];
+
+  return (
+    <div style={{ backgroundColor: bg, color: textCol, fontFamily: design.bodyFont }} className="min-h-screen">
+
+      {/* ── Header ── */}
+      <header className={`sticky z-50 border-b ${isPreview ? 'top-10' : 'top-0'}`} style={{ backgroundColor: bg, borderColor: border }}>
+        <div className="max-w-7xl mx-auto px-5 md:px-10 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {ec.logoUrl
+              ? <img src={ec.logoUrl} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+              : <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: pc }}>{(ec.brandName || 'B')[0]}</div>
+            }
+            <span className="text-base font-bold tracking-widest uppercase" style={{ fontFamily: design.titleFont }}>{ec.brandName || 'Your Brand'}</span>
+          </div>
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-widest uppercase" style={{ color: textMuted }}>
+            <a href="#product" className="hover:opacity-100 opacity-60 transition">The Collection</a>
+            <a href="#story" className="hover:opacity-100 opacity-60 transition">Our Story</a>
+            <a href="#videos" className="hover:opacity-100 opacity-60 transition">Community</a>
+            <a href="#reviews" className="hover:opacity-100 opacity-60 transition">Testimonials</a>
+          </nav>
+          <a href={ec.shopUrl || '#product'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="text-xs font-bold px-4 py-2 rounded-full text-white transition hover:opacity-90" style={{ backgroundColor: pc }}>
+            Shop Now
+          </a>
+        </div>
+      </header>
+
+      {/* ── Hero ── */}
+      <section className="max-w-7xl mx-auto px-5 md:px-10 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
+        <div className="space-y-6 order-2 md:order-1">
+          <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>Founder &amp; CEO</p>
+          <h1 className="text-4xl md:text-6xl font-bold leading-tight" style={{ fontFamily: design.titleFont }}>
+            {ec.tagline || 'Quiet Luxury, Rooted in Science'}
+          </h1>
+          <p style={{ color: textMuted }} className="text-base leading-relaxed max-w-md">
+            {ec.brandStory?.substring(0, 200) || 'Designed for integrity and clinical efficacy.'}
+          </p>
+          <div className="flex items-center gap-2">
+            {[1,2,3,4,5].map(i => <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}
+            <span className="text-sm font-bold ml-1">4.9+</span>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <a href={ec.shopUrl || '#product'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="px-7 py-3.5 rounded-full font-bold text-sm text-white hover:opacity-90 transition shadow-lg" style={{ backgroundColor: pc }}>
+              Shop Products
+            </a>
+            {ec.socialTiktok && (
+              <a href="#videos" className="px-7 py-3.5 rounded-full font-bold text-sm border transition hover:opacity-80" style={{ borderColor: pc, color: pc }}>
+                Join TikTok Shop
+              </a>
+            )}
+          </div>
+        </div>
+        <div className="order-1 md:order-2 flex justify-center md:justify-end">
+          {ec.founderPhotoUrl ? (
+            <div className="rounded-3xl overflow-hidden shadow-2xl" style={{ maxWidth: '380px', width: '100%', aspectRatio: '4/5' }}>
+              <img src={ec.founderPhotoUrl} alt={ec.founderName || 'Founder'} className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="rounded-3xl flex items-center justify-center text-5xl" style={{ maxWidth: '380px', width: '100%', aspectRatio: '4/5', backgroundColor: bgMuted, border: `2px dashed ${border}` }}>📸</div>
+          )}
+        </div>
+      </section>
+
+      {/* ── Featured Product ── */}
+      {(fp.name || fp.imageUrl) && (
+        <section id="product" className="py-16 md:py-24" style={{ backgroundColor: bgMuted }}>
+          <div className="max-w-7xl mx-auto px-5 md:px-10 grid md:grid-cols-2 gap-12 items-center">
+            <div className="relative">
+              {fp.badge && <div className="absolute top-4 left-4 z-10 px-3 py-1 rounded-full text-xs font-bold text-white" style={{ backgroundColor: pc }}>{fp.badge}</div>}
+              {fp.imageUrl
+                ? <div className="rounded-3xl overflow-hidden shadow-xl aspect-square"><img src={fp.imageUrl} alt={fp.name} className="w-full h-full object-cover" /></div>
+                : <div className="rounded-3xl aspect-square flex items-center justify-center text-5xl" style={{ backgroundColor: bgCard }}>📦</div>
+              }
+            </div>
+            <div className="space-y-5">
+              <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>The Star Product</p>
+              <h2 className="text-3xl md:text-4xl font-bold" style={{ fontFamily: design.titleFont }}>{fp.name || 'Featured Product'}</h2>
+              {fp.description && <p style={{ color: textMuted }} className="leading-relaxed">{fp.description}</p>}
+              {(fp.bullet1 || fp.bullet2 || fp.bullet3) && (
+                <ul className="space-y-2">
+                  {[fp.bullet1, fp.bullet2, fp.bullet3].filter(Boolean).map((b, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm" style={{ color: textMuted }}>
+                      <span className="mt-0.5 flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center text-white text-[10px] font-bold" style={{ backgroundColor: pc }}>✓</span>
+                      {b}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-2xl font-bold" style={{ color: pc }}>{fp.price || '$—'}</span>
+                <a href={ec.shopUrl || '#'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="px-6 py-3 rounded-full font-bold text-sm text-white hover:opacity-90 transition" style={{ backgroundColor: pc }}>Add to Cart</a>
+              </div>
+              {ec.shopUrl && <a href={ec.shopUrl} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold tracking-wider uppercase underline underline-offset-4 hover:opacity-70 transition" style={{ color: textMuted }}>Shop in TikTok Shop →</a>}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Brand Story ── */}
+      {ec.brandStory && (
+        <section id="story" className="max-w-7xl mx-auto px-5 md:px-10 py-20 md:py-28 grid md:grid-cols-2 gap-16 items-center">
+          <div className="space-y-6">
+            <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>A Philosophy of Restraint</p>
+            <p className="text-2xl md:text-3xl font-light leading-relaxed italic">"{ec.brandStory?.substring(0, 280)}"</p>
+            {ec.founderName && (
+              <div className="pt-2">
+                <p className="font-bold">{ec.founderName}</p>
+                <p className="text-sm" style={{ color: textMuted }}>{ec.founderTitle || 'Founder'}</p>
+                {ec.shopUrl && <a href={ec.shopUrl} target="_blank" rel="noopener noreferrer" className="inline-block mt-3 text-xs font-bold tracking-wider uppercase underline underline-offset-4 hover:opacity-70 transition" style={{ color: pc }}>Shop the full collection →</a>}
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end">
+            {ec.founderPhotoUrl
+              ? <div className="rounded-3xl overflow-hidden shadow-xl" style={{ maxWidth: '360px', width: '100%', aspectRatio: '4/5' }}><img src={ec.founderPhotoUrl} alt={ec.founderName} className="w-full h-full object-cover" /></div>
+              : <div className="rounded-3xl flex items-center justify-center text-5xl" style={{ maxWidth: '360px', width: '100%', aspectRatio: '4/5', backgroundColor: bgMuted }}>📸</div>
+            }
+          </div>
+        </section>
+      )}
+
+      {/* ── Brand Standards ── */}
+      {standards.some(s => s.title) && (
+        <section className="py-16" style={{ backgroundColor: bgMuted }}>
+          <div className="max-w-7xl mx-auto px-5 md:px-10">
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>Uncompromising Standards</h2>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+              {standards.filter(s => s.title).map((s, i) => (
+                <div key={i} className="space-y-3">
+                  <div className="w-12 h-12 rounded-full mx-auto flex items-center justify-center text-white font-bold" style={{ backgroundColor: pc }}>✓</div>
+                  <h3 className="font-bold text-lg">{s.title}</h3>
+                  {s.description && <p className="text-sm leading-relaxed" style={{ color: textMuted }}>{s.description}</p>}
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── Video Feed ── */}
+      {ec.videos?.some(v => v.url) && (
+        <section id="videos" className="py-16 md:py-20" style={{ backgroundColor: '#111111' }}>
+          <div className="max-w-7xl mx-auto px-5 md:px-10">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/40 mb-1">The Community</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-white" style={{ fontFamily: design.titleFont }}>{ec.videoSectionTitle || 'Our Videos'}</h2>
+              </div>
+              {(ec.socialTiktok || ec.socialInstagram) && (
+                <a href={ec.socialTiktok ? `https://tiktok.com/${ec.socialTiktok}` : '#'} target="_blank" rel="noopener noreferrer" className="text-xs font-bold tracking-wider uppercase text-white/60 hover:text-white border border-white/20 px-4 py-2 rounded-full transition">Join Our Community</a>
+              )}
+            </div>
+            <VideoGrid videos={ec.videos} />
+          </div>
+        </section>
+      )}
+
+      {/* ── Product Collection ── */}
+      {collection.length > 0 && (
+        <section className="py-16 md:py-24 max-w-7xl mx-auto px-5 md:px-10">
+          <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>The Essential Collection</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3" style={{ fontFamily: design.titleFont }}>Simple. Pure. Profound. Results.</h2>
+          <p className="text-sm text-center mb-12" style={{ color: textMuted }}>Every product, precisely formulated.</p>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8">
+            {collection.map((item, i) => (
+              <div key={i} className="group">
+                <div className="relative rounded-2xl overflow-hidden aspect-square mb-3" style={{ backgroundColor: bgMuted }}>
+                  {item.badge && <div className="absolute top-3 left-3 z-10 px-2 py-1 rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: pc }}>{item.badge}</div>}
+                  {item.imageUrl
+                    ? <img src={item.imageUrl} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    : <div className="w-full h-full flex items-center justify-center text-3xl">📦</div>
+                  }
+                </div>
+                <h3 className="font-semibold text-sm">{item.name}</h3>
+                <p className="text-sm font-bold mt-0.5" style={{ color: pc }}>{item.price}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* ── Reviews ── */}
+      {reviews.length > 0 && (
+        <section id="reviews" className="py-16 md:py-20" style={{ backgroundColor: bgMuted }}>
+          <div className="max-w-7xl mx-auto px-5 md:px-10">
+            <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>Testimonials</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>What Our Customers Say</h2>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {reviews.map((r, i) => (
+                <div key={i} className="rounded-2xl p-6 space-y-3" style={{ backgroundColor: bgCard, border: `1px solid ${border}` }}>
+                  <div className="flex gap-0.5">{[1,2,3,4,5].map(n => <span key={n} className={`text-lg ${n <= (r.rating || 5) ? 'text-yellow-400' : 'text-gray-300'}`}>★</span>)}</div>
+                  <p className="text-sm leading-relaxed" style={{ color: textMuted }}>"{r.text}"</p>
+                  <p className="text-xs font-bold">{r.name}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* ── FAQ ── */}
+      <section className="py-16 md:py-20 max-w-4xl mx-auto px-5 md:px-10">
+        <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>FAQ</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-center mb-10" style={{ fontFamily: design.titleFont }}>Ritual Guidance</h2>
+        <div className="space-y-3">
+          {allFaqs.map((f, i) => (
+            <div key={i} className="rounded-2xl overflow-hidden" style={{ border: `1px solid ${border}`, backgroundColor: bgCard }}>
+              <button onClick={() => setFaqOpen(faqOpen === i ? null : i)} className="w-full flex items-center justify-between px-6 py-5 text-left font-semibold text-sm hover:opacity-80 transition">
+                <span>{f.q}</span>
+                <span className={`ml-4 flex-shrink-0 text-xl font-light transition-transform duration-200 ${faqOpen === i ? 'rotate-45' : ''}`}>+</span>
+              </button>
+              {faqOpen === i && <div className="px-6 pb-5 text-sm leading-relaxed" style={{ color: textMuted }}>{f.a}</div>}
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Footer ── */}
+      <footer className="py-10 border-t text-center" style={{ borderColor: border }}>
+        <div className="flex justify-center mb-4">
+          {ec.logoUrl
+            ? <img src={ec.logoUrl} alt="Logo" className="h-8 w-8 rounded-full object-cover" />
+            : <span className="text-lg font-bold tracking-widest uppercase" style={{ fontFamily: design.titleFont }}>{ec.brandName || 'Brand'}</span>
+          }
+        </div>
+        {(ec.socialInstagram || ec.socialTiktok || ec.socialYoutube) && (
+          <div className="flex justify-center gap-6 mb-4 text-sm font-medium" style={{ color: textMuted }}>
+            {ec.socialInstagram && <span>{ec.socialInstagram}</span>}
+            {ec.socialTiktok && <span>{ec.socialTiktok}</span>}
+            {ec.socialYoutube && <span>{ec.socialYoutube}</span>}
+          </div>
+        )}
+        <p className="text-xs" style={{ color: textMuted }}>
+          Made with ❤️ by <span className="font-semibold">{ec.founderName || ec.brandName || username}</span> · Powered by{' '}
+          <a href="https://personify.so" className="font-semibold hover:underline" style={{ color: pc }}>Personify</a>
         </p>
       </footer>
     </div>

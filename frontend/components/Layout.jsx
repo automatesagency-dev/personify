@@ -126,19 +126,19 @@ export default function Layout({ children }) {
             <span>Founder Page</span>
           </Link>
 
-          <a
-            href="https://chat.whatsapp.com/L4wfh1pqe6vAE8vpGFGxEu"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg transition text-gray-400 hover:text-white hover:bg-white/5 group"
+          <Link
+            href="/community"
+            className={`flex items-center gap-3 px-4 py-3 rounded-lg transition ${
+              pathname === '/community' ? 'bg-white/10 text-white' : 'text-gray-400 hover:text-white hover:bg-white/5'
+            }`}
           >
-            <span className="opacity-40 group-hover:opacity-100 transition-opacity">
+            <span className={`transition-opacity ${pathname === '/community' ? 'opacity-100' : 'opacity-40'}`}>
               <NavIcon paths={[
                 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z',
               ]} />
             </span>
             <span className="font-medium">Community</span>
-          </a>
+          </Link>
         </nav>
 
         {/* User Profile */}
@@ -226,12 +226,12 @@ export default function Layout({ children }) {
                 <span className="font-medium">Founder Page</span>
               </Link>
 
-              <a
-                href="https://chat.whatsapp.com/L4wfh1pqe6vAE8vpGFGxEu"
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/community"
                 onClick={() => setSheetOpen(false)}
-                className="flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors text-gray-300 hover:bg-white/5"
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors ${
+                  pathname === '/community' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5'
+                }`}
               >
                 <span className="opacity-70">
                   <NavIcon paths={[
@@ -239,7 +239,7 @@ export default function Layout({ children }) {
                   ]} />
                 </span>
                 <span className="font-medium">Community</span>
-              </a>
+              </Link>
 
               <Link
                 href="/settings"

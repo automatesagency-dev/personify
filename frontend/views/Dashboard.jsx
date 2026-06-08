@@ -238,7 +238,10 @@ export default function Dashboard() {
                 </div>
                 <p className="text-xs text-gray-500">2 templates · custom URL · portfolio</p>
               </div>
-              <button onClick={() => router.push('/founder-page')} className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-semibold flex-shrink-0">Create</button>
+              <div className="flex gap-1.5 flex-shrink-0">
+                <button onClick={() => router.push('/founder-page?category=personal')} className="px-2.5 py-1.5 bg-white text-black rounded-lg text-xs font-semibold">Personal</button>
+                <button onClick={() => router.push('/founder-page?category=ecommerce')} className="px-2.5 py-1.5 bg-white/10 text-white rounded-lg text-xs font-semibold border border-white/10">Shop</button>
+              </div>
             </div>
           )}
 
@@ -333,7 +336,11 @@ export default function Dashboard() {
                   <div className="space-y-3 mb-6 flex-1">
                     {FP_FEATURES.map((f, i) => <FeatureItem key={i} title={f.title} desc={f.desc} />)}
                   </div>
-                  <button onClick={() => router.push('/founder-page')} className="w-full py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-sm">Create Your Page</button>
+                  <p className="text-xs text-gray-500 mb-3 text-center">What are you building?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button onClick={() => router.push('/founder-page?category=personal')} className="py-2.5 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition text-xs">Personal Brand</button>
+                    <button onClick={() => router.push('/founder-page?category=ecommerce')} className="py-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/10 rounded-lg font-semibold transition text-xs">E-Commerce</button>
+                  </div>
                 </div>
               )}
             </div>
