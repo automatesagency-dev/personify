@@ -38,7 +38,8 @@ async function upsertFounderPage(req, res) {
       services,
       portfolio,
       featured,
-      faq
+      faq,
+      ecommerce
     } = req.body;
 
     // Check if username is taken by another user
@@ -66,7 +67,8 @@ async function upsertFounderPage(req, res) {
         services,
         portfolio,
         featured,
-        faq
+        faq,
+        ecommerce
       },
       create: {
         userId,
@@ -78,7 +80,8 @@ async function upsertFounderPage(req, res) {
         services,
         portfolio,
         featured,
-        faq
+        faq,
+        ecommerce
       }
     });
 
