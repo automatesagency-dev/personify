@@ -1,7 +1,7 @@
 'use client'
 
 import { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { authAPI } from '../services/api';
+import { authAPI, referralAPI } from '../services/api';
 
 const INACTIVITY_TIMEOUT = 10 * 60 * 1000; // 10 minutes
 const INACTIVITY_EVENTS = ['mousemove', 'mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -76,6 +76,21 @@ export function AuthProvider({ children }) {
     localStorage.setItem('token', token);
     setToken(token);
     setUser(user);
+
+    // Apply pending referral code from invite link if present
+    const pendingCode = localStorage.getItem('pendingReferralCode');
+    if (pendingCode) {
+      try {
+        await referralAPI.useCode(pendingCode);
+        // Refresh user to get updated referralVerified status
+        const meRes = await authAPI.getMe();
+        setUser(meRes.data.user);
+      } catch (e) {
+        // Non-fatal — user can enter code manually later
+      } finally {
+        localStorage.removeItem('pendingReferralCode');
+      }
+    }
 
     return response.data;
   };

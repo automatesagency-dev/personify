@@ -10,6 +10,7 @@ const personaRoutes = require('./routes/personaRoutes');
 const generationRoutes = require('./routes/generationRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const founderPageRoutes = require('./routes/founderPageRoutes');
+const referralRoutes = require('./routes/referralRoutes');
 
 dotenv.config();
 
@@ -78,6 +79,7 @@ app.use('/api/generate', generationRoutes);
 app.use('/api/founder-page', founderPageRoutes);
 
 app.use('/api/upload', require('./routes/upload'));
+app.use('/api/referral', referralRoutes);
 
 // Start server
 const server = app.listen(PORT, async () => {

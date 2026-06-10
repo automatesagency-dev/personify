@@ -1,8 +1,8 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { useGoogleLogin } from '@react-oauth/google';
 
@@ -16,9 +16,18 @@ export default function Register() {
   const [agreeToTerms, setAgreeToTerms] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
+
   const { register, loginWithGoogle } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Store invite code from ?ref= param so AuthContext can apply it after signup
+  useEffect(() => {
+    const ref = searchParams?.get('ref');
+    if (ref) {
+      localStorage.setItem('pendingReferralCode', ref.toUpperCase().trim());
+    }
+  }, [searchParams]);
 
   const handleGoogleSignup = useGoogleLogin({
     onSuccess: async ({ access_token }) => {

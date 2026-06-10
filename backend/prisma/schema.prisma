@@ -18,11 +18,14 @@ model User {
   googleId              String?  @unique
   resetPasswordToken    String?
   resetPasswordExpires  DateTime?
+  referralVerified      Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   persona               Persona?
   generations           Generation[]
   founderPage           FounderPage?
+  ownedReferralCode     ReferralCode?   @relation("OwnedCode")
+  referralRedemption    ReferralUsage?  @relation("RedeemedBy")
 }
 
 // Persona model
@@ -85,6 +88,29 @@ model FounderPage {
   updatedAt   DateTime @updatedAt
   
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@index([username])
+}
+
+// Referral code (personal codes owned by users, or admin campaign codes with ownerId = null)
+model ReferralCode {
+  id        String          @id @default(uuid())
+  code      String          @unique
+  ownerId   String?         @unique  // null = admin campaign code; userId = personal code
+  maxUses   Int             @default(5)  // -1 = unlimited
+  usedCount Int             @default(0)
+  isActive  Boolean         @default(true)
+  createdAt DateTime        @default(now())
+  owner     User?           @relation("OwnedCode", fields: [ownerId], references: [id], onDelete: SetNull)
+  uses      ReferralUsage[]
+}
+
+// Tracks which user redeemed which referral code
+model ReferralUsage {
+  id       String       @id @default(uuid())
+  codeId   String
+  userId   String       @unique  // one redemption per user
+  usedAt   DateTime     @default(now())
+  code     ReferralCode @relation(fields: [codeId], references: [id])
+  user     User         @relation("RedeemedBy", fields: [userId], references: [id], onDelete: Cascade)
 }

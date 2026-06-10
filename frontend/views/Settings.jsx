@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
-import { generationAPI, authAPI } from '../services/api';
+import { generationAPI, authAPI, referralAPI } from '../services/api';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -11,6 +11,13 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
   const [passwordMsg, setPasswordMsg] = useState(null);
+
+  // Referrals state
+  const [referralCode, setReferralCode] = useState(null);
+  const [referralLoading, setReferralLoading] = useState(false);
+  const [unlockCode, setUnlockCode] = useState('');
+  const [unlockLoading, setUnlockLoading] = useState(false);
+  const [unlockMsg, setUnlockMsg] = useState(null);
   const [stats, setStats] = useState({
     imagesUsedToday: 0,
     textUsedToday: 0,
@@ -53,7 +60,40 @@ export default function Settings() {
   useEffect(() => {
     loadUserData();
     loadStats();
+    if (activeTab === 'referrals') loadReferralCode();
   }, [user]);
+
+  useEffect(() => {
+    if (activeTab === 'referrals' && !referralCode) loadReferralCode();
+  }, [activeTab]);
+
+  const loadReferralCode = async () => {
+    setReferralLoading(true);
+    try {
+      const { data } = await referralAPI.getMyCode();
+      setReferralCode(data.referralCode);
+    } catch (e) {
+      console.error('Failed to load referral code', e);
+    } finally {
+      setReferralLoading(false);
+    }
+  };
+
+  const handleUnlockAccess = async (e) => {
+    e.preventDefault();
+    setUnlockMsg(null);
+    setUnlockLoading(true);
+    try {
+      await referralAPI.useCode(unlockCode.trim());
+      await refreshUser();
+      setUnlockMsg({ type: 'success', text: 'Access unlocked! You can now use the Founder Page.' });
+      setUnlockCode('');
+    } catch (err) {
+      setUnlockMsg({ type: 'error', text: err.response?.data?.error || 'Invalid code.' });
+    } finally {
+      setUnlockLoading(false);
+    }
+  };
 
   const loadUserData = () => {
     if (user) {
@@ -182,7 +222,7 @@ export default function Settings() {
 
         {/* Tabs */}
         <div className="flex gap-3 md:gap-6 mb-6 md:mb-8 border-b border-gray-800 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-          {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'notifications'].map((tab) => (
+          {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'notifications', 'referrals'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -198,6 +238,7 @@ export default function Settings() {
               {tab === 'usage' && 'Usage'}
               {tab === 'pricing' && 'Pricing'}
               {tab === 'notifications' && 'Alerts'}
+              {tab === 'referrals' && 'Referrals'}
             </button>
           ))}
         </div>
@@ -585,6 +626,119 @@ export default function Settings() {
                   </label>
                 </div>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Referrals Tab */}
+        {activeTab === 'referrals' && (
+          <div className="space-y-6">
+
+            {/* Founder Page access status */}
+            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
+              <div className="flex items-center gap-3 mb-1">
+                <h2 className="text-xl font-semibold text-white">Founder Page Access</h2>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${user?.referralVerified ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
+                  {user?.referralVerified ? 'Unlocked' : 'Locked'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-400 mb-5">
+                {user?.referralVerified
+                  ? 'You have full access to the Founder Page builder.'
+                  : 'Enter an access code to unlock the Founder Page feature.'}
+              </p>
+
+              {!user?.referralVerified && (
+                <form onSubmit={handleUnlockAccess} className="flex gap-3">
+                  <input
+                    type="text"
+                    value={unlockCode}
+                    onChange={e => setUnlockCode(e.target.value.toUpperCase())}
+                    placeholder="Enter access code"
+                    maxLength={8}
+                    className="flex-1 px-4 py-2.5 bg-dark-bg border border-gray-700 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 placeholder:font-sans outline-none focus:border-brand-pink transition"
+                  />
+                  <button
+                    type="submit"
+                    disabled={unlockLoading || !unlockCode.trim()}
+                    className="px-5 py-2.5 bg-brand-pink text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+                  >
+                    {unlockLoading ? 'Checking...' : 'Unlock'}
+                  </button>
+                </form>
+              )}
+              {unlockMsg && (
+                <p className={`mt-3 text-sm ${unlockMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {unlockMsg.text}
+                </p>
+              )}
+            </div>
+
+            {/* Personal referral code */}
+            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
+              <h2 className="text-xl font-semibold text-white mb-1">Your Invite Code</h2>
+              <p className="text-sm text-gray-400 mb-5">Share this code with up to 5 people to give them access to the Founder Page.</p>
+
+              {referralLoading ? (
+                <div className="text-gray-500 text-sm">Loading...</div>
+              ) : referralCode ? (
+                <>
+                  <div className="flex gap-3 mb-6">
+                    <div className="flex-1 px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg font-mono text-xl text-white tracking-widest text-center">
+                      {referralCode.code}
+                    </div>
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(referralCode.code); alert('Code copied!'); }}
+                      className="px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition text-sm"
+                    >
+                      Copy
+                    </button>
+                    <button
+                      onClick={() => {
+                        const url = `${window.location.origin}/register?ref=${referralCode.code}`;
+                        navigator.clipboard.writeText(url);
+                        alert('Invite link copied!');
+                      }}
+                      className="px-4 py-3 bg-brand-pink/10 border border-brand-pink/30 rounded-lg text-brand-pink hover:bg-brand-pink/20 transition text-sm font-medium"
+                    >
+                      Copy Link
+                    </button>
+                  </div>
+
+                  {/* Invite slots */}
+                  <div>
+                    <p className="text-xs text-gray-400 mb-3">{referralCode.usedCount} / {referralCode.maxUses} invites used</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
+                      {Array.from({ length: referralCode.maxUses }).map((_, i) => {
+                        const use = referralCode.uses?.[i];
+                        return (
+                          <div
+                            key={i}
+                            className={`rounded-lg p-3 border text-center ${use ? 'bg-white/5 border-gray-700' : 'border-dashed border-gray-800'}`}
+                          >
+                            {use ? (
+                              <>
+                                <div className="w-8 h-8 rounded-full bg-brand-pink/20 flex items-center justify-center text-brand-pink text-sm font-semibold mx-auto mb-1">
+                                  {(use.user?.name || use.user?.email || '?').charAt(0).toUpperCase()}
+                                </div>
+                                <p className="text-white text-xs font-medium truncate">{use.user?.name || '—'}</p>
+                                <p className="text-gray-500 text-[10px] mt-0.5">
+                                  {new Date(use.usedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center text-gray-600 text-lg mx-auto mb-1">+</div>
+                                <p className="text-gray-600 text-xs">Available</p>
+                              </>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </>
+              ) : null}
             </div>
           </div>
         )}

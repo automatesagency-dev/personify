@@ -63,4 +63,13 @@ export const uploadAPI = {
   })
 };
 
+export const referralAPI = {
+  useCode: (code) => api.post('/referral/use', { code }),
+  getMyCode: () => api.get('/referral/my-code'),
+  adminStats: () => api.get('/referral/admin/stats'),
+  adminGenerateCodes: (data) => api.post('/referral/admin/generate', data),
+  adminGetCodes: () => api.get('/referral/admin/codes'),
+  adminToggleCode: (id) => api.patch(`/referral/admin/codes/${id}/toggle`),
+};
+
 export default api;

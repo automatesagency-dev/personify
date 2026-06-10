@@ -2,6 +2,7 @@ const { prisma } = require('../config/database');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
 const { OAuth2Client } = require('google-auth-library');
+const { generateUniqueCode } = require('./referralController');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -53,6 +54,14 @@ async function register(req, res) {
         createdAt: true
       }
     });
+
+    // Auto-generate personal referral code for new user
+    try {
+      const code = await generateUniqueCode();
+      await prisma.referralCode.create({ data: { code, ownerId: user.id, maxUses: 5 } });
+    } catch (e) {
+      console.error('Failed to create referral code for new user:', e.message);
+    }
 
     // Generate token
     const token = generateToken(user.id);
@@ -291,6 +300,14 @@ async function googleAuth(req, res) {
         },
         select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
       });
+
+      // Auto-generate personal referral code for new Google user
+      try {
+        const code = await generateUniqueCode();
+        await prisma.referralCode.create({ data: { code, ownerId: user.id, maxUses: 5 } });
+      } catch (e) {
+        console.error('Failed to create referral code for Google user:', e.message);
+      }
     }
 
     const token = generateToken(user.id);
