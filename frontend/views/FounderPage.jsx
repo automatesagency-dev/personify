@@ -429,8 +429,23 @@ export default function FounderPage() {
 
     return (
       <Layout>
+        {/* Category switch warning modal — also needed here when changing template from editor */}
+        {showCategoryWarnModal && (
+          <div className="fixed inset-0 z-[100] bg-black/80 flex items-center justify-center p-4">
+            <div className="bg-[#111] rounded-2xl p-6 max-w-md w-full border border-gray-800">
+              <h3 className="text-lg font-bold text-white mb-2">Switch Template Type?</h3>
+              <p className="text-gray-400 text-sm leading-relaxed mb-6">
+                Switching to a different type of template will clear all your current page data. This cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => { setShowCategoryWarnModal(false); setPendingTemplateId(null); }} className="flex-1 px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white rounded-lg text-sm font-medium transition">Cancel</button>
+                <button onClick={confirmCategorySwitch} className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-400 text-white rounded-lg text-sm font-semibold transition">Switch & Reset</button>
+              </div>
+            </div>
+          </div>
+        )}
         <div className="p-4 md:p-8 max-w-6xl mx-auto">
-          <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white mb-4 flex items-center gap-2 text-sm">← Back</button>
+          <button onClick={() => { if (formData.template) setShowTemplateSelector(false); else router.push('/dashboard'); }} className="text-gray-400 hover:text-white mb-4 flex items-center gap-2 text-sm">← Back</button>
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Choose Your Template</h1>
           <p className="text-gray-400 text-sm md:text-base mb-6">Pick a style that fits your brand.</p>
 
