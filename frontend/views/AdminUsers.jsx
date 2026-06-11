@@ -117,25 +117,6 @@ export default function AdminUsers() {
     </Layout>
   );
 
-  const filtered = users
-    .filter(u => {
-      if (!search) return true;
-      const q = search.toLowerCase();
-      return u.email.toLowerCase().includes(q) || (u.name || '').toLowerCase().includes(q);
-    })
-    .sort((a, b) => {
-      if (sort === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
-      if (sort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
-      if (sort === 'generations') return (b._count?.generations || 0) - (a._count?.generations || 0);
-      return 0;
-    });
-
-  const copyEmails = () => {
-    const emails = filtered.map(u => u.email).join('\n');
-    navigator.clipboard.writeText(emails);
-    alert(`Copied ${filtered.length} emails to clipboard`);
-  };
-
   return (
     <Layout>
       <div className="p-4 md:p-8 max-w-7xl mx-auto">
