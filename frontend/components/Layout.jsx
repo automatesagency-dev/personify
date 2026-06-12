@@ -169,6 +169,11 @@ export default function Layout({ children }) {
               <NavIcon paths={['M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1']} />
             </button>
           </div>
+          <div className="flex justify-center gap-3 mt-3">
+            <Link href="/terms" className="text-[11px] text-gray-600 hover:text-gray-400 transition">Terms</Link>
+            <span className="text-gray-700 text-[11px]">·</span>
+            <Link href="/privacy" className="text-[11px] text-gray-600 hover:text-gray-400 transition">Privacy</Link>
+          </div>
         </div>
       </aside>
 

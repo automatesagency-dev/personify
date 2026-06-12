@@ -14,6 +14,7 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [agreeToMarketing, setAgreeToMarketing] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -185,17 +186,35 @@ export default function Register() {
               </div>
             </div>
 
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="terms"
-                checked={agreeToTerms}
-                onChange={(e) => setAgreeToTerms(e.target.checked)}
-                className="w-4 h-4 text-brand-pink border-gray-300 rounded focus:ring-brand-pink"
-              />
-              <label htmlFor="terms" className="ml-2 text-sm text-gray-700">
-                I agree to all terms and conditions
-              </label>
+            <div className="space-y-2.5">
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={agreeToTerms}
+                  onChange={(e) => setAgreeToTerms(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 text-brand-pink border-gray-300 rounded focus:ring-brand-pink flex-shrink-0"
+                />
+                <label htmlFor="terms" className="text-sm text-gray-700 leading-snug">
+                  I have read and agree to the{' '}
+                  <Link href="/terms" target="_blank" className="text-brand-pink hover:underline font-medium">Terms of Service</Link>
+                  {' '}and{' '}
+                  <Link href="/privacy" target="_blank" className="text-brand-pink hover:underline font-medium">Privacy Policy</Link>
+                  . I confirm I am 18 years or older. <span className="text-red-500">*</span>
+                </label>
+              </div>
+              <div className="flex items-start gap-2">
+                <input
+                  type="checkbox"
+                  id="marketing"
+                  checked={agreeToMarketing}
+                  onChange={(e) => setAgreeToMarketing(e.target.checked)}
+                  className="w-4 h-4 mt-0.5 text-brand-pink border-gray-300 rounded focus:ring-brand-pink flex-shrink-0"
+                />
+                <label htmlFor="marketing" className="text-sm text-gray-600 leading-snug">
+                  I'd like to receive product updates, tips, and news from Personify. <span className="text-gray-400">(optional)</span>
+                </label>
+              </div>
             </div>
 
             {/* Divider */}
@@ -232,6 +251,12 @@ export default function Register() {
             Already have an account?{' '}
             <Link href="/login" className="text-brand-pink hover:text-pink-700 font-semibold">Login</Link>
           </p>
+
+          <div className="flex justify-center gap-4 mt-4 pt-4 border-t border-gray-200">
+            <Link href="/terms" target="_blank" className="text-xs text-gray-400 hover:text-gray-600 transition">Terms of Service</Link>
+            <span className="text-gray-300">·</span>
+            <Link href="/privacy" target="_blank" className="text-xs text-gray-400 hover:text-gray-600 transition">Privacy Policy</Link>
+          </div>
         </div>
       </div>
 
