@@ -138,8 +138,7 @@ async function getPublicFounderPage(req, res) {
       include: {
         user: {
           select: {
-            name: true,
-            email: true
+            name: true
           }
         }
       }

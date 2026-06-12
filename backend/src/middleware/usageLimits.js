@@ -8,8 +8,8 @@ async function checkUsageLimits(req, res, next) {
 
     // Define limits
     const limits = {
-      image: 10,  // 10 images per day
-      text: 50    // 50 text generations per day
+      image: 5,   // 5 images per day
+      text: 25    // 25 text generations per day
     };
 
     // Get today's start time
