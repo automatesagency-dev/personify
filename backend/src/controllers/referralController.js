@@ -66,7 +66,7 @@ async function useCode(req, res) {
     res.json({ message: 'Access unlocked successfully' });
   } catch (error) {
     console.error('Use code error:', error);
-    res.status(500).json({ error: 'Failed to apply code', message: error.message });
+    res.status(500).json({ error: 'Failed to apply code' });
   }
 }
 
@@ -103,7 +103,7 @@ async function getMyCode(req, res) {
     res.json({ referralCode: myCode });
   } catch (error) {
     console.error('Get my code error:', error);
-    res.status(500).json({ error: 'Failed to get referral code', message: error.message });
+    res.status(500).json({ error: 'Failed to get referral code' });
   }
 }
 
@@ -130,7 +130,7 @@ async function adminGenerateCodes(req, res) {
     res.json({ codes, generated: codes.length });
   } catch (error) {
     console.error('Admin generate codes error:', error);
-    res.status(500).json({ error: 'Failed to generate codes', message: error.message });
+    res.status(500).json({ error: 'Failed to generate codes' });
   }
 }
 
@@ -155,7 +155,7 @@ async function adminGetCodes(req, res) {
     res.json({ codes });
   } catch (error) {
     console.error('Admin get codes error:', error);
-    res.status(500).json({ error: 'Failed to get codes', message: error.message });
+    res.status(500).json({ error: 'Failed to get codes' });
   }
 }
 
@@ -178,7 +178,7 @@ async function adminToggleCode(req, res) {
     res.json({ code: updated });
   } catch (error) {
     console.error('Admin toggle code error:', error);
-    res.status(500).json({ error: 'Failed to toggle code', message: error.message });
+    res.status(500).json({ error: 'Failed to toggle code' });
   }
 }
 
@@ -199,7 +199,7 @@ async function adminGetStats(req, res) {
     res.json({ totalUsers, verifiedUsers, totalCodes, totalRedemptions });
   } catch (error) {
     console.error('Admin stats error:', error);
-    res.status(500).json({ error: 'Failed to get stats', message: error.message });
+    res.status(500).json({ error: 'Failed to get stats' });
   }
 }
 

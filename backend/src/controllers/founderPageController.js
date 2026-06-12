@@ -1,6 +1,8 @@
 const { prisma } = require('../config/database');
 const { uploadToR2, deleteFromR2 } = require('../config/r2');
 
+const USERNAME_REGEX = /^[a-z0-9-]{3,30}$/;
+
 // =====================================
 // Get User's Founder Page
 // =====================================
@@ -16,10 +18,7 @@ async function getFounderPage(req, res) {
 
   } catch (error) {
     console.error('Get founder page error:', error);
-    res.status(500).json({
-      error: 'Failed to get founder page',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to get founder page' });
   }
 }
 
@@ -41,6 +40,13 @@ async function upsertFounderPage(req, res) {
       faq,
       ecommerce
     } = req.body;
+
+    // Server-side username validation
+    if (username && !USERNAME_REGEX.test(username)) {
+      return res.status(400).json({
+        error: 'Username must be 3-30 characters and contain only lowercase letters, numbers, and hyphens'
+      });
+    }
 
     // Check if username is taken by another user
     if (username) {
@@ -92,10 +98,7 @@ async function upsertFounderPage(req, res) {
 
   } catch (error) {
     console.error('Upsert founder page error:', error);
-    res.status(500).json({
-      error: 'Failed to save founder page',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to save founder page' });
   }
 }
 
@@ -119,10 +122,7 @@ async function publishFounderPage(req, res) {
 
   } catch (error) {
     console.error('Publish founder page error:', error);
-    res.status(500).json({
-      error: 'Failed to publish page',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to publish page' });
   }
 }
 
@@ -160,10 +160,7 @@ async function getPublicFounderPage(req, res) {
 
   } catch (error) {
     console.error('Get public founder page error:', error);
-    res.status(500).json({
-      error: 'Failed to get page',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to get page' });
   }
 }
 
@@ -185,7 +182,7 @@ async function previewFounderPage(req, res) {
     res.json({ founderPage });
   } catch (error) {
     console.error('Preview founder page error:', error);
-    res.status(500).json({ error: 'Failed to get preview', message: error.message });
+    res.status(500).json({ error: 'Failed to get preview' });
   }
 }
 
@@ -196,6 +193,10 @@ async function checkUsername(req, res) {
   try {
     const { username } = req.params;
     const userId = req.user?.id;
+
+    if (!USERNAME_REGEX.test(username)) {
+      return res.json({ available: false, reason: 'Invalid format' });
+    }
 
     const existing = await prisma.founderPage.findUnique({
       where: { username }
@@ -208,10 +209,7 @@ async function checkUsername(req, res) {
 
   } catch (error) {
     console.error('Check username error:', error);
-    res.status(500).json({
-      error: 'Failed to check username',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to check username' });
   }
 }
 
@@ -232,10 +230,7 @@ async function deleteFounderPage(req, res) {
 
   } catch (error) {
     console.error('Delete founder page error:', error);
-    res.status(500).json({
-      error: 'Failed to delete page',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to delete page' });
   }
 }
 

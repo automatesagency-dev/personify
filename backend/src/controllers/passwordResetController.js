@@ -51,10 +51,7 @@ async function requestPasswordReset(req, res) {
 
   } catch (error) {
     console.error('Request password reset error:', error);
-    res.status(500).json({
-      error: 'Failed to process password reset request',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to process password reset request' });
   }
 }
 
@@ -110,10 +107,7 @@ async function resetPassword(req, res) {
 
   } catch (error) {
     console.error('Reset password error:', error);
-    res.status(500).json({
-      error: 'Failed to reset password',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to reset password' });
   }
 }
 

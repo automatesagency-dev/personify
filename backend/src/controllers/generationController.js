@@ -28,9 +28,11 @@ async function generateImage(req, res) {
     const dalleImageSize = DALLE_SIZE[aspectRatio] || '1024x1024';
 
     if (!prompt) {
-      return res.status(400).json({
-        error: 'Prompt is required'
-      });
+      return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (referenceImagesBase64.length > 5) {
+      return res.status(400).json({ error: 'Maximum 5 reference images allowed' });
     }
 
     // Get persona — include images only when face consistency is needed
@@ -84,7 +86,6 @@ async function generateImage(req, res) {
             error: 'Please complete your persona profile (bio, industry, brand tone) to use face consistency.'
           });
         }
-        console.log(`🎨 Using Fal.ai ${faceModel}...`);
 
         const personaImage = persona.personaImages[0];
         const imageUrlPath = personaImage.imageUrl;
@@ -104,16 +105,12 @@ async function generateImage(req, res) {
             const refBuffer = Buffer.from(referenceImagesBase64[i], 'base64');
             const refUrl = await uploadToR2(refBuffer, `reference-${i}.${ext}`, mime);
             referenceUrls.push(refUrl);
-            console.log(`📎 Reference image ${i + 1} uploaded:`, refUrl);
           } catch (uploadErr) {
-            console.warn(`⚠️ Reference image ${i + 1} upload failed, skipping:`, uploadErr.message);
+            console.warn(`Reference image ${i + 1} upload failed, skipping:`, uploadErr.message);
           }
         }
 
         const imageUrlsForFal = [imageUrlPath, ...referenceUrls];
-
-        console.log('📸 Persona image URL:', imageUrlPath);
-        console.log('✍️ Prompt:', enhancedPrompt);
 
         let result;
 
@@ -129,9 +126,7 @@ async function generateImage(req, res) {
                 num_images: 1,
                 enable_safety_checker: true
               },
-              logs: true,
-              onQueueUpdate: (update) =>
-                console.log('⏳ Queue:', update.status)
+              logs: true
             });
 
           } else if (faceModel === 'bytedance-seedream') {
@@ -146,9 +141,7 @@ async function generateImage(req, res) {
                   guidance_scale: 7.5,
                   num_images: 1
                 },
-                logs: true,
-                onQueueUpdate: (update) =>
-                  console.log('⏳ Queue:', update.status)
+                logs: true
               }
             );
 
@@ -158,15 +151,12 @@ async function generateImage(req, res) {
 
           if (result.images && result.images.length > 0) {
             imageUrl = result.images[0].url;
-            console.log('✅ Fal.ai generation successful');
           } else {
             throw new Error('Fal.ai did not return any images');
           }
 
         } catch (falError) {
-          console.error('❌ Fal.ai error:', falError.message);
-          console.error('❌ Fal.ai error status:', falError.status);
-          console.error('❌ Fal.ai error body:', JSON.stringify(falError.body, null, 2));
+          console.error('Fal.ai error:', falError.message);
           throw falError;
         }
 
@@ -174,7 +164,6 @@ async function generateImage(req, res) {
         // =====================================
         // STANDARD DALL-E FLOW
         // =====================================
-        console.log('🖼 Using DALL-E...');
 
         // DALL-E 2 only supports square
         const effectiveSize = model === 'dall-e-2' ? '1024x1024' : dalleImageSize;
@@ -220,10 +209,7 @@ async function generateImage(req, res) {
 
   } catch (error) {
     console.error('Generate image error:', error);
-    res.status(500).json({
-      error: 'Failed to generate image',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to generate image' });
   }
 }
 
@@ -242,6 +228,10 @@ async function generateText(req, res) {
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
+    }
+
+    if (referenceImagesBase64.length > 5) {
+      return res.status(400).json({ error: 'Maximum 5 reference images allowed' });
     }
 
     const persona = await prisma.persona.findUnique({
@@ -332,10 +322,7 @@ async function generateText(req, res) {
 
   } catch (error) {
     console.error('Generate text error:', error);
-    res.status(500).json({
-      error: 'Failed to generate text',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to generate text' });
   }
 }
 
@@ -361,10 +348,7 @@ async function getGenerations(req, res) {
     res.json({ count: generations.length, generations });
 
   } catch (error) {
-    res.status(500).json({
-      error: 'Failed to get generations',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to get generations' });
   }
 }
 
@@ -391,10 +375,7 @@ async function getGenerationById(req, res) {
     res.json({ generation });
 
   } catch (error) {
-    res.status(500).json({
-      error: 'Failed to get generation',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to get generation' });
   }
 }
 
@@ -423,10 +404,7 @@ async function deleteGeneration(req, res) {
     res.json({ message: 'Generation deleted successfully' });
 
   } catch (error) {
-    res.status(500).json({
-      error: 'Failed to delete generation',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to delete generation' });
   }
 }
 

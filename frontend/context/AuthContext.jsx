@@ -69,8 +69,8 @@ export function AuthProvider({ children }) {
     return response.data;
   };
 
-  const register = async (email, password, name) => {
-    const response = await authAPI.register({ email, password, name });
+  const register = async (email, password, name, marketingConsent = false) => {
+    const response = await authAPI.register({ email, password, name, marketingConsent });
     const { user, token } = response.data;
 
     localStorage.setItem('token', token);

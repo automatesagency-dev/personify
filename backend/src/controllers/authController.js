@@ -11,7 +11,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
  */
 async function register(req, res) {
   try {
-    const { email, password, name } = req.body;
+    const { email, password, name, marketingConsent } = req.body;
 
     // Validate input
     if (!email || !password) {
@@ -45,7 +45,8 @@ async function register(req, res) {
       data: {
         email,
         password: hashedPassword,
-        name: name || null
+        name: name || null,
+        marketingConsent: !!marketingConsent
       },
       select: {
         id: true,
@@ -73,10 +74,7 @@ async function register(req, res) {
     });
   } catch (error) {
     console.error('Register error:', error);
-    res.status(500).json({
-      error: 'Registration failed',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Registration failed' });
   }
 }
 
@@ -127,10 +125,7 @@ async function login(req, res) {
     });
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      error: 'Login failed',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Login failed' });
   }
 }
 
@@ -145,10 +140,7 @@ async function getMe(req, res) {
     });
   } catch (error) {
     console.error('GetMe error:', error);
-    res.status(500).json({
-      error: 'Failed to get user',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to get user' });
   }
 }
 

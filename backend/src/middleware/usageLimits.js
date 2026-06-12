@@ -48,10 +48,7 @@ async function checkUsageLimits(req, res, next) {
 
   } catch (error) {
     console.error('Usage limit check error:', error);
-    res.status(500).json({
-      error: 'Failed to check usage limits',
-      message: error.message
-    });
+    res.status(500).json({ error: 'Failed to check usage limits' });
   }
 }
 

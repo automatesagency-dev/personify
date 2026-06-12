@@ -19,6 +19,7 @@ model User {
   resetPasswordToken    String?
   resetPasswordExpires  DateTime?
   referralVerified      Boolean  @default(false)
+  marketingConsent      Boolean  @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   persona               Persona?
