@@ -8,6 +8,23 @@ const SEEDREAM_SIZE_MAP = { square: 'square_hd', portrait: 'portrait_4_3', lands
 const DALLE_SIZE = { square: '1024x1024', portrait: '1024x1792', landscape: '1792x1024' };
 
 // =====================================
+// Persist a provider-generated image to our own R2 storage.
+// DALL-E and Fal.ai return temporary URLs that expire within hours, which
+// would leave broken images in History and on Founder Pages. We download the
+// result and re-host it on R2 so the link is permanent.
+// =====================================
+async function persistImageToR2(sourceUrl) {
+  const response = await fetch(sourceUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch generated image (status ${response.status})`);
+  }
+  const contentType = (response.headers.get('content-type') || 'image/png').split(';')[0];
+  const ext = contentType.split('/')[1] || 'png';
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return uploadToR2(buffer, `generation-${Date.now()}.${ext}`, contentType);
+}
+
+// =====================================
 // Generate Image
 // =====================================
 async function generateImage(req, res) {
@@ -176,6 +193,15 @@ async function generateImage(req, res) {
         });
 
         imageUrl = response.data[0].url;
+      }
+
+      // Re-host the result on R2 so it survives the provider's URL expiry.
+      // If this fails, fall back to the (temporary) provider URL rather than
+      // failing a generation the user has already been charged for.
+      try {
+        imageUrl = await persistImageToR2(imageUrl);
+      } catch (persistErr) {
+        console.error('⚠️ Failed to persist generated image to R2, using provider URL:', persistErr.message);
       }
 
       // Save result
