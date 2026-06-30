@@ -33,6 +33,8 @@ export const authAPI = {
   updateProfile: (data) => api.patch('/auth/profile', data),
   updatePassword: (data) => api.patch('/auth/password', data),
   getAdminUsers: () => api.get('/auth/admin/users'),
+  adminOverview: () => api.get('/auth/admin/overview'),
+  adminAllGenerations: () => api.get('/auth/admin/generations'),
 };
 
 // Persona API

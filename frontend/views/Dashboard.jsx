@@ -229,18 +229,18 @@ export default function Dashboard() {
               <button onClick={() => router.push('/founder-page')} className="px-3 py-1.5 bg-white text-black rounded-lg text-xs font-semibold flex-shrink-0">Continue</button>
             </div>
           ) : (
-            <div className="bg-dark-card rounded-2xl p-4 border border-gray-800 flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-brand-pink/20 flex items-center justify-center text-sm flex-shrink-0">🚀</div>
-              <div className="flex-1">
-                <div className="flex items-center gap-1.5 mb-0.5">
-                  <p className="text-sm font-semibold text-white">Founder Page</p>
-                  <span className="px-1.5 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full">FREE</span>
+            <div className="bg-gradient-to-br from-brand-pink/10 to-purple-600/10 rounded-2xl p-5 border border-brand-pink/20">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">🚀</span>
+                  <p className="text-base font-semibold text-white">Build Your Founder Page</p>
                 </div>
-                <p className="text-xs text-gray-500">2 templates · custom URL · portfolio</p>
+                <span className="px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] font-semibold rounded-full">FREE</span>
               </div>
-              <div className="flex gap-1.5 flex-shrink-0">
-                <button onClick={() => router.push('/founder-page?category=personal')} className="px-2.5 py-1.5 bg-white text-black rounded-lg text-xs font-semibold">Personal</button>
-                <button onClick={() => router.push('/founder-page?category=ecommerce')} className="px-2.5 py-1.5 bg-white/10 text-white rounded-lg text-xs font-semibold border border-white/10">Shop</button>
+              <p className="text-sm text-gray-300 mb-4 leading-relaxed">Your personal brand or e-commerce page with a custom URL. Goes live in minutes.</p>
+              <div className="grid grid-cols-2 gap-2">
+                <button onClick={() => router.push('/founder-page?category=personal')} className="py-2.5 bg-white text-black rounded-xl text-sm font-semibold">Personal Brand</button>
+                <button onClick={() => router.push('/founder-page?category=ecommerce')} className="py-2.5 bg-white/10 text-white rounded-xl text-sm font-semibold border border-white/20">E-Commerce</button>
               </div>
             </div>
           )}

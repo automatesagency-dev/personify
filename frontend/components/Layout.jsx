@@ -52,8 +52,11 @@ const MOBILE_TAB_ITEMS = [
     paths: ['M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z'],
   },
   {
-    name: 'History', path: '/history',
-    paths: ['M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z'],
+    name: 'Founder', path: '/founder-page',
+    paths: [
+      'M3 5a2 2 0 012-2h14a2 2 0 012 2v3H3V5z',
+      'M3 8h6v13H5a2 2 0 01-2-2V8zm6 0h12v11a2 2 0 01-2 2H9V8z',
+    ],
   },
   {
     name: 'More', path: null,
@@ -243,6 +246,19 @@ export default function Layout({ children }) {
                   ]} />
                 </span>
                 <span className="font-medium">Founder Page</span>
+              </Link>
+
+              <Link
+                href="/history"
+                onClick={() => setSheetOpen(false)}
+                className={`flex items-center gap-4 px-4 py-3.5 rounded-xl transition-colors ${
+                  pathname === '/history' ? 'bg-white/10 text-white' : 'text-gray-300 hover:bg-white/5'
+                }`}
+              >
+                <span className="opacity-70">
+                  <NavIcon paths={['M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z']} />
+                </span>
+                <span className="font-medium">History</span>
               </Link>
 
               <Link

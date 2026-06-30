@@ -327,7 +327,8 @@ async function getAdminUsers(req, res) {
         profilePictureUrl: true,
         googleId: true,
         _count: { select: { generations: true } },
-        founderPage: { select: { username: true, published: true, template: true } }
+        founderPage: { select: { username: true, published: true, template: true } },
+        persona: { select: { id: true, industry: true } }
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -339,6 +340,88 @@ async function getAdminUsers(req, res) {
   }
 }
 
+async function getAdminOverview(req, res) {
+  if (req.user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const [totalUsers, googleUsers, usersWithPersona, publishedPages, totalGenerations] = await Promise.all([
+      prisma.user.count(),
+      prisma.user.count({ where: { googleId: { not: null } } }),
+      prisma.persona.count(),
+      prisma.founderPage.count({ where: { published: true } }),
+      prisma.generation.count(),
+    ]);
+
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const sevenDaysAgo = new Date(); sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6); sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const [todayImages, todayText, newUsersWeek, recentGens] = await Promise.all([
+      prisma.generation.count({ where: { createdAt: { gte: today }, type: 'image' } }),
+      prisma.generation.count({ where: { createdAt: { gte: today }, type: 'text' } }),
+      prisma.user.count({ where: { createdAt: { gte: sevenDaysAgo } } }),
+      prisma.generation.findMany({ where: { createdAt: { gte: sevenDaysAgo } }, select: { createdAt: true, type: true } }),
+    ]);
+
+    const dailyMap = {};
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(); d.setDate(d.getDate() - (6 - i)); d.setHours(0, 0, 0, 0);
+      const key = d.toISOString().split('T')[0];
+      dailyMap[key] = { label: d.toLocaleDateString('en-US', { weekday: 'short' }), images: 0, text: 0 };
+    }
+    recentGens.forEach(g => {
+      const key = new Date(g.createdAt).toISOString().split('T')[0];
+      if (dailyMap[key]) {
+        if (g.type === 'image') dailyMap[key].images++;
+        else dailyMap[key].text++;
+      }
+    });
+
+    const allGens = await prisma.generation.findMany({ select: { model: true } });
+    const modelMap = {};
+    allGens.forEach(g => { modelMap[g.model] = (modelMap[g.model] || 0) + 1; });
+    const modelUsage = Object.entries(modelMap)
+      .sort(([, a], [, b]) => b - a)
+      .map(([model, count]) => ({ model, count, pct: totalGenerations ? Math.round((count / totalGenerations) * 100) : 0 }));
+
+    const recentActivity = await prisma.generation.findMany({
+      take: 10,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, type: true, model: true, status: true, createdAt: true, prompt: true,
+        user: { select: { name: true, email: true } },
+      },
+    });
+
+    res.json({
+      users: { total: totalUsers, google: googleUsers, withPersona: usersWithPersona, publishedPages, newThisWeek: newUsersWeek },
+      generations: { total: totalGenerations, todayImages, todayText, todayTotal: todayImages + todayText },
+      dailyCounts: Object.values(dailyMap),
+      modelUsage,
+      recentActivity,
+    });
+  } catch (error) {
+    console.error('Admin overview error:', error);
+    res.status(500).json({ error: 'Failed to get overview' });
+  }
+}
+
+async function getAdminAllGenerations(req, res) {
+  if (req.user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const generations = await prisma.generation.findMany({
+      take: 500,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, type: true, prompt: true, model: true, status: true, createdAt: true,
+        user: { select: { name: true, email: true } },
+      },
+    });
+    res.json({ generations });
+  } catch (error) {
+    console.error('Admin generations error:', error);
+    res.status(500).json({ error: 'Failed to get generations' });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -347,5 +430,7 @@ module.exports = {
   updateProfile,
   updatePassword,
   googleAuth,
-  getAdminUsers
+  getAdminUsers,
+  getAdminOverview,
+  getAdminAllGenerations,
 };
