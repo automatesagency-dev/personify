@@ -1,3 +1,12 @@
+# Environment / secrets — never commit these
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+frontend/.env
+frontend/.env.*
+
 # Dependencies
 node_modules/
 frontend/node_modules/
