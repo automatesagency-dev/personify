@@ -22,6 +22,32 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+// Globally handle expired/invalid sessions: any 401 on an authenticated request
+// clears the token and sends the user to login, instead of leaving them on a
+// broken page. Login/register 401s (wrong credentials) are left for the form to
+// display, and we never redirect if we're already on the login page.
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error.response?.status;
+    const url = error.config?.url || '';
+    const isAuthEndpoint =
+      url.includes('/auth/login') ||
+      url.includes('/auth/register') ||
+      url.includes('/auth/google');
+
+    if (status === 401 && !isAuthEndpoint && typeof window !== 'undefined') {
+      const hadToken = !!localStorage.getItem('token');
+      localStorage.removeItem('token');
+      if (hadToken && window.location.pathname !== '/login') {
+        window.location.href = '/login?session=expired';
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
 // Auth API
 export const authAPI = {
   register: (data) => api.post('/auth/register', data),

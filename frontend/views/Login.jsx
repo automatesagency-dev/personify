@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
@@ -14,8 +14,16 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
+  const [sessionExpired, setSessionExpired] = useState(false);
+
   const { login, loginWithGoogle } = useAuth();
   const router = useRouter();
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('session') === 'expired') {
+      setSessionExpired(true);
+    }
+  }, []);
 
   const handleGoogleLogin = useGoogleLogin({
     onSuccess: async ({ access_token }) => {
@@ -78,6 +86,12 @@ export default function Login() {
               Log in to explore AI-powered personal branding.
             </p>
           </div>
+
+          {sessionExpired && !error && (
+            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 text-amber-700 rounded-lg text-sm">
+              Your session expired. Please log in again to continue.
+            </div>
+          )}
 
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm">
