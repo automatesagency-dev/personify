@@ -923,7 +923,7 @@ function EcommerceTemplate({ page, isPreview, dark }) {
             <a href="#reviews" className="hover:opacity-100 opacity-60 transition">Testimonials</a>
           </nav>
           <a href={ec.shopUrl || '#product'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="text-xs font-bold px-4 py-2 rounded-full text-white transition hover:opacity-90" style={{ backgroundColor: pc }}>
-            Shop Now
+            {ec.navCtaLabel || 'Shop Now'}
           </a>
         </div>
       </header>
@@ -931,20 +931,20 @@ function EcommerceTemplate({ page, isPreview, dark }) {
       {/* ── Hero ── */}
       <section className="max-w-7xl mx-auto px-5 md:px-10 py-16 md:py-24 grid md:grid-cols-2 gap-12 items-center">
         <div className="space-y-6 order-2 md:order-1">
-          <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>Founder &amp; CEO</p>
+          <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>{ec.heroEyebrow || 'Founder & CEO'}</p>
           <h1 className="text-4xl md:text-6xl font-bold leading-tight" style={{ fontFamily: design.titleFont }}>
             {ec.tagline || 'Quiet Luxury, Rooted in Science'}
           </h1>
           <p style={{ color: textMuted }} className="text-base leading-relaxed max-w-md">
-            {ec.brandStory?.substring(0, 200) || 'Designed for integrity and clinical efficacy.'}
+            {ec.heroSubtitle || ec.brandStory?.substring(0, 200) || 'Designed for integrity and clinical efficacy.'}
           </p>
           <div className="flex items-center gap-2">
             {[1,2,3,4,5].map(i => <svg key={i} className="w-4 h-4 text-yellow-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>)}
-            <span className="text-sm font-bold ml-1">4.9+</span>
+            <span className="text-sm font-bold ml-1">{ec.heroRating || '4.9+'}</span>
           </div>
           <div className="flex flex-wrap gap-3">
             <a href={ec.shopUrl || '#product'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="px-7 py-3.5 rounded-full font-bold text-sm text-white hover:opacity-90 transition shadow-lg" style={{ backgroundColor: pc }}>
-              Shop Products
+              {ec.heroCtaLabel || 'Shop Products'}
             </a>
             {ec.socialTiktok && (
               <a href="#videos" className="px-7 py-3.5 rounded-full font-bold text-sm border transition hover:opacity-80" style={{ borderColor: pc, color: pc }}>
@@ -976,7 +976,7 @@ function EcommerceTemplate({ page, isPreview, dark }) {
               }
             </div>
             <div className="space-y-5">
-              <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>The Star Product</p>
+              <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>{ec.featuredEyebrow || 'The Star Product'}</p>
               <h2 className="text-3xl md:text-4xl font-bold" style={{ fontFamily: design.titleFont }}>{fp.name || 'Featured Product'}</h2>
               {fp.description && <p style={{ color: textMuted }} className="leading-relaxed">{fp.description}</p>}
               {(fp.bullet1 || fp.bullet2 || fp.bullet3) && (
@@ -991,7 +991,7 @@ function EcommerceTemplate({ page, isPreview, dark }) {
               )}
               <div className="flex items-center justify-between pt-2">
                 <span className="text-2xl font-bold" style={{ color: pc }}>{fp.price || '$—'}</span>
-                <a href={ec.shopUrl || '#'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="px-6 py-3 rounded-full font-bold text-sm text-white hover:opacity-90 transition" style={{ backgroundColor: pc }}>Add to Cart</a>
+                <a href={ec.shopUrl || '#'} target={ec.shopUrl ? '_blank' : undefined} rel="noopener noreferrer" className="px-6 py-3 rounded-full font-bold text-sm text-white hover:opacity-90 transition" style={{ backgroundColor: pc }}>{ec.featuredCtaLabel || 'Add to Cart'}</a>
               </div>
               {ec.shopUrl && <a href={ec.shopUrl} target="_blank" rel="noopener noreferrer" className="block text-xs font-semibold tracking-wider uppercase underline underline-offset-4 hover:opacity-70 transition" style={{ color: textMuted }}>Shop in TikTok Shop →</a>}
             </div>
@@ -1003,7 +1003,7 @@ function EcommerceTemplate({ page, isPreview, dark }) {
       {ec.brandStory && (
         <section id="story" className="max-w-7xl mx-auto px-5 md:px-10 py-20 md:py-28 grid md:grid-cols-2 gap-16 items-center">
           <div className="space-y-6">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>A Philosophy of Restraint</p>
+            <p className="text-xs font-bold tracking-[0.3em] uppercase" style={{ color: pc }}>{ec.storyEyebrow || 'A Philosophy of Restraint'}</p>
             <p className="text-2xl md:text-3xl font-light leading-relaxed italic">"{ec.brandStory?.substring(0, 280)}"</p>
             {ec.founderName && (
               <div className="pt-2">
@@ -1026,7 +1026,7 @@ function EcommerceTemplate({ page, isPreview, dark }) {
       {standards.some(s => s.title) && (
         <section className="py-16" style={{ backgroundColor: bgMuted }}>
           <div className="max-w-7xl mx-auto px-5 md:px-10">
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>Uncompromising Standards</h2>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>{ec.standardsTitle || 'Uncompromising Standards'}</h2>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
               {standards.filter(s => s.title).map((s, i) => (
                 <div key={i} className="space-y-3">
@@ -1046,11 +1046,11 @@ function EcommerceTemplate({ page, isPreview, dark }) {
           <div className="max-w-7xl mx-auto px-5 md:px-10">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/40 mb-1">The Community</p>
+                <p className="text-xs font-bold tracking-[0.3em] uppercase text-white/40 mb-1">{ec.videoEyebrow || 'The Community'}</p>
                 <h2 className="text-2xl md:text-3xl font-bold text-white" style={{ fontFamily: design.titleFont }}>{ec.videoSectionTitle || 'Our Videos'}</h2>
               </div>
               {(ec.socialTiktok || ec.socialInstagram) && (
-                <a href={ec.socialTiktok ? `https://tiktok.com/${ec.socialTiktok}` : '#'} target="_blank" rel="noopener noreferrer" className="text-xs font-bold tracking-wider uppercase text-white/60 hover:text-white border border-white/20 px-4 py-2 rounded-full transition">Join Our Community</a>
+                <a href={ec.socialTiktok ? `https://tiktok.com/${ec.socialTiktok}` : '#'} target="_blank" rel="noopener noreferrer" className="text-xs font-bold tracking-wider uppercase text-white/60 hover:text-white border border-white/20 px-4 py-2 rounded-full transition">{ec.videoCtaLabel || 'Join Our Community'}</a>
               )}
             </div>
             <VideoGrid videos={ec.videos} />
@@ -1061,9 +1061,9 @@ function EcommerceTemplate({ page, isPreview, dark }) {
       {/* ── Product Collection ── */}
       {collection.length > 0 && (
         <section className="py-16 md:py-24 max-w-7xl mx-auto px-5 md:px-10">
-          <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>The Essential Collection</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3" style={{ fontFamily: design.titleFont }}>Simple. Pure. Profound. Results.</h2>
-          <p className="text-sm text-center mb-12" style={{ color: textMuted }}>Every product, precisely formulated.</p>
+          <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>{ec.collectionEyebrow || 'The Essential Collection'}</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-center mb-3" style={{ fontFamily: design.titleFont }}>{ec.collectionTitle || 'Simple. Pure. Profound. Results.'}</h2>
+          <p className="text-sm text-center mb-12" style={{ color: textMuted }}>{ec.collectionSubtitle || 'Every product, precisely formulated.'}</p>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5 md:gap-8">
             {collection.map((item, i) => (
               <div key={i} className="group">
@@ -1086,8 +1086,8 @@ function EcommerceTemplate({ page, isPreview, dark }) {
       {reviews.length > 0 && (
         <section id="reviews" className="py-16 md:py-20" style={{ backgroundColor: bgMuted }}>
           <div className="max-w-7xl mx-auto px-5 md:px-10">
-            <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>Testimonials</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>What Our Customers Say</h2>
+            <p className="text-xs font-bold tracking-[0.3em] uppercase text-center mb-2" style={{ color: pc }}>{ec.reviewsEyebrow || 'Testimonials'}</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-center mb-12" style={{ fontFamily: design.titleFont }}>{ec.reviewsTitle || 'What Our Customers Say'}</h2>
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-5">
               {reviews.map((r, i) => (
                 <div key={i} className="rounded-2xl p-6 space-y-3" style={{ backgroundColor: bgCard, border: `1px solid ${border}` }}>

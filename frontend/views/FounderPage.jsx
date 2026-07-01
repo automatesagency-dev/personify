@@ -27,20 +27,33 @@ const TextArea = ({ label, value, onChange, placeholder, rows = 3, className = "
   </div>
 );
 
-const ImageUpload = ({ label, id, onUpload, imageUrl, uploading, isSquare = false, note }) => (
+const ImageUpload = ({ label, id, onUpload, onRemove, imageUrl, uploading, isSquare = false, note }) => (
   <div>
     {label && <label className="block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2">{label}</label>}
     <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} className="hidden" id={id} disabled={uploading} />
-    <label htmlFor={id} className={`block border-2 border-dashed border-gray-700 rounded-lg p-4 md:p-8 text-center hover:border-brand-pink transition cursor-pointer ${uploading ? 'opacity-50' : ''} ${isSquare ? 'aspect-square flex items-center justify-center' : ''}`}>
-      {imageUrl ? (
-        <img src={imageUrl} alt="Upload preview" className={`${isSquare ? 'w-full h-full object-cover' : 'max-h-24 md:max-h-32 mx-auto'} rounded`} />
-      ) : (
-        <div>
-          <span className="text-brand-pink text-xl md:text-2xl">📤</span>
-          <p className="text-white text-xs md:text-sm mt-1 md:mt-2">Tap to <span className="text-brand-pink">Upload</span></p>
-        </div>
+    <div className="relative">
+      <label htmlFor={id} className={`block border-2 border-dashed border-gray-700 rounded-lg p-4 md:p-8 text-center hover:border-brand-pink transition cursor-pointer ${uploading ? 'opacity-50' : ''} ${isSquare ? 'aspect-square flex items-center justify-center' : ''}`}>
+        {imageUrl ? (
+          <img src={imageUrl} alt="Upload preview" className={`${isSquare ? 'w-full h-full object-cover' : 'max-h-24 md:max-h-32 mx-auto'} rounded`} />
+        ) : (
+          <div>
+            <span className="text-brand-pink text-xl md:text-2xl">📤</span>
+            <p className="text-white text-xs md:text-sm mt-1 md:mt-2">Tap to <span className="text-brand-pink">Upload</span></p>
+          </div>
+        )}
+      </label>
+      {imageUrl && onRemove && (
+        <button
+          type="button"
+          onClick={onRemove}
+          disabled={uploading}
+          title="Remove image"
+          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-black/70 hover:bg-red-500 text-white rounded-full text-sm shadow-md transition disabled:opacity-50"
+        >
+          ✕
+        </button>
       )}
-    </label>
+    </div>
     {note && <p className="text-xs text-gray-500 mt-1.5">{note}</p>}
   </div>
 );
@@ -63,6 +76,12 @@ const DEFAULT_ECOMMERCE = {
   brandName: '', tagline: '', heroImageUrl: '', logoUrl: '', founderPhotoUrl: '',
   founderName: '', founderTitle: '', brandStory: '', shopUrl: '',
   videoSectionTitle: 'Our Videos', socialInstagram: '', socialTiktok: '', socialYoutube: '',
+  // Editable section copy / labels (leave blank to use the built-in default)
+  navCtaLabel: '', heroEyebrow: '', heroSubtitle: '', heroRating: '', heroCtaLabel: '',
+  featuredEyebrow: '', featuredCtaLabel: '', storyEyebrow: '', standardsTitle: '',
+  videoEyebrow: '', videoCtaLabel: '',
+  collectionEyebrow: '', collectionTitle: '', collectionSubtitle: '',
+  reviewsEyebrow: '', reviewsTitle: '',
   standards: [
     { id: '1', title: 'Dermatologist Tested', description: 'Clinically validated for sensitive and acne-prone skin.' },
     { id: '2', title: 'Cruelty Free', description: 'No animal testing, ever. We care about all living beings.' },
@@ -601,8 +620,8 @@ export default function FounderPage() {
             <div className="space-y-4 md:space-y-6">
               <h2 className="text-lg md:text-2xl font-semibold text-white mb-4 md:mb-6">Basic Information</h2>
               <div className="grid md:grid-cols-2 gap-4 md:gap-6">
-                <ImageUpload label="Logo (Square · 500×500px)" id="logo-upload" onUpload={file => handleImageUpload(file, 'basicInfo.logoUrl')} imageUrl={formData.basicInfo.logoUrl} uploading={uploading} />
-                <ImageUpload label="Hero Image (1920×1080px)" id="hero-upload" onUpload={file => handleImageUpload(file, 'basicInfo.heroImageUrl')} imageUrl={formData.basicInfo.heroImageUrl} uploading={uploading} />
+                <ImageUpload label="Logo (Square · 500×500px)" id="logo-upload" onUpload={file => handleImageUpload(file, 'basicInfo.logoUrl')} onRemove={() => updateNested('basicInfo', 'logoUrl', '')} imageUrl={formData.basicInfo.logoUrl} uploading={uploading} />
+                <ImageUpload label="Hero Image (1920×1080px)" id="hero-upload" onUpload={file => handleImageUpload(file, 'basicInfo.heroImageUrl')} onRemove={() => updateNested('basicInfo', 'heroImageUrl', '')} imageUrl={formData.basicInfo.heroImageUrl} uploading={uploading} />
                 <TextInput className="md:col-span-2" label="Username *" value={formData.username} prefix="personify.so/" onChange={e => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
                 <TextInput label="Name" value={formData.basicInfo.name} onChange={e => updateNested('basicInfo', 'name', e.target.value)} />
                 <TextInput label="Professional Title" value={formData.basicInfo.title} onChange={e => updateNested('basicInfo', 'title', e.target.value)} />
@@ -656,7 +675,7 @@ export default function FounderPage() {
               </div>
               <div className="grid grid-cols-3 md:grid-cols-2 gap-3 md:gap-6">
                 {[...Array(6)].map((_, i) => (
-                  <ImageUpload key={i} label={`${i + 1}`} id={`portfolio-${i}`} onUpload={file => handlePortfolioUpload(file, i)} imageUrl={formData.portfolio.images?.[i]?.url} uploading={uploading} isSquare />
+                  <ImageUpload key={i} label={`${i + 1}`} id={`portfolio-${i}`} onUpload={file => handlePortfolioUpload(file, i)} onRemove={() => setFormData(prev => { const imgs = [...(prev.portfolio.images || [])]; imgs[i] = { id: Date.now().toString(), url: '' }; return { ...prev, portfolio: { images: imgs } }; })} imageUrl={formData.portfolio.images?.[i]?.url} uploading={uploading} isSquare />
                 ))}
               </div>
             </div>
@@ -682,7 +701,7 @@ export default function FounderPage() {
                     <TextInput label="Subtitle" placeholder="Editorial Feature" value={work.subtitle} onChange={e => updateArray('featured', work.id, 'subtitle', e.target.value)} />
                   </div>
                   <TextInput label="Year" placeholder="2024" value={work.year} onChange={e => updateArray('featured', work.id, 'year', e.target.value)} />
-                  <ImageUpload label="Project Image (1200×800px)" id={`featured-${work.id}`} onUpload={file => handleFeaturedImageUpload(file, work.id)} imageUrl={work.imageUrl} uploading={uploading} />
+                  <ImageUpload label="Project Image (1200×800px)" id={`featured-${work.id}`} onUpload={file => handleFeaturedImageUpload(file, work.id)} onRemove={() => updateArray('featured', work.id, 'imageUrl', '')} imageUrl={work.imageUrl} uploading={uploading} />
                 </div>
               ))}
             </div>
@@ -696,17 +715,17 @@ export default function FounderPage() {
                 <ImageUpload
                   label="Logo (Square · 500×500px)"
                   note="Displayed in the header navigation"
-                  id="ec-logo" onUpload={file => handleEcommerceUpload(file, 'logoUrl')} imageUrl={formData.ecommerce.logoUrl} uploading={uploading}
+                  id="ec-logo" onUpload={file => handleEcommerceUpload(file, 'logoUrl')} onRemove={() => updateEcommerce('logoUrl', '')} imageUrl={formData.ecommerce.logoUrl} uploading={uploading}
                 />
                 <ImageUpload
                   label="Hero/Banner Image (1920×1080px)"
                   note="Full-width background image for the hero section"
-                  id="ec-hero" onUpload={file => handleEcommerceUpload(file, 'heroImageUrl')} imageUrl={formData.ecommerce.heroImageUrl} uploading={uploading}
+                  id="ec-hero" onUpload={file => handleEcommerceUpload(file, 'heroImageUrl')} onRemove={() => updateEcommerce('heroImageUrl', '')} imageUrl={formData.ecommerce.heroImageUrl} uploading={uploading}
                 />
                 <ImageUpload
                   label="Founder Portrait (800×1000px · 4:5)"
                   note="Shown in the hero and philosophy sections alongside your brand story"
-                  id="ec-founder" onUpload={file => handleEcommerceUpload(file, 'founderPhotoUrl')} imageUrl={formData.ecommerce.founderPhotoUrl} uploading={uploading}
+                  id="ec-founder" onUpload={file => handleEcommerceUpload(file, 'founderPhotoUrl')} onRemove={() => updateEcommerce('founderPhotoUrl', '')} imageUrl={formData.ecommerce.founderPhotoUrl} uploading={uploading}
                 />
                 <div className="space-y-4">
                   <TextInput className="md:col-span-2" label="Username *" value={formData.username} prefix="personify.so/" onChange={e => setFormData({ ...formData, username: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') })} />
@@ -741,6 +760,20 @@ export default function FounderPage() {
                   ))}
                 </div>
               </div>
+
+              <div className="border-t border-gray-700 pt-6">
+                <h3 className="text-white font-semibold mb-1">Section Headings &amp; Labels</h3>
+                <p className="text-gray-400 text-xs mb-4">Customize the built-in copy for this theme. Leave any field blank to use the default.</p>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <TextInput label="Header Button" placeholder="Shop Now" value={formData.ecommerce.navCtaLabel} onChange={e => updateEcommerce('navCtaLabel', e.target.value)} />
+                  <TextInput label="Hero Eyebrow" placeholder="Founder & CEO" value={formData.ecommerce.heroEyebrow} onChange={e => updateEcommerce('heroEyebrow', e.target.value)} />
+                  <TextArea className="md:col-span-2" label="Hero Subtitle" placeholder="Designed for integrity and clinical efficacy." rows={2} value={formData.ecommerce.heroSubtitle} onChange={e => updateEcommerce('heroSubtitle', e.target.value)} />
+                  <TextInput label="Hero Rating Text" placeholder="4.9+" value={formData.ecommerce.heroRating} onChange={e => updateEcommerce('heroRating', e.target.value)} />
+                  <TextInput label="Hero Button" placeholder="Shop Products" value={formData.ecommerce.heroCtaLabel} onChange={e => updateEcommerce('heroCtaLabel', e.target.value)} />
+                  <TextInput label="Story Eyebrow" placeholder="A Philosophy of Restraint" value={formData.ecommerce.storyEyebrow} onChange={e => updateEcommerce('storyEyebrow', e.target.value)} />
+                  <TextInput label="Standards Heading" placeholder="Uncompromising Standards" value={formData.ecommerce.standardsTitle} onChange={e => updateEcommerce('standardsTitle', e.target.value)} />
+                </div>
+              </div>
             </div>
           )}
 
@@ -757,7 +790,7 @@ export default function FounderPage() {
                     <ImageUpload
                       label="Product Image (800×800px · Square)"
                       note="Square crop works best. Use a clean, well-lit product photo."
-                      id="ec-fp-img" onUpload={handleFeaturedProductImageUpload} imageUrl={formData.ecommerce.featuredProduct.imageUrl} uploading={uploading}
+                      id="ec-fp-img" onUpload={handleFeaturedProductImageUpload} onRemove={() => updateFeaturedProduct('imageUrl', '')} imageUrl={formData.ecommerce.featuredProduct.imageUrl} uploading={uploading}
                     />
                     <div className="space-y-3">
                       <TextInput label="Product Name" placeholder="Lumière Botanique" value={formData.ecommerce.featuredProduct.name} onChange={e => updateFeaturedProduct('name', e.target.value)} />
@@ -774,6 +807,10 @@ export default function FounderPage() {
                       <TextInput placeholder="e.g. Science-backed and dermatologist tested" value={formData.ecommerce.featuredProduct.bullet3} onChange={e => updateFeaturedProduct('bullet3', e.target.value)} />
                     </div>
                   </div>
+                  <div className="grid md:grid-cols-2 gap-3 border-t border-gray-700 pt-4">
+                    <TextInput label="Section Eyebrow" placeholder="The Star Product" value={formData.ecommerce.featuredEyebrow} onChange={e => updateEcommerce('featuredEyebrow', e.target.value)} />
+                    <TextInput label="Add-to-Cart Button" placeholder="Add to Cart" value={formData.ecommerce.featuredCtaLabel} onChange={e => updateEcommerce('featuredCtaLabel', e.target.value)} />
+                  </div>
                 </div>
               </div>
 
@@ -786,6 +823,11 @@ export default function FounderPage() {
                   )}
                 </div>
                 <p className="text-gray-400 text-xs mb-5">Up to 6 products displayed in your collection grid</p>
+                <div className="grid md:grid-cols-3 gap-3 mb-5">
+                  <TextInput label="Eyebrow" placeholder="The Essential Collection" value={formData.ecommerce.collectionEyebrow} onChange={e => updateEcommerce('collectionEyebrow', e.target.value)} />
+                  <TextInput label="Heading" placeholder="Simple. Pure. Profound. Results." value={formData.ecommerce.collectionTitle} onChange={e => updateEcommerce('collectionTitle', e.target.value)} />
+                  <TextInput label="Subtitle" placeholder="Every product, precisely formulated." value={formData.ecommerce.collectionSubtitle} onChange={e => updateEcommerce('collectionSubtitle', e.target.value)} />
+                </div>
                 {formData.ecommerce.collection.length === 0 ? (
                   <div className="text-center py-8 text-gray-500 text-sm">No products yet. Tap "+ Add" to start building your collection.</div>
                 ) : (
@@ -800,7 +842,7 @@ export default function FounderPage() {
                           <ImageUpload
                             label="Image (600×600px)"
                             note="Square"
-                            id={`ec-col-${item.id}`} onUpload={file => handleCollectionImageUpload(file, item.id)} imageUrl={item.imageUrl} uploading={uploading} isSquare
+                            id={`ec-col-${item.id}`} onUpload={file => handleCollectionImageUpload(file, item.id)} onRemove={() => updateCollectionItem(item.id, 'imageUrl', '')} imageUrl={item.imageUrl} uploading={uploading} isSquare
                           />
                           <div className="col-span-1 md:col-span-3 grid md:grid-cols-3 gap-3 content-start">
                             <TextInput label="Product Name" placeholder="Crème Riche" value={item.name} onChange={e => updateCollectionItem(item.id, 'name', e.target.value)} />
@@ -824,6 +866,10 @@ export default function FounderPage() {
                 <p className="text-gray-400 text-xs md:text-sm mb-5">Up to 4 videos — YouTube, TikTok, or Instagram Reels. The layout adjusts automatically based on how many you add.</p>
               </div>
               <TextInput label="Section Title" placeholder="TikTok Rituals" value={formData.ecommerce.videoSectionTitle} onChange={e => updateEcommerce('videoSectionTitle', e.target.value)} />
+              <div className="grid md:grid-cols-2 gap-4">
+                <TextInput label="Section Eyebrow" placeholder="The Community" value={formData.ecommerce.videoEyebrow} onChange={e => updateEcommerce('videoEyebrow', e.target.value)} />
+                <TextInput label="Community Button" placeholder="Join Our Community" value={formData.ecommerce.videoCtaLabel} onChange={e => updateEcommerce('videoCtaLabel', e.target.value)} />
+              </div>
 
               <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-3 text-blue-300 text-xs leading-relaxed">
                 <strong className="text-blue-400">Supported URL formats:</strong><br />
@@ -872,6 +918,10 @@ export default function FounderPage() {
                 {formData.ecommerce.reviews.length < 6 && (
                   <button onClick={() => addEcommerceItem('reviews', { name: '', rating: 5, text: '' })} className="px-4 py-2 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
                 )}
+              </div>
+              <div className="grid md:grid-cols-2 gap-4">
+                <TextInput label="Section Eyebrow" placeholder="Testimonials" value={formData.ecommerce.reviewsEyebrow} onChange={e => updateEcommerce('reviewsEyebrow', e.target.value)} />
+                <TextInput label="Section Heading" placeholder="What Our Customers Say" value={formData.ecommerce.reviewsTitle} onChange={e => updateEcommerce('reviewsTitle', e.target.value)} />
               </div>
               {formData.ecommerce.reviews.length === 0 ? (
                 <div className="text-center py-10 text-gray-500 text-sm">No reviews yet. Tap "+ Add" to add a customer review.</div>
