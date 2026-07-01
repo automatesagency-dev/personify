@@ -17,6 +17,10 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust the first proxy (Railway/hosting) so req.ip reflects the real client IP.
+// Without this, express-rate-limit would key every user off the shared proxy IP.
+app.set('trust proxy', 1);
+
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
   ? (process.env.FRONTEND_URL || '').split(',').map(o => o.trim()).filter(Boolean)
