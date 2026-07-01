@@ -77,7 +77,7 @@ export default function Terms() {
         </Section>
 
         <Section title="9. Free Tier Limits">
-          <p>The free tier currently includes a limited number of AI generations per day (5 image generations and 25 text generations). These limits are subject to change. We will provide reasonable notice of any significant reductions to free tier allowances.</p>
+          <p>The free tier currently includes a limited number of AI generations per day (10 image generations and 50 text generations). These limits are subject to change. We will provide reasonable notice of any significant reductions to free tier allowances.</p>
         </Section>
 
         <Section title="10. Billing and Paid Plans">

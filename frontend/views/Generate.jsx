@@ -56,7 +56,7 @@ function GenerateInner() {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const todayGenerations = generations.filter(
-        (g) => new Date(g.createdAt) >= today && g.type === type
+        (g) => new Date(g.createdAt) >= today && g.type === type && g.status !== 'failed'
       );
       const limit = type === 'image' ? 10 : 50;
       setUsageStats({ used: todayGenerations.length, limit });

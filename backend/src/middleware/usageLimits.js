@@ -8,19 +8,21 @@ async function checkUsageLimits(req, res, next) {
 
     // Define limits
     const limits = {
-      image: 5,   // 5 images per day
-      text: 25    // 25 text generations per day
+      image: 10,  // 10 images per day
+      text: 50    // 50 text generations per day
     };
 
     // Get today's start time
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    // Count today's generations
+    // Count today's generations — exclude failed ones so a generation that
+    // errored (provider overload, bad key, etc.) doesn't consume the user's quota.
     const todayCount = await prisma.generation.count({
       where: {
         userId,
         type: generationType,
+        status: { not: 'failed' },
         createdAt: {
           gte: todayStart
         }
