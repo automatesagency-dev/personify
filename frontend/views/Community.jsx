@@ -1,8 +1,11 @@
 'use client'
 
+import Layout from '../components/Layout';
+
 export default function Community() {
   return (
-    <div className="min-h-screen bg-dark-bg p-6 lg:p-10">
+    <Layout>
+      <div className="p-6 lg:p-10">
 
       {/* Header */}
       <div className="mb-8">
@@ -132,6 +135,7 @@ export default function Community() {
         </div>
       </div>
 
-    </div>
+      </div>
+    </Layout>
   )
 }
