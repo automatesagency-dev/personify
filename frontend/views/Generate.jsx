@@ -154,28 +154,22 @@ function GenerateInner() {
         return;
       }
 
-      const isServiceOverload =
-        errorStatus === 500 ||
-        errorStatus === 503 ||
-        errorMessage.includes('service') ||
-        errorMessage.includes('traffic') ||
-        errorMessage.includes('Downstream');
+      // Only retry when the server explicitly flags the error as transient
+      // (e.g. provider overloaded). Billing/auth failures are not retryable.
+      const retryable = err.response?.data?.retryable === true;
+      const modelName = useFaceConsistency
+        ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
+        : model.toUpperCase();
 
-      if (isServiceOverload && retryCount < 3) {
-        const modelName = useFaceConsistency
-          ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
-          : model.toUpperCase();
+      if (retryable && retryCount < 3) {
         setRetryMessage(`${modelName} is busy. Retrying... (Attempt ${retryCount + 1}/3)`);
         await new Promise(resolve => setTimeout(resolve, 3000));
         return handleGenerate(retryCount + 1);
       }
 
-      if (isServiceOverload) {
+      if (retryable) {
         setShowRetry(true);
-        const modelName = useFaceConsistency
-          ? (faceModel === 'nano-banana-2' ? 'Nano Banana 2' : 'ByteDance SeeDream v4.5')
-          : model.toUpperCase();
-        setError(`${modelName} is currently overloaded. We tried 3 times, but the server is still busy.`);
+        setError(errorMessage || `${modelName} is busy right now. Please try again in a moment.`);
       } else {
         setError(errorMessage || 'Failed to generate content');
       }
@@ -532,7 +526,7 @@ function GenerateInner() {
                 )}
 
                 {result ? (
-                  <div className="w-full h-full flex flex-col h-full">
+                  <div className="w-full h-full flex flex-col">
                     {result.type === 'image' ? (
                       <div className="flex flex-col h-full justify-between items-center space-y-6">
                         <div className="relative w-full max-w-lg mx-auto rounded-xl overflow-hidden shadow-2xl border border-gray-700">

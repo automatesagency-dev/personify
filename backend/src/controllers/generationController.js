@@ -25,6 +25,51 @@ async function persistImageToR2(sourceUrl) {
 }
 
 // =====================================
+// Classify an AI provider error into a safe, user-facing response.
+// Distinguishes non-retryable failures (billing/auth/locked account) from
+// genuinely transient ones (overload/rate-limit) so the client knows whether
+// retrying is worthwhile — and never leaks the provider's raw reason to users.
+// =====================================
+function classifyAiError(error, label) {
+  const status = error?.status || error?.response?.status;
+  const detail = String(error?.body?.detail || error?.message || '').toLowerCase();
+
+  // Billing / auth / locked account — retrying will never succeed.
+  if (
+    status === 401 || status === 402 || status === 403 ||
+    detail.includes('balance') || detail.includes('locked') ||
+    detail.includes('quota') || detail.includes('billing') || detail.includes('forbidden')
+  ) {
+    return {
+      httpStatus: 503,
+      code: 'PROVIDER_UNAVAILABLE',
+      retryable: false,
+      userMessage: `${label === 'image' ? 'Image' : 'Text'} generation is temporarily unavailable. Please try again later or contact support.`,
+    };
+  }
+
+  // Overloaded / rate-limited / transient upstream errors — worth a retry.
+  if (
+    status === 429 || status === 500 || status === 502 || status === 503 ||
+    detail.includes('overload') || detail.includes('timeout') || detail.includes('busy') || detail.includes('rate limit')
+  ) {
+    return {
+      httpStatus: 503,
+      code: 'PROVIDER_OVERLOADED',
+      retryable: true,
+      userMessage: `The ${label} service is busy right now. Please try again in a moment.`,
+    };
+  }
+
+  return {
+    httpStatus: 500,
+    code: 'GENERATION_FAILED',
+    retryable: false,
+    userMessage: `Failed to generate ${label}. Please try again.`,
+  };
+}
+
+// =====================================
 // Generate Image
 // =====================================
 async function generateImage(req, res) {
@@ -220,17 +265,18 @@ async function generateImage(req, res) {
       });
 
     } catch (aiError) {
-      console.error('AI Generation error:', aiError.message);
+      console.error('AI Generation error:', aiError.status || '', aiError.message, aiError.body?.detail || '');
 
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: 'failed',
-          errorMessage: aiError.message
+          errorMessage: aiError.body?.detail || aiError.message
         }
       });
 
-      throw aiError;
+      const c = classifyAiError(aiError, 'image');
+      return res.status(c.httpStatus).json({ error: c.userMessage, code: c.code, retryable: c.retryable });
     }
 
   } catch (error) {
@@ -335,15 +381,18 @@ async function generateText(req, res) {
       });
 
     } catch (err) {
+      console.error('Text generation error:', err.status || '', err.message, err.body?.detail || '');
+
       await prisma.generation.update({
         where: { id: generation.id },
         data: {
           status: 'failed',
-          errorMessage: err.message
+          errorMessage: err.body?.detail || err.message
         }
       });
 
-      throw err;
+      const c = classifyAiError(err, 'text');
+      return res.status(c.httpStatus).json({ error: c.userMessage, code: c.code, retryable: c.retryable });
     }
 
   } catch (error) {
