@@ -70,6 +70,31 @@ function classifyAiError(error, label) {
 }
 
 // =====================================
+// Daily generation limits (free tier)
+// =====================================
+const DAILY_LIMITS = { image: 10, text: 50 };
+
+// Atomically reserve a daily slot and create the pending generation row.
+// A per-user Postgres advisory lock serializes concurrent requests for the same
+// user, so they can't all read the same count and race past the cap. Failed
+// generations are excluded from the count, so an errored attempt is refunded.
+// Returns the created generation, or null if the daily limit has been reached.
+async function reserveGeneration({ userId, type, prompt, model }) {
+  return prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    const count = await tx.generation.count({
+      where: { userId, type, status: { not: 'failed' }, createdAt: { gte: todayStart } }
+    });
+    if (count >= DAILY_LIMITS[type]) return null;
+    return tx.generation.create({
+      data: { userId, type, prompt, model, status: 'pending' }
+    });
+  });
+}
+
+// =====================================
 // Generate Image
 // =====================================
 async function generateImage(req, res) {
@@ -120,16 +145,21 @@ async function generateImage(req, res) {
       }
     }
 
-    // Create pending generation
-    const generation = await prisma.generation.create({
-      data: {
-        userId,
-        type: 'image',
-        prompt: prompt,
-        model: useFaceConsistency ? `fal-${faceModel}` : model,
-        status: 'pending'
-      }
+    // Atomically reserve a daily slot + create the pending generation row
+    const generation = await reserveGeneration({
+      userId,
+      type: 'image',
+      prompt,
+      model: useFaceConsistency ? `fal-${faceModel}` : model
     });
+
+    if (!generation) {
+      return res.status(429).json({
+        error: `You've reached your daily limit of ${DAILY_LIMITS.image} image generations. It resets at midnight.`,
+        code: 'DAILY_LIMIT',
+        retryable: false
+      });
+    }
 
     try {
       let imageUrl;
@@ -146,6 +176,7 @@ async function generateImage(req, res) {
       ) {
 
         if (!persona.bio || !persona.industry || !persona.brandTone) {
+          await prisma.generation.update({ where: { id: generation.id }, data: { status: 'failed', errorMessage: 'Incomplete persona' } });
           return res.status(400).json({
             error: 'Please complete your persona profile (bio, industry, brand tone) to use face consistency.'
           });
@@ -155,6 +186,7 @@ async function generateImage(req, res) {
         const imageUrlPath = personaImage.imageUrl;
 
         if (!imageUrlPath) {
+          await prisma.generation.update({ where: { id: generation.id }, data: { status: 'failed', errorMessage: 'Missing persona image' } });
           return res.status(400).json({
             error: 'Persona image not found. Please re-upload your persona images.'
           });
@@ -339,15 +371,15 @@ async function generateText(req, res) {
       }
     }
 
-    const generation = await prisma.generation.create({
-      data: {
-        userId,
-        type: 'text',
-        prompt,
-        model,
-        status: 'pending'
-      }
-    });
+    const generation = await reserveGeneration({ userId, type: 'text', prompt, model });
+
+    if (!generation) {
+      return res.status(429).json({
+        error: `You've reached your daily limit of ${DAILY_LIMITS.text} text generations. It resets at midnight.`,
+        code: 'DAILY_LIMIT',
+        retryable: false
+      });
+    }
 
     try {
       // If reference images are provided, force gpt-4o (vision) and include the images

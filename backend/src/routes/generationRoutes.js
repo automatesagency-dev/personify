@@ -1,4 +1,5 @@
 const express = require('express');
+const rateLimit = require('express-rate-limit');
 const {
   generateImage,
   generateText,
@@ -7,16 +8,28 @@ const {
   deleteGeneration
 } = require('../controllers/generationController');
 const { authenticateUser, requireVerifiedEmail } = require('../middleware/authMiddleware');
-const { checkUsageLimits } = require('../middleware/usageLimits');
 
 const router = express.Router();
 
 // All routes are protected
 router.use(authenticateUser);
 
-// Generation routes (require a verified email, then apply usage limits)
-router.post('/image', requireVerifiedEmail, checkUsageLimits, generateImage);
-router.post('/text', requireVerifiedEmail, checkUsageLimits, generateText);
+// Per-user burst limit on the expensive generation endpoints. Set well above
+// normal human usage — it only rejects rapid-fire bursts (abuse). Keyed on the
+// user id so one user can't exhaust another's budget.
+const generationLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  keyGenerator: (req) => req.user?.id || req.ip,
+  message: { error: 'You are generating too quickly. Please wait a moment and try again.', code: 'RATE_LIMITED', retryable: false },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+
+// Generation routes: verified email required and burst-limited. The daily
+// limit is enforced atomically inside the controller (reserveGeneration).
+router.post('/image', generationLimiter, requireVerifiedEmail, generateImage);
+router.post('/text', generationLimiter, requireVerifiedEmail, generateText);
 
 // History routes (no limits)
 router.get('/', getGenerations);
