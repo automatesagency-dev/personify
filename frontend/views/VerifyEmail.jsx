@@ -3,8 +3,10 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { authAPI } from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function VerifyEmail() {
+  const { refreshUser } = useAuth();
   const [status, setStatus] = useState('verifying'); // verifying | success | error
   const [message, setMessage] = useState('');
 
@@ -20,11 +22,16 @@ export default function VerifyEmail() {
     }
 
     authAPI.verifyEmail(token)
-      .then(() => setStatus('success'))
+      .then(() => {
+        setStatus('success');
+        // Refresh cached user so the "verify your email" banner clears.
+        refreshUser();
+      })
       .catch((err) => {
         setStatus('error');
         setMessage(err.response?.data?.error || 'Verification failed. The link may have expired.');
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
