@@ -97,25 +97,26 @@ async function generateImage(req, res) {
       return res.status(400).json({ error: 'Maximum 5 reference images allowed' });
     }
 
-    // Get persona — include images only when face consistency is needed
-    const persona = await prisma.persona.findUnique({
-      where: { userId },
-      ...(useFaceConsistency
-        ? { include: { personaImages: true } }
-        : { select: { bio: true, industry: true, brandTone: true } })
-    });
-
-    // Enhance prompt with persona
+    // Persona is only used in Brand Persona (face consistency) mode.
+    // Freestyle generates purely from the user's prompt — no persona at all.
     let enhancedPrompt = prompt;
+    let persona = null;
 
-    if (persona) {
-      const personaContext = [];
-      if (persona.bio) personaContext.push(persona.bio);
-      if (persona.industry) personaContext.push(`Industry: ${persona.industry}`);
-      if (persona.brandTone) personaContext.push(`Style: ${persona.brandTone}`);
+    if (useFaceConsistency) {
+      persona = await prisma.persona.findUnique({
+        where: { userId },
+        include: { personaImages: true }
+      });
 
-      if (personaContext.length > 0) {
-        enhancedPrompt = `${personaContext.join('. ')}. ${prompt}`;
+      if (persona) {
+        const personaContext = [];
+        if (persona.bio) personaContext.push(persona.bio);
+        if (persona.industry) personaContext.push(`Industry: ${persona.industry}`);
+        if (persona.brandTone) personaContext.push(`Style: ${persona.brandTone}`);
+
+        if (personaContext.length > 0) {
+          enhancedPrompt = `${personaContext.join('. ')}. ${prompt}`;
+        }
       }
     }
 
