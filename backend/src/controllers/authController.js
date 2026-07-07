@@ -6,7 +6,10 @@ const { OAuth2Client } = require('google-auth-library');
 const { generateUniqueCode } = require('./referralController');
 const { sendVerificationEmail } = require('../config/email');
 
-const APP_URL = () => (process.env.FRONTEND_URL || '').split(',')[0].trim();
+// Canonical public app URL used to build links in emails. Prefer a dedicated
+// APP_URL (e.g. https://personify.so) so email links don't depend on the order
+// of the FRONTEND_URL CORS list; fall back to the first FRONTEND_URL entry.
+const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 

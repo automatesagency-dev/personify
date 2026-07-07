@@ -3,7 +3,8 @@ const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../config/email');
 
-const APP_URL = () => (process.env.FRONTEND_URL || '').split(',')[0].trim();
+// Canonical public app URL for links in emails (see authController for rationale).
+const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
 // Request password reset
 async function requestPasswordReset(req, res) {
