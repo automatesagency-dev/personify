@@ -6,7 +6,7 @@ const {
   getGenerationById,
   deleteGeneration
 } = require('../controllers/generationController');
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateUser, requireVerifiedEmail } = require('../middleware/authMiddleware');
 const { checkUsageLimits } = require('../middleware/usageLimits');
 
 const router = express.Router();
@@ -14,9 +14,9 @@ const router = express.Router();
 // All routes are protected
 router.use(authenticateUser);
 
-// Generation routes (with usage limits)
-router.post('/image', checkUsageLimits, generateImage);
-router.post('/text', checkUsageLimits, generateText);
+// Generation routes (require a verified email, then apply usage limits)
+router.post('/image', requireVerifiedEmail, checkUsageLimits, generateImage);
+router.post('/text', requireVerifiedEmail, checkUsageLimits, generateText);
 
 // History routes (no limits)
 router.get('/', getGenerations);

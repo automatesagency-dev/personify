@@ -5,6 +5,43 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { authAPI } from '../services/api';
+
+function EmailVerifyBanner() {
+  const { user } = useAuth();
+  const [state, setState] = useState('idle'); // idle | sending | sent | error
+
+  // Only show when we positively know the email is unverified.
+  if (!user || user.emailVerified !== false) return null;
+
+  const resend = async () => {
+    setState('sending');
+    try {
+      await authAPI.resendVerification();
+      setState('sent');
+    } catch {
+      setState('error');
+    }
+  };
+
+  return (
+    <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-center gap-x-3 gap-y-1 text-center text-sm">
+      <span className="text-amber-300">⚠️ Please verify your email to unlock content generation.</span>
+      {state === 'sent' ? (
+        <span className="text-green-400 font-medium">Verification email sent ✓</span>
+      ) : (
+        <button
+          onClick={resend}
+          disabled={state === 'sending'}
+          className="text-amber-200 underline font-medium hover:text-white disabled:opacity-50"
+        >
+          {state === 'sending' ? 'Sending…' : 'Resend email'}
+        </button>
+      )}
+      {state === 'error' && <span className="text-red-400">Couldn't send — try again.</span>}
+    </div>
+  );
+}
 
 function NavIcon({ paths, className = 'w-5 h-5 flex-shrink-0' }) {
   return (
@@ -182,6 +219,7 @@ export default function Layout({ children }) {
 
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+        <EmailVerifyBanner />
         {children}
       </main>
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const rateLimit = require('express-rate-limit');
-const { register, login, getMe, updateProfilePicture, updateProfile, updatePassword, googleAuth, getAdminUsers, getAdminOverview, getAdminAllGenerations } = require('../controllers/authController');
+const { register, login, getMe, updateProfilePicture, updateProfile, updatePassword, googleAuth, verifyEmail, resendVerification, getAdminUsers, getAdminOverview, getAdminAllGenerations } = require('../controllers/authController');
 const { authenticateUser } = require('../middleware/authMiddleware');
 
 const authLimiter = rateLimit({
@@ -16,6 +16,8 @@ const authLimiter = rateLimit({
 router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 router.post('/google', authLimiter, googleAuth);
+router.post('/verify-email', verifyEmail);
+router.post('/resend-verification', authenticateUser, resendVerification);
 router.get('/me', authenticateUser, getMe);
 router.patch('/profile-picture', authenticateUser, updateProfilePicture);
 router.patch('/profile', authenticateUser, updateProfile);

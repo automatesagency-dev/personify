@@ -1,6 +1,9 @@
 const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const crypto = require('crypto');
+const { sendPasswordResetEmail } = require('../config/email');
+
+const APP_URL = () => (process.env.FRONTEND_URL || '').split(',')[0].trim();
 
 // Request password reset
 async function requestPasswordReset(req, res) {
@@ -38,15 +41,15 @@ async function requestPasswordReset(req, res) {
       }
     });
 
-    // In production, you would send an email here
-    // For now, we'll return the token in the response (FOR DEVELOPMENT ONLY)
-    console.log('Password reset token:', resetToken);
-    console.log('Reset URL:', `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}`);
+    // Send the reset link by email (non-fatal — we don't reveal delivery status)
+    try {
+      await sendPasswordResetEmail(user.email, user.name, `${APP_URL()}/reset-password?token=${resetToken}`);
+    } catch (e) {
+      console.error('Failed to send password reset email:', e.message);
+    }
 
     res.json({
-      message: 'Password reset instructions sent to your email',
-      // REMOVE THIS IN PRODUCTION - only for development
-      resetToken: process.env.NODE_ENV === 'development' ? resetToken : undefined
+      message: 'If that email exists, a reset link has been sent'
     });
 
   } catch (error) {

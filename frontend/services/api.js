@@ -53,6 +53,8 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   googleAuth: (credential) => api.post('/auth/google', { credential }),
+  verifyEmail: (token) => api.post('/auth/verify-email', { token }),
+  resendVerification: () => api.post('/auth/resend-verification'),
   getMe: () => api.get('/auth/me'),
   updateProfilePicture: (profilePictureUrl) =>
     api.patch('/auth/profile-picture', { profilePictureUrl }),

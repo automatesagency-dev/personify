@@ -27,7 +27,7 @@ async function authenticateUser(req, res, next) {
     // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, profilePictureUrl: true, referralVerified: true }
+      select: { id: true, email: true, name: true, profilePictureUrl: true, referralVerified: true, emailVerified: true }
     });
 
     if (!user) {
@@ -47,4 +47,16 @@ async function authenticateUser(req, res, next) {
   }
 }
 
-module.exports = { authenticateUser };
+// Require a verified email for gated actions (e.g. content generation).
+// Must run after authenticateUser so req.user is populated.
+function requireVerifiedEmail(req, res, next) {
+  if (!req.user?.emailVerified) {
+    return res.status(403).json({
+      error: 'Please verify your email to use this feature. Check your inbox for the verification link.',
+      code: 'EMAIL_NOT_VERIFIED'
+    });
+  }
+  next();
+}
+
+module.exports = { authenticateUser, requireVerifiedEmail };

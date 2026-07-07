@@ -1,8 +1,12 @@
+const crypto = require('crypto');
 const { prisma } = require('../config/database');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
 const { OAuth2Client } = require('google-auth-library');
 const { generateUniqueCode } = require('./referralController');
+const { sendVerificationEmail } = require('../config/email');
+
+const APP_URL = () => (process.env.FRONTEND_URL || '').split(',')[0].trim();
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -40,18 +44,25 @@ async function register(req, res) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
+    // Email verification token (valid 24h)
+    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
     // Create user
     const user = await prisma.user.create({
       data: {
         email,
         password: hashedPassword,
         name: name || null,
-        marketingConsent: !!marketingConsent
+        marketingConsent: !!marketingConsent,
+        emailVerifyToken,
+        emailVerifyExpires
       },
       select: {
         id: true,
         email: true,
         name: true,
+        emailVerified: true,
         createdAt: true
       }
     });
@@ -62,6 +73,13 @@ async function register(req, res) {
       await prisma.referralCode.create({ data: { code, ownerId: user.id, maxUses: 5 } });
     } catch (e) {
       console.error('Failed to create referral code for new user:', e.message);
+    }
+
+    // Send verification email (non-fatal — user can request a resend later)
+    try {
+      await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${emailVerifyToken}`);
+    } catch (e) {
+      console.error('Failed to send verification email:', e.message);
     }
 
     // Generate token
@@ -288,7 +306,8 @@ async function googleAuth(req, res) {
           name: name || email.split('@')[0],
           password: await hashPassword(googleId + process.env.JWT_SECRET),
           googleId,
-          profilePictureUrl: picture
+          profilePictureUrl: picture,
+          emailVerified: true // Google has already verified this email
         },
         select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
       });
@@ -422,6 +441,61 @@ async function getAdminAllGenerations(req, res) {
   }
 }
 
+/**
+ * Verify email with token (public)
+ */
+async function verifyEmail(req, res) {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: 'Verification token is required' });
+
+    const user = await prisma.user.findFirst({
+      where: { emailVerifyToken: token, emailVerifyExpires: { gte: new Date() } }
+    });
+
+    if (!user) {
+      return res.status(400).json({ error: 'This verification link is invalid or has expired.' });
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { emailVerified: true, emailVerifyToken: null, emailVerifyExpires: null }
+    });
+
+    res.json({ message: 'Email verified successfully' });
+  } catch (error) {
+    console.error('Verify email error:', error);
+    res.status(500).json({ error: 'Failed to verify email' });
+  }
+}
+
+/**
+ * Resend verification email (authenticated)
+ */
+async function resendVerification(req, res) {
+  try {
+    const userId = req.user.id;
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.emailVerified) return res.json({ message: 'Email already verified', alreadyVerified: true });
+
+    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
+    const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+
+    await prisma.user.update({
+      where: { id: userId },
+      data: { emailVerifyToken, emailVerifyExpires }
+    });
+
+    await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${emailVerifyToken}`);
+
+    res.json({ message: 'Verification email sent' });
+  } catch (error) {
+    console.error('Resend verification error:', error);
+    res.status(500).json({ error: 'Failed to resend verification email' });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -430,6 +504,8 @@ module.exports = {
   updateProfile,
   updatePassword,
   googleAuth,
+  verifyEmail,
+  resendVerification,
   getAdminUsers,
   getAdminOverview,
   getAdminAllGenerations,
