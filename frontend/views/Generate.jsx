@@ -10,7 +10,7 @@ function GenerateInner() {
   const [type, setType] = useState(searchParams.get('type') || 'image');
   const [prompt, setPrompt] = useState('');
   const [model, setModel] = useState(
-    searchParams.get('type') === 'text' ? 'gpt-4' : 'dall-e-3'
+    searchParams.get('type') === 'text' ? 'gpt-4' : 'gpt-image-1'
   );
 
   const [generating, setGenerating] = useState(false);
@@ -191,7 +191,7 @@ function GenerateInner() {
 
   const switchType = (newType) => {
     setType(newType);
-    setModel(newType === 'text' ? 'gpt-4' : 'dall-e-3');
+    setModel(newType === 'text' ? 'gpt-4' : 'gpt-image-1');
     setUseFaceConsistency(newType === 'image');
     setAspectRatio('square');
     setResult(null);
@@ -379,15 +379,13 @@ function GenerateInner() {
                       </select>
                     ) : (
                       <select value={model} onChange={(e) => setModel(e.target.value)} disabled={generating} className="w-full bg-[#111] border border-gray-800 px-3 py-2.5 rounded-xl text-xs text-white outline-none focus:border-brand-pink">
-                        <option value="dall-e-3">DALL-E 3 (Creative)</option>
-                        <option value="dall-e-2">DALL-E 2 (Fast)</option>
+                        <option value="gpt-image-1">GPT Image 1</option>
+                        <option value="gpt-image-1.5">GPT Image 1.5</option>
+                        <option value="gpt-image-2">GPT Image 2 (Best)</option>
                       </select>
                     )}
                     {useFaceConsistency && !persona && (
                       <p className="text-yellow-400 text-xs mt-1.5">⚠️ Complete your persona first.</p>
-                    )}
-                    {!useFaceConsistency && model === 'dall-e-2' && aspectRatio !== 'square' && (
-                      <p className="text-yellow-400 text-xs mt-1.5">⚠️ DALL-E 2 only supports square.</p>
                     )}
                   </div>
 
@@ -430,8 +428,9 @@ function GenerateInner() {
                         {!useFaceConsistency && (
                           <div onClick={e => e.stopPropagation()}>
                             <select value={model} onChange={(e) => setModel(e.target.value)} disabled={generating} className="w-full bg-black border border-gray-700 px-3 py-2 rounded-lg text-sm text-white outline-none focus:border-white/50">
-                              <option value="dall-e-3">Model: DALL-E 3 (Creative)</option>
-                              <option value="dall-e-2">Model: DALL-E 2 (Fast)</option>
+                              <option value="gpt-image-1">Model: GPT Image 1</option>
+                              <option value="gpt-image-1.5">Model: GPT Image 1.5</option>
+                              <option value="gpt-image-2">Model: GPT Image 2 (Best)</option>
                             </select>
                           </div>
                         )}

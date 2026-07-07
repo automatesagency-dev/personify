@@ -5,7 +5,7 @@ const { uploadToR2 } = require('../config/r2');
 
 const NANO_ASPECT_RATIO_MAP = { square: '1:1', portrait: '9:16', landscape: '16:9' };
 const SEEDREAM_SIZE_MAP = { square: 'square_hd', portrait: 'portrait_4_3', landscape: 'landscape_4_3' };
-const DALLE_SIZE = { square: '1024x1024', portrait: '1024x1792', landscape: '1792x1024' };
+const GPT_IMAGE_SIZE_MAP = { square: '1024x1024', portrait: '1024x1536', landscape: '1536x1024' };
 
 // =====================================
 // Persist a provider-generated image to our own R2 storage.
@@ -77,7 +77,7 @@ async function generateImage(req, res) {
     const userId = req.user.id;
     const {
       prompt,
-      model = 'dall-e-3',
+      model = 'gpt-image-1',
       useFaceConsistency = false,
       faceModel = 'nano-banana-2',
       referenceImagesBase64 = [],
@@ -87,7 +87,7 @@ async function generateImage(req, res) {
 
     const nanoAspectRatio = NANO_ASPECT_RATIO_MAP[aspectRatio] || '1:1';
     const seedreamImageSize = SEEDREAM_SIZE_MAP[aspectRatio] || 'square_hd';
-    const dalleImageSize = DALLE_SIZE[aspectRatio] || '1024x1024';
+    const gptImageSize = GPT_IMAGE_SIZE_MAP[aspectRatio] || '1024x1024';
 
     if (!prompt) {
       return res.status(400).json({ error: 'Prompt is required' });
@@ -132,6 +132,7 @@ async function generateImage(req, res) {
 
     try {
       let imageUrl;
+      let alreadyPersisted = false;
 
       // =====================================
       // FACE CONSISTENT GENERATION
@@ -224,29 +225,38 @@ async function generateImage(req, res) {
 
       } else {
         // =====================================
-        // STANDARD DALL-E FLOW
+        // STANDARD FLOW — OpenAI gpt-image models
         // =====================================
-
-        // DALL-E 2 only supports square
-        const effectiveSize = model === 'dall-e-2' ? '1024x1024' : dalleImageSize;
         const response = await openai.images.generate({
-          model: model,
+          model: model,          // gpt-image-1 | gpt-image-1.5 | gpt-image-2
           prompt: enhancedPrompt,
           n: 1,
-          size: effectiveSize,
-          quality: model === 'dall-e-3' ? 'standard' : undefined
+          size: gptImageSize,
+          quality: 'high'
         });
 
-        imageUrl = response.data[0].url;
+        const img = response.data && response.data[0];
+        if (img && img.b64_json) {
+          // gpt-image models return base64 — upload the bytes straight to R2.
+          const buffer = Buffer.from(img.b64_json, 'base64');
+          imageUrl = await uploadToR2(buffer, `generation-${Date.now()}.png`, 'image/png');
+          alreadyPersisted = true;
+        } else if (img && img.url) {
+          imageUrl = img.url;
+        } else {
+          throw new Error('OpenAI did not return an image');
+        }
       }
 
-      // Re-host the result on R2 so it survives the provider's URL expiry.
-      // If this fails, fall back to the (temporary) provider URL rather than
-      // failing a generation the user has already been charged for.
-      try {
-        imageUrl = await persistImageToR2(imageUrl);
-      } catch (persistErr) {
-        console.error('⚠️ Failed to persist generated image to R2, using provider URL:', persistErr.message);
+      // Re-host provider URLs on R2 so they survive the provider's URL expiry
+      // (skip when we already uploaded the bytes ourselves above). Falls back to
+      // the provider URL rather than failing a generation the user paid for.
+      if (!alreadyPersisted) {
+        try {
+          imageUrl = await persistImageToR2(imageUrl);
+        } catch (persistErr) {
+          console.error('⚠️ Failed to persist generated image to R2, using provider URL:', persistErr.message);
+        }
       }
 
       // Save result
