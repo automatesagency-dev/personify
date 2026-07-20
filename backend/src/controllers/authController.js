@@ -5,6 +5,7 @@ const { generateToken } = require('../config/jwt');
 const { OAuth2Client } = require('google-auth-library');
 const { generateUniqueCode } = require('./referralController');
 const { sendVerificationEmail } = require('../config/email');
+const { isAdmin } = require('../config/admins');
 
 // Canonical public app URL used to build links in emails. Prefer a dedicated
 // APP_URL (e.g. https://personify.so) so email links don't depend on the order
@@ -332,11 +333,9 @@ async function googleAuth(req, res) {
   }
 }
 
-const ADMIN_EMAIL = 'admin@automatesagency.com';
-
 async function getAdminUsers(req, res) {
   try {
-    if (req.user.email !== ADMIN_EMAIL) {
+    if (!isAdmin(req.user.email)) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -363,7 +362,7 @@ async function getAdminUsers(req, res) {
 }
 
 async function getAdminOverview(req, res) {
-  if (req.user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Access denied' });
+  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
   try {
     const [totalUsers, googleUsers, usersWithPersona, publishedPages, totalGenerations] = await Promise.all([
       prisma.user.count(),
@@ -427,7 +426,7 @@ async function getAdminOverview(req, res) {
 }
 
 async function getAdminAllGenerations(req, res) {
-  if (req.user.email !== ADMIN_EMAIL) return res.status(403).json({ error: 'Access denied' });
+  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
   try {
     const generations = await prisma.generation.findMany({
       take: 500,

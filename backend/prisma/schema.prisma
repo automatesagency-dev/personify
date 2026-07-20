@@ -23,6 +23,16 @@ model User {
   emailVerified         Boolean  @default(false)
   emailVerifyToken      String?
   emailVerifyExpires    DateTime?
+  // Billing / subscription
+  plan                  String    @default("free") // free | starter | pro | studio
+  billingInterval       String?   // monthly | yearly
+  subscriptionStatus    String?   // active | trialing | past_due | canceled | incomplete
+  stripeCustomerId      String?   @unique
+  stripeSubscriptionId  String?   @unique
+  currentPeriodStart    DateTime?
+  currentPeriodEnd      DateTime?
+  trialEndsAt           DateTime?
+  cancelAtPeriodEnd     Boolean   @default(false)
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   persona               Persona?
