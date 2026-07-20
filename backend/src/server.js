@@ -12,6 +12,8 @@ const generationRoutes = require('./routes/generationRoutes');
 const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const founderPageRoutes = require('./routes/founderPageRoutes');
 const referralRoutes = require('./routes/referralRoutes');
+const billingRoutes = require('./routes/billingRoutes');
+const { handleWebhook } = require('./controllers/billingController');
 
 dotenv.config();
 
@@ -49,6 +51,10 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+// Stripe webhook must receive the raw request body for signature verification,
+// so it is mounted BEFORE the JSON body parser.
+app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), handleWebhook);
+
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
@@ -77,6 +83,7 @@ app.use('/api/founder-page', founderPageRoutes);
 
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/referral', referralRoutes);
+app.use('/api/billing', billingRoutes);
 
 // Start server
 const server = app.listen(PORT, async () => {

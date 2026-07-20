@@ -102,4 +102,10 @@ export const referralAPI = {
   adminToggleCode: (id) => api.patch(`/referral/admin/codes/${id}/toggle`),
 };
 
+export const billingAPI = {
+  getSubscription: () => api.get('/billing/subscription'),
+  checkout: (plan, interval) => api.post('/billing/checkout', { plan, interval }),
+  portal: () => api.post('/billing/portal'),
+};
+
 export default api;
