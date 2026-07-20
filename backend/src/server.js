@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
 const dotenv = require('dotenv');
 const path = require('path');
 const { prisma, testConnection } = require('./config/database');
@@ -20,6 +21,14 @@ const PORT = process.env.PORT || 5000;
 // Trust the first proxy (Railway/hosting) so req.ip reflects the real client IP.
 // Without this, express-rate-limit would key every user off the shared proxy IP.
 app.set('trust proxy', 1);
+
+// Security headers (HSTS, nosniff, frameguard, hide X-Powered-By, etc.).
+// CSP is disabled — this is a JSON API, not an HTML app — and resource policy is
+// relaxed to cross-origin so the frontend can load API resources.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: { policy: 'cross-origin' }
+}));
 
 // Middleware
 const allowedOrigins = process.env.NODE_ENV === 'production'
@@ -51,22 +60,6 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: 'Personify API is running' });
 });
 
-app.get('/api/db-test', async (req, res) => {
-  try {
-    const userCount = await prisma.user.count();
-    res.json({ 
-      status: 'OK', 
-      message: 'Database connected',
-      userCount 
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      status: 'ERROR', 
-      message: 'Database connection failed',
-      error: error.message 
-    });
-  }
-});
 
 // Auth routes
 app.use('/api/auth', authRoutes);

@@ -36,8 +36,8 @@ function ResetPasswordInner() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -99,7 +99,7 @@ function ResetPasswordInner() {
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-brand-pink focus:border-transparent outline-none transition"
                   placeholder="••••••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -132,7 +132,7 @@ function ResetPasswordInner() {
                   className="w-full px-4 py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-brand-pink focus:border-transparent outline-none transition"
                   placeholder="••••••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                 />
                 <button
                   type="button"

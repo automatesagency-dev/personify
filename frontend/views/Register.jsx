@@ -60,8 +60,8 @@ export default function Register() {
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
       return;
     }
 
@@ -160,8 +160,8 @@ export default function Register() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-2.5 md:py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-brand-pink focus:border-transparent outline-none transition text-sm"
-                  placeholder="Min. 6 characters"
-                  required minLength={6}
+                  placeholder="Min. 8 characters"
+                  required minLength={8}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
                   <EyeIcon open={showPassword} />
@@ -178,7 +178,7 @@ export default function Register() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   className="w-full px-4 py-2.5 md:py-3 pr-12 border border-gray-300 rounded-full focus:ring-2 focus:ring-brand-pink focus:border-transparent outline-none transition text-sm"
                   placeholder="••••••••••••"
-                  required minLength={6}
+                  required minLength={8}
                 />
                 <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
                   <EyeIcon open={showConfirmPassword} />
