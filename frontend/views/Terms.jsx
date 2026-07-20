@@ -77,11 +77,14 @@ export default function Terms() {
         </Section>
 
         <Section title="9. Free Tier Limits">
-          <p>The free tier currently includes a limited number of AI generations per day (10 image generations and 50 text generations). These limits are subject to change. We will provide reasonable notice of any significant reductions to free tier allowances.</p>
+          <p>The free tier currently includes a limited number of AI generations per month (10 image generations and 50 text generations). These limits are subject to change. We will provide reasonable notice of any significant reductions to free tier allowances.</p>
         </Section>
 
-        <Section title="10. Billing and Paid Plans">
-          <p>Paid subscription plans will be introduced in the future. When billing is enabled, additional terms covering pricing, payment, cancellation, and refunds will apply and will be clearly communicated to you before any charge is made. <strong>We will never charge you without your explicit consent.</strong></p>
+        <Section title="10. Billing, Subscriptions and Refunds">
+          <p>Personify offers paid subscription plans (Starter, Pro, and Studio), billed monthly or annually in Australian Dollars (AUD). Paid plans include a <strong>7-day free trial</strong> so you can evaluate the service before you are charged. If you cancel during the trial, you will not be charged.</p>
+          <p className="mt-4">After the trial, subscriptions <strong>renew automatically</strong> at the end of each billing period until cancelled. You can cancel at any time from your billing settings; cancellation stops future charges, and your access continues until the end of your current paid period. We will never charge you without your explicit consent, and we will give reasonable notice of any price changes.</p>
+          <p className="mt-4">We do <strong>not</strong> offer refunds for partial or unused subscription periods. As an exception, <strong>annual plans</strong> may be refunded in full if you request a refund within <strong>14 days</strong> of the initial annual purchase. We may also issue refunds at our discretion.</p>
+          <p className="mt-4">Nothing in this section excludes or limits any rights you have under the <strong>Australian Consumer Law</strong>, including remedies for services that are faulty or not as described.</p>
         </Section>
 
         <Section title="11. Disclaimers">

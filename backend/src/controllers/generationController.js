@@ -2,6 +2,7 @@ const { prisma } = require('../config/database');
 const { openai } = require('../config/ai');
 const { fal } = require('../config/fal');
 const { uploadToR2 } = require('../config/r2');
+const { getLimits } = require('../config/plans');
 
 const NANO_ASPECT_RATIO_MAP = { square: '1:1', portrait: '9:16', landscape: '16:9' };
 const SEEDREAM_SIZE_MAP = { square: 'square_hd', portrait: 'portrait_4_3', landscape: 'landscape_4_3' };
@@ -70,24 +71,35 @@ function classifyAiError(error, label) {
 }
 
 // =====================================
-// Daily generation limits (free tier)
+// Monthly generation limits (per plan)
 // =====================================
-const DAILY_LIMITS = { image: 10, text: 50 };
 
-// Atomically reserve a daily slot and create the pending generation row.
+// Start of the user's current usage window: their subscription period start if
+// they have one, otherwise the start of the calendar month (free users).
+function usageWindowStart(user) {
+  if (user?.currentPeriodStart) return new Date(user.currentPeriodStart);
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), 1);
+}
+
+// Atomically reserve a monthly slot and create the pending generation row.
 // A per-user Postgres advisory lock serializes concurrent requests for the same
 // user, so they can't all read the same count and race past the cap. Failed
 // generations are excluded from the count, so an errored attempt is refunded.
-// Returns the created generation, or null if the daily limit has been reached.
+// Returns the created generation, or null if the plan's monthly limit is reached.
 async function reserveGeneration({ userId, type, prompt, model }) {
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const count = await tx.generation.count({
-      where: { userId, type, status: { not: 'failed' }, createdAt: { gte: todayStart } }
+    const user = await tx.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, currentPeriodStart: true }
     });
-    if (count >= DAILY_LIMITS[type]) return null;
+    const limits = getLimits(user?.plan);
+    const windowStart = usageWindowStart(user);
+    const count = await tx.generation.count({
+      where: { userId, type, status: { not: 'failed' }, createdAt: { gte: windowStart } }
+    });
+    if (count >= limits[type]) return null;
     return tx.generation.create({
       data: { userId, type, prompt, model, status: 'pending' }
     });
@@ -155,8 +167,8 @@ async function generateImage(req, res) {
 
     if (!generation) {
       return res.status(429).json({
-        error: `You've reached your daily limit of ${DAILY_LIMITS.image} image generations. It resets at midnight.`,
-        code: 'DAILY_LIMIT',
+        error: `You've reached your monthly image limit for your plan. Upgrade to keep generating, or wait for your next billing cycle.`,
+        code: 'LIMIT_REACHED',
         retryable: false
       });
     }
@@ -375,8 +387,8 @@ async function generateText(req, res) {
 
     if (!generation) {
       return res.status(429).json({
-        error: `You've reached your daily limit of ${DAILY_LIMITS.text} text generations. It resets at midnight.`,
-        code: 'DAILY_LIMIT',
+        error: `You've reached your monthly text limit for your plan. Upgrade to keep generating, or wait for your next billing cycle.`,
+        code: 'LIMIT_REACHED',
         retryable: false
       });
     }
