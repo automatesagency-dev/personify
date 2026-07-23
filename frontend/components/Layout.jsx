@@ -101,6 +101,18 @@ const MOBILE_TAB_ITEMS = [
   },
 ];
 
+const PLAN_LABELS = { free: 'Free', starter: 'Starter', pro: 'Pro', studio: 'Studio' };
+
+function PlanBadge({ plan }) {
+  const key = PLAN_LABELS[plan] ? plan : 'free';
+  const paid = key !== 'free';
+  return (
+    <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${paid ? 'bg-brand-pink/20 text-brand-pink' : 'bg-gray-700/50 text-gray-400'}`}>
+      {PLAN_LABELS[key]}
+    </span>
+  );
+}
+
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const router = useRouter();
@@ -203,7 +215,7 @@ export default function Layout({ children }) {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">{user?.name || 'User'}</p>
-              <p className="text-xs text-gray-400">Creator</p>
+              <div className="mt-0.5"><PlanBadge plan={user?.plan} /></div>
             </div>
             <button onClick={handleLogout} className="text-gray-400 hover:text-white transition" title="Logout">
               <NavIcon paths={['M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1']} />
@@ -263,7 +275,10 @@ export default function Layout({ children }) {
                 {getInitials(user?.name || user?.email)}
               </div>
               <div>
-                <p className="text-sm font-semibold text-white">{user?.name || 'User'}</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-semibold text-white">{user?.name || 'User'}</p>
+                  <PlanBadge plan={user?.plan} />
+                </div>
                 <p className="text-xs text-gray-400">{user?.email}</p>
               </div>
             </div>
