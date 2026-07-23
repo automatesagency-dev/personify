@@ -1,6 +1,6 @@
 const { prisma } = require('../config/database');
 const { stripe } = require('../config/stripe');
-const { getPlan, findPlanByPriceId, TRIAL_DAYS } = require('../config/plans');
+const { getPlan, findPlanByPriceId, TRIAL_DAYS, monthlyWindow } = require('../config/plans');
 
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
@@ -84,9 +84,11 @@ async function getSubscription(req, res) {
     });
 
     const plan = getPlan(user.plan);
-    const windowStart = user.currentPeriodStart
-      ? new Date(user.currentPeriodStart)
-      : new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+    const now = new Date();
+    const win = user.currentPeriodStart
+      ? monthlyWindow(new Date(user.currentPeriodStart))
+      : { start: new Date(now.getFullYear(), now.getMonth(), 1), end: new Date(now.getFullYear(), now.getMonth() + 1, 1) };
+    const windowStart = win.start;
 
     const [imageUsed, textUsed] = await Promise.all([
       prisma.generation.count({ where: { userId: req.user.id, type: 'image', status: { not: 'failed' }, createdAt: { gte: windowStart } } }),
@@ -99,7 +101,7 @@ async function getSubscription(req, res) {
       billingInterval: user.billingInterval,
       status: user.subscriptionStatus,
       currentPeriodEnd: user.currentPeriodEnd,
-      resetsOn: user.currentPeriodEnd || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
+      resetsOn: win.end,
       trialEndsAt: user.trialEndsAt,
       cancelAtPeriodEnd: user.cancelAtPeriodEnd,
       limits: plan.limits,
@@ -119,18 +121,25 @@ async function syncSubscription(subscription) {
     return;
   }
 
+  const item = subscription.items?.data?.[0];
   const status = subscription.status; // active | trialing | past_due | canceled | ...
-  const priceId = subscription.items?.data?.[0]?.price?.id;
+  const priceId = item?.price?.id;
   const match = findPlanByPriceId(priceId);
   const activeLike = ['active', 'trialing', 'past_due'].includes(status);
   console.log(`   ↳ sync ${user.email}: status=${status}, price=${priceId}, matchedPlan=${match?.plan?.key || 'none'}`);
+
+  // Anchor the usage cycle to when the subscription started (stable across
+  // renewals) so limits reset on the same day each month. current_period_end
+  // moved onto the item in recent Stripe API versions — read the item first.
+  const anchor = subscription.start_date ?? item?.current_period_start ?? subscription.current_period_start ?? null;
+  const periodEnd = item?.current_period_end ?? subscription.current_period_end ?? null;
 
   const data = {
     subscriptionStatus: status,
     stripeSubscriptionId: subscription.id,
     cancelAtPeriodEnd: !!subscription.cancel_at_period_end,
-    currentPeriodStart: subscription.current_period_start ? new Date(subscription.current_period_start * 1000) : null,
-    currentPeriodEnd: subscription.current_period_end ? new Date(subscription.current_period_end * 1000) : null,
+    currentPeriodStart: anchor ? new Date(anchor * 1000) : null,
+    currentPeriodEnd: periodEnd ? new Date(periodEnd * 1000) : null,
     trialEndsAt: subscription.trial_end ? new Date(subscription.trial_end * 1000) : null,
   };
 

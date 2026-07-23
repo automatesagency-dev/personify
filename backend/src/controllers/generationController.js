@@ -2,7 +2,7 @@ const { prisma } = require('../config/database');
 const { openai } = require('../config/ai');
 const { fal } = require('../config/fal');
 const { uploadToR2 } = require('../config/r2');
-const { getLimits } = require('../config/plans');
+const { getLimits, monthlyWindow } = require('../config/plans');
 
 const NANO_ASPECT_RATIO_MAP = { square: '1:1', portrait: '9:16', landscape: '16:9' };
 const SEEDREAM_SIZE_MAP = { square: 'square_hd', portrait: 'portrait_4_3', landscape: 'landscape_4_3' };
@@ -77,7 +77,7 @@ function classifyAiError(error, label) {
 // Start of the user's current usage window: their subscription period start if
 // they have one, otherwise the start of the calendar month (free users).
 function usageWindowStart(user) {
-  if (user?.currentPeriodStart) return new Date(user.currentPeriodStart);
+  if (user?.currentPeriodStart) return monthlyWindow(new Date(user.currentPeriodStart)).start;
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth(), 1);
 }
