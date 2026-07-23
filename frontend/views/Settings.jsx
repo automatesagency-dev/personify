@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import PricingPlans from '../components/PricingPlans';
 import { useAuth } from '../context/AuthContext';
 import { generationAPI, authAPI, referralAPI } from '../services/api';
 
@@ -11,6 +12,14 @@ export default function Settings() {
   const [uploading, setUploading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
   const [passwordMsg, setPasswordMsg] = useState(null);
+
+  // Open a specific tab when linked via ?tab= (e.g. after Stripe checkout)
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const tab = new URLSearchParams(window.location.search).get('tab');
+      if (tab) setActiveTab(tab);
+    }
+  }, []);
 
   // Referrals state
   const [referralCode, setReferralCode] = useState(null);
@@ -575,33 +584,7 @@ export default function Settings() {
         )}
 
         {/* Pricing Tab */}
-        {activeTab === 'pricing' && (
-          <div>
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-semibold text-white mb-3">Choose Your Plan</h2>
-              <p className="text-gray-400">Select the perfect plan for your creative needs</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
-              {/* Plans omitted for brevity but remain the same as your source */}
-              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-                <h3 className="text-2xl font-semibold text-white mb-4">Free</h3>
-                <div className="mb-6"><span className="text-5xl font-bold text-white">$0</span></div>
-                <button className="w-full py-3 bg-white text-black rounded-lg font-semibold">Current Plan</button>
-              </div>
-              <div className="bg-dark-card rounded-xl p-6 border-2 border-brand-pink relative">
-                <h3 className="text-2xl font-semibold text-white mb-4">Pro</h3>
-                <div className="mb-2"><span className="text-5xl font-bold text-white">Coming Soon</span></div>
-                <button className="w-full py-3 bg-white text-black rounded-lg font-semibold">Upgrade to Pro</button>
-              </div>
-              <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-                <h3 className="text-2xl font-semibold text-white mb-4">Expert</h3>
-                <div className="mb-2"><span className="text-5xl font-bold text-white">Coming Soon</span></div>
-                <button className="w-full py-3 bg-white text-black rounded-lg font-semibold">Upgrade to Expert</button>
-              </div>
-            </div>
-          </div>
-        )}
+        {activeTab === 'pricing' && <PricingPlans />}
 
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (
