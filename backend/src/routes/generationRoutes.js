@@ -20,7 +20,9 @@ router.use(authenticateUser);
 const generationLimiter = rateLimit({
   windowMs: 60 * 1000,
   max: 20,
-  keyGenerator: (req) => req.user?.id || req.ip,
+  // These routes always run after authenticateUser, so a user is guaranteed.
+  // Keying on the user id (never req.ip) avoids the IPv6 keygen validation.
+  keyGenerator: (req) => req.user?.id || 'anonymous',
   message: { error: 'You are generating too quickly. Please wait a moment and try again.', code: 'RATE_LIMITED', retryable: false },
   standardHeaders: true,
   legacyHeaders: false

@@ -99,6 +99,7 @@ async function getSubscription(req, res) {
       billingInterval: user.billingInterval,
       status: user.subscriptionStatus,
       currentPeriodEnd: user.currentPeriodEnd,
+      resetsOn: user.currentPeriodEnd || new Date(new Date().getFullYear(), new Date().getMonth() + 1, 1),
       trialEndsAt: user.trialEndsAt,
       cancelAtPeriodEnd: user.cancelAtPeriodEnd,
       limits: plan.limits,
@@ -114,7 +115,7 @@ async function getSubscription(req, res) {
 async function syncSubscription(subscription) {
   const user = await prisma.user.findUnique({ where: { stripeCustomerId: subscription.customer } });
   if (!user) {
-    console.warn('Webhook: no user for Stripe customer', subscription.customer);
+    console.warn('⚠️  Webhook: no user found for Stripe customer', subscription.customer);
     return;
   }
 
@@ -122,6 +123,7 @@ async function syncSubscription(subscription) {
   const priceId = subscription.items?.data?.[0]?.price?.id;
   const match = findPlanByPriceId(priceId);
   const activeLike = ['active', 'trialing', 'past_due'].includes(status);
+  console.log(`   ↳ sync ${user.email}: status=${status}, price=${priceId}, matchedPlan=${match?.plan?.key || 'none'}`);
 
   const data = {
     subscriptionStatus: status,
@@ -156,6 +158,8 @@ async function handleWebhook(req, res) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
+
+  console.log('📩 Stripe webhook received:', event.type);
 
   try {
     switch (event.type) {
