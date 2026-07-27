@@ -1,7 +1,7 @@
 const { prisma } = require('../config/database');
 const { stripe } = require('../config/stripe');
 const { getPlan, findPlanByPriceId, TRIAL_DAYS, monthlyWindow } = require('../config/plans');
-const { recordCommissionForInvoice, reverseCommissionForInvoice } = require('../services/commissions');
+const { recordCommissionForInvoice, reverseCommissionForInvoice, syncReferrerCredit } = require('../services/commissions');
 
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
@@ -126,7 +126,8 @@ async function syncSubscription(subscription) {
   const status = subscription.status; // active | trialing | past_due | canceled | ...
   const priceId = item?.price?.id;
   const match = findPlanByPriceId(priceId);
-  const activeLike = ['active', 'trialing', 'past_due'].includes(status);
+  // Only active/trialing keep paid access — past_due/unpaid/canceled drop to free.
+  const activeLike = ['active', 'trialing'].includes(status);
   console.log(`   ↳ sync ${user.email}: status=${status}, price=${priceId}, matchedPlan=${match?.plan?.key || 'none'}`);
 
   // Anchor the usage cycle to when the subscription started (stable across
@@ -178,6 +179,12 @@ async function handleWebhook(req, res) {
       case 'customer.subscription.deleted':
         await syncSubscription(event.data.object);
         break;
+      case 'invoice.created': {
+        // Apply any cleared referral credit to this customer before the invoice finalizes.
+        const u = await prisma.user.findUnique({ where: { stripeCustomerId: event.data.object.customer }, select: { id: true } });
+        if (u) await syncReferrerCredit(u.id);
+        break;
+      }
       case 'invoice.paid':
         await recordCommissionForInvoice(event.data.object);
         break;

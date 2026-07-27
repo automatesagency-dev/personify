@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { stripe } = require('../config/stripe');
 const { findPlanByPriceId } = require('../config/plans');
 
 const HOLD_DAYS = 14;                // commission is held 14 days before it's usable
@@ -80,4 +81,39 @@ async function reverseCommissionForInvoice(invoiceId) {
   console.log(`   ↩️  commission reversed [invoice ${invoiceId}]`);
 }
 
-module.exports = { recordCommissionForInvoice, reverseCommissionForInvoice, HOLD_DAYS };
+// Push a referrer's cleared (past-hold) commissions into their Stripe customer
+// credit balance, where Stripe auto-applies them to future invoices. No-ops if
+// they don't have a Stripe customer yet (free referrer who hasn't subscribed —
+// the credit stays queued in the ledger and pushes once they do).
+async function syncReferrerCredit(userId) {
+  if (!stripe) return;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { stripeCustomerId: true },
+  });
+  if (!user || !user.stripeCustomerId) return;
+
+  const cleared = await prisma.commission.findMany({
+    where: { referrerId: userId, status: 'pending', availableAt: { lte: new Date() } },
+    select: { id: true, amountCents: true, currency: true },
+  });
+  if (cleared.length === 0) return;
+
+  const total = cleared.reduce((s, c) => s + c.amountCents, 0);
+  if (total <= 0) return;
+
+  // Negative balance = credit the customer.
+  await stripe.customers.createBalanceTransaction(user.stripeCustomerId, {
+    amount: -total,
+    currency: cleared[0].currency || 'aud',
+    description: 'Personify referral commission credit',
+  });
+
+  await prisma.commission.updateMany({
+    where: { id: { in: cleared.map((c) => c.id) } },
+    data: { status: 'available', creditedAt: new Date() },
+  });
+  console.log(`   🎁 pushed ${total}c referral credit to ${user.stripeCustomerId}`);
+}
+
+module.exports = { recordCommissionForInvoice, reverseCommissionForInvoice, syncReferrerCredit, HOLD_DAYS };

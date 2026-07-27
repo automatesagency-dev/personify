@@ -5,7 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
-import { authAPI } from '../services/api';
+import { authAPI, billingAPI } from '../services/api';
 
 function EmailVerifyBanner() {
   const { user } = useAuth();
@@ -100,6 +100,31 @@ const MOBILE_TAB_ITEMS = [
     paths: ['M4 6h16M4 12h16M4 18h16'],
   },
 ];
+
+function PastDueBanner() {
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  if (!user || user.subscriptionStatus !== 'past_due') return null;
+
+  const openPortal = async () => {
+    setLoading(true);
+    try {
+      const { data } = await billingAPI.portal();
+      window.location.href = data.url;
+    } catch {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-red-500/10 border-b border-red-500/20 px-4 py-2.5 flex flex-col sm:flex-row items-center justify-center gap-x-3 gap-y-1 text-center text-sm">
+      <span className="text-red-300">⚠️ Your last payment failed — paid features are paused.</span>
+      <button onClick={openPortal} disabled={loading} className="text-red-200 underline font-medium hover:text-white disabled:opacity-50">
+        {loading ? 'Opening…' : 'Update payment method'}
+      </button>
+    </div>
+  );
+}
 
 const PLAN_LABELS = { free: 'Free', starter: 'Starter', pro: 'Pro', studio: 'Studio' };
 
@@ -231,6 +256,7 @@ export default function Layout({ children }) {
 
       {/* ── Main Content ── */}
       <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+        <PastDueBanner />
         <EmailVerifyBanner />
         {children}
       </main>
