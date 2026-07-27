@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const { stripe } = require('../config/stripe');
 const { getPlan, findPlanByPriceId, TRIAL_DAYS, monthlyWindow } = require('../config/plans');
+const { recordCommissionForInvoice, reverseCommissionForInvoice } = require('../services/commissions');
 
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
@@ -177,6 +178,21 @@ async function handleWebhook(req, res) {
       case 'customer.subscription.deleted':
         await syncSubscription(event.data.object);
         break;
+      case 'invoice.paid':
+        await recordCommissionForInvoice(event.data.object);
+        break;
+      case 'charge.refunded':
+        await reverseCommissionForInvoice(event.data.object.invoice);
+        break;
+      case 'charge.dispute.created': {
+        try {
+          const charge = await stripe.charges.retrieve(event.data.object.charge);
+          await reverseCommissionForInvoice(charge.invoice);
+        } catch (e) {
+          console.error('Dispute reversal lookup failed:', e.message);
+        }
+        break;
+      }
       default:
         break;
     }

@@ -60,7 +60,14 @@ async function useCode(req, res) {
         where: { id: referralCode.id },
         data: { usedCount: { increment: 1 } }
       }),
-      prisma.user.update({ where: { id: userId }, data: { referralVerified: true } })
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          referralVerified: true,
+          // Personal codes (with an owner) establish the affiliate relationship.
+          ...(referralCode.ownerId ? { referredById: referralCode.ownerId } : {})
+        }
+      })
     ]);
 
     res.json({ message: 'Access unlocked successfully' });
