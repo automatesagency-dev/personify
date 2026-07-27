@@ -6,12 +6,14 @@ const {
   adminGenerateCodes,
   adminGetCodes,
   adminToggleCode,
-  adminGetStats
+  adminGetStats,
+  getReferralEarnings
 } = require('../controllers/referralController');
 const { authenticateUser } = require('../middleware/authMiddleware');
 
 router.post('/use', authenticateUser, useCode);
 router.get('/my-code', authenticateUser, getMyCode);
+router.get('/earnings', authenticateUser, getReferralEarnings);
 
 router.get('/admin/stats', authenticateUser, adminGetStats);
 router.post('/admin/generate', authenticateUser, adminGenerateCodes);

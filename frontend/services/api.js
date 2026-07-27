@@ -96,6 +96,7 @@ export const uploadAPI = {
 export const referralAPI = {
   useCode: (code) => api.post('/referral/use', { code }),
   getMyCode: () => api.get('/referral/my-code'),
+  earnings: () => api.get('/referral/earnings'),
   adminStats: () => api.get('/referral/admin/stats'),
   adminGenerateCodes: (data) => api.post('/referral/admin/generate', data),
   adminGetCodes: () => api.get('/referral/admin/codes'),

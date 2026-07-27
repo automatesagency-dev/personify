@@ -5,6 +5,7 @@ import Layout from '../components/Layout';
 import PricingPlans from '../components/PricingPlans';
 import { useAuth } from '../context/AuthContext';
 import { generationAPI, authAPI, referralAPI } from '../services/api';
+import ReferralEarnings from '../components/ReferralEarnings';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -616,6 +617,9 @@ export default function Settings() {
         {/* Referrals Tab */}
         {activeTab === 'referrals' && (
           <div className="space-y-6">
+
+            {/* Referral earnings dashboard */}
+            <ReferralEarnings />
 
             {/* Founder Page access status */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
