@@ -33,6 +33,8 @@ model User {
   currentPeriodEnd      DateTime?
   trialEndsAt           DateTime?
   cancelAtPeriodEnd     Boolean   @default(false)
+  // Referral / affiliate
+  referredById          String?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   persona               Persona?
@@ -40,6 +42,10 @@ model User {
   founderPage           FounderPage?
   ownedReferralCode     ReferralCode?   @relation("OwnedCode")
   referralRedemption    ReferralUsage?  @relation("RedeemedBy")
+  referredBy            User?           @relation("UserReferrals", fields: [referredById], references: [id], onDelete: SetNull)
+  referrals             User[]          @relation("UserReferrals")
+  commissionsEarned      Commission[]   @relation("CommissionsEarned")
+  commissionsFromReferee Commission[]   @relation("CommissionsFromReferee")
 }
 
 // Persona model
@@ -127,4 +133,24 @@ model ReferralUsage {
   usedAt   DateTime     @default(now())
   code     ReferralCode @relation(fields: [codeId], references: [id])
   user     User         @relation("RedeemedBy", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Affiliate commission a referrer earns from a referee's payment (as account credit).
+model Commission {
+  id              String    @id @default(uuid())
+  referrerId      String    // who earns the credit
+  refereeId       String    // whose payment generated it
+  amountCents     Int       // commission amount, in cents of `currency`
+  currency        String    @default("aud")
+  type            String    // first_month | recurring | annual
+  sourceInvoiceId String    @unique // Stripe invoice — idempotency + clawback
+  status          String    @default("pending") // pending | available | reversed
+  availableAt     DateTime  // payment date + 14-day hold
+  creditedAt      DateTime? // when pushed to the referrer's Stripe credit balance
+  createdAt       DateTime  @default(now())
+  referrer        User      @relation("CommissionsEarned", fields: [referrerId], references: [id], onDelete: Cascade)
+  referee         User      @relation("CommissionsFromReferee", fields: [refereeId], references: [id], onDelete: Cascade)
+
+  @@index([referrerId, status])
+  @@index([refereeId])
 }
