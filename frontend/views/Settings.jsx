@@ -6,6 +6,7 @@ import PricingPlans from '../components/PricingPlans';
 import { useAuth } from '../context/AuthContext';
 import { generationAPI, authAPI, referralAPI } from '../services/api';
 import ReferralEarnings from '../components/ReferralEarnings';
+import CreditsWallet from '../components/CreditsWallet';
 
 export default function Settings() {
   const { user, refreshUser } = useAuth();
@@ -232,7 +233,7 @@ export default function Settings() {
 
         {/* Tabs */}
         <div className="flex gap-3 md:gap-6 mb-6 md:mb-8 border-b border-gray-800 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-          {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'notifications', 'referrals'].map((tab) => (
+          {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'credits', 'notifications', 'referrals'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -247,6 +248,7 @@ export default function Settings() {
               {tab === 'aimodel' && 'AI Model'}
               {tab === 'usage' && 'Usage'}
               {tab === 'pricing' && 'Pricing'}
+              {tab === 'credits' && 'Credits'}
               {tab === 'notifications' && 'Alerts'}
               {tab === 'referrals' && 'Referrals'}
             </button>
@@ -586,6 +588,8 @@ export default function Settings() {
 
         {/* Pricing Tab */}
         {activeTab === 'pricing' && <PricingPlans />}
+
+        {activeTab === 'credits' && <CreditsWallet />}
 
         {/* Notifications Tab */}
         {activeTab === 'notifications' && (

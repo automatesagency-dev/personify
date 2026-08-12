@@ -1,7 +1,6 @@
 const { prisma } = require('../config/database');
 const { isAdmin } = require('../config/admins');
-const { stripe } = require('../config/stripe');
-const { syncReferrerCredit } = require('../services/commissions');
+const { sweepClearedCommissions } = require('../services/commissions');
 
 function maskEmail(email) {
   if (!email) return '';
@@ -224,8 +223,8 @@ async function adminGetStats(req, res) {
 async function getReferralEarnings(req, res) {
   try {
     const userId = req.user.id;
-    // Lazily push any newly-cleared credit into their Stripe balance
-    try { await syncReferrerCredit(userId); } catch (e) { console.error('Credit sync failed:', e.message); }
+    // Lazily sweep any newly-cleared credit into their Personify wallet
+    try { await sweepClearedCommissions(userId); } catch (e) { console.error('Credit sweep failed:', e.message); }
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -238,19 +237,8 @@ async function getReferralEarnings(req, res) {
     const lifetimeCents = commissions.reduce((s, c) => s + c.amountCents, 0);
     const thisMonthCents = commissions.filter(c => c.createdAt >= monthStart).reduce((s, c) => s + c.amountCents, 0);
     const pendingCents = commissions.filter(c => c.status === 'pending' && c.availableAt > now).reduce((s, c) => s + c.amountCents, 0);
-    const clearedUnpushedCents = commissions.filter(c => c.status === 'pending' && c.availableAt <= now).reduce((s, c) => s + c.amountCents, 0);
 
-    // Available credit = Stripe customer credit balance + any cleared credit not yet pushed
-    let stripeCreditCents = 0;
-    const me = await prisma.user.findUnique({ where: { id: userId }, select: { stripeCustomerId: true } });
-    if (stripe && me?.stripeCustomerId) {
-      try {
-        const cust = await stripe.customers.retrieve(me.stripeCustomerId);
-        if (cust && !cust.deleted && typeof cust.balance === 'number' && cust.balance < 0) {
-          stripeCreditCents = -cust.balance;
-        }
-      } catch { /* ignore */ }
-    }
+    const me = await prisma.user.findUnique({ where: { id: userId }, select: { creditCents: true } });
 
     const referred = await prisma.user.findMany({
       where: { referredById: userId },
@@ -267,7 +255,7 @@ async function getReferralEarnings(req, res) {
     res.json({
       currency: (commissions[0]?.currency || 'aud').toUpperCase(),
       earnings: { thisMonthCents, lifetimeCents },
-      credit: { availableCents: stripeCreditCents + clearedUnpushedCents, pendingCents },
+      credit: { availableCents: me?.creditCents || 0, pendingCents },
       referredCount: referredUsers.length,
       activeCount: referredUsers.filter(u => u.active).length,
       referredUsers,

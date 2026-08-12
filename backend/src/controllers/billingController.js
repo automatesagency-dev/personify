@@ -1,7 +1,7 @@
 const { prisma } = require('../config/database');
 const { stripe } = require('../config/stripe');
 const { getPlan, findPlanByPriceId, TRIAL_DAYS, monthlyWindow } = require('../config/plans');
-const { recordCommissionForInvoice, reverseCommissionForInvoice, syncReferrerCredit } = require('../services/commissions');
+const { recordCommissionForInvoice, reverseCommissionForInvoice, sweepClearedCommissions } = require('../services/commissions');
 
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
@@ -179,12 +179,6 @@ async function handleWebhook(req, res) {
       case 'customer.subscription.deleted':
         await syncSubscription(event.data.object);
         break;
-      case 'invoice.created': {
-        // Apply any cleared referral credit to this customer before the invoice finalizes.
-        const u = await prisma.user.findUnique({ where: { stripeCustomerId: event.data.object.customer }, select: { id: true } });
-        if (u) await syncReferrerCredit(u.id);
-        break;
-      }
       case 'invoice.paid':
         await recordCommissionForInvoice(event.data.object);
         break;
@@ -210,9 +204,76 @@ async function handleWebhook(req, res) {
   }
 }
 
+// GET /billing/credits — the user's Personify credit wallet
+async function getCredits(req, res) {
+  try {
+    const userId = req.user.id;
+    try { await sweepClearedCommissions(userId); } catch (e) { console.error('Credit sweep failed:', e.message); }
+
+    const user = await prisma.user.findUnique({ where: { id: userId }, select: { creditCents: true, stripeCustomerId: true } });
+    const pending = await prisma.commission.aggregate({
+      where: { referrerId: userId, status: 'pending', availableAt: { gt: new Date() } },
+      _sum: { amountCents: true },
+    });
+
+    // Credit already moved to Stripe (queued for the next invoice)
+    let queuedCents = 0;
+    if (stripe && user.stripeCustomerId) {
+      try {
+        const cust = await stripe.customers.retrieve(user.stripeCustomerId);
+        if (cust && !cust.deleted && typeof cust.balance === 'number' && cust.balance < 0) queuedCents = -cust.balance;
+      } catch { /* ignore */ }
+    }
+
+    res.json({
+      currency: 'AUD',
+      availableCents: user.creditCents,
+      pendingCents: pending._sum.amountCents || 0,
+      queuedCents,
+    });
+  } catch (error) {
+    console.error('Get credits error:', error);
+    res.status(500).json({ error: 'Failed to load credits.' });
+  }
+}
+
+// POST /billing/apply-credit — move wallet credit to Stripe so it discounts the next invoice
+async function applyCredit(req, res) {
+  try {
+    if (!stripe) return res.status(503).json({ error: 'Billing is not configured yet.' });
+    const userId = req.user.id;
+    await sweepClearedCommissions(userId);
+
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    const amount = user.creditCents;
+    if (amount <= 0) return res.status(400).json({ error: 'You have no available credit to apply.' });
+
+    let customerId = user.stripeCustomerId;
+    if (!customerId) {
+      const customer = await stripe.customers.create({ email: user.email, name: user.name || undefined, metadata: { userId: user.id } });
+      customerId = customer.id;
+      await prisma.user.update({ where: { id: user.id }, data: { stripeCustomerId: customerId } });
+    }
+
+    await stripe.customers.createBalanceTransaction(customerId, {
+      amount: -amount, // negative = credit
+      currency: 'aud',
+      description: 'Personify credit applied to subscription',
+    });
+    await prisma.user.update({ where: { id: userId }, data: { creditCents: { decrement: amount } } });
+
+    res.json({ appliedCents: amount });
+  } catch (error) {
+    console.error('Apply credit error:', error);
+    res.status(500).json({ error: 'Failed to apply credit.' });
+  }
+}
+
 module.exports = {
   createCheckoutSession,
   createPortalSession,
   getSubscription,
+  getCredits,
+  applyCredit,
   handleWebhook,
 };

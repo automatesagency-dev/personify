@@ -1,5 +1,4 @@
 const { prisma } = require('../config/database');
-const { stripe } = require('../config/stripe');
 const { findPlanByPriceId } = require('../config/plans');
 
 const HOLD_DAYS = 14;                // commission is held 14 days before it's usable
@@ -77,43 +76,39 @@ async function reverseCommissionForInvoice(invoiceId) {
   if (!invoiceId) return;
   const commission = await prisma.commission.findUnique({ where: { sourceInvoiceId: invoiceId } });
   if (!commission || commission.status === 'reversed') return;
-  await prisma.commission.update({ where: { id: commission.id }, data: { status: 'reversed' } });
+
+  await prisma.$transaction(async (tx) => {
+    // If it was already swept into the wallet, claw it back (never below zero).
+    if (commission.status === 'available') {
+      const u = await tx.user.findUnique({ where: { id: commission.referrerId }, select: { creditCents: true } });
+      const newCredit = Math.max(0, (u?.creditCents || 0) - commission.amountCents);
+      await tx.user.update({ where: { id: commission.referrerId }, data: { creditCents: newCredit } });
+    }
+    await tx.commission.update({ where: { id: commission.id }, data: { status: 'reversed' } });
+  });
   console.log(`   ↩️  commission reversed [invoice ${invoiceId}]`);
 }
 
-// Push a referrer's cleared (past-hold) commissions into their Stripe customer
-// credit balance, where Stripe auto-applies them to future invoices. No-ops if
-// they don't have a Stripe customer yet (free referrer who hasn't subscribed —
-// the credit stays queued in the ledger and pushes once they do).
-async function syncReferrerCredit(userId) {
-  if (!stripe) return;
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { stripeCustomerId: true },
-  });
-  if (!user || !user.stripeCustomerId) return;
-
+// Move a referrer's cleared (past-hold) commissions into their Personify credit
+// wallet. DB-only; runs lazily whenever they view Credits / Referrals.
+async function sweepClearedCommissions(userId) {
   const cleared = await prisma.commission.findMany({
     where: { referrerId: userId, status: 'pending', availableAt: { lte: new Date() } },
-    select: { id: true, amountCents: true, currency: true },
+    select: { id: true, amountCents: true },
   });
   if (cleared.length === 0) return;
 
   const total = cleared.reduce((s, c) => s + c.amountCents, 0);
   if (total <= 0) return;
 
-  // Negative balance = credit the customer.
-  await stripe.customers.createBalanceTransaction(user.stripeCustomerId, {
-    amount: -total,
-    currency: cleared[0].currency || 'aud',
-    description: 'Personify referral commission credit',
-  });
-
-  await prisma.commission.updateMany({
-    where: { id: { in: cleared.map((c) => c.id) } },
-    data: { status: 'available', creditedAt: new Date() },
-  });
-  console.log(`   🎁 pushed ${total}c referral credit to ${user.stripeCustomerId}`);
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: userId }, data: { creditCents: { increment: total } } }),
+    prisma.commission.updateMany({
+      where: { id: { in: cleared.map((c) => c.id) } },
+      data: { status: 'available', creditedAt: new Date() },
+    }),
+  ]);
+  console.log(`   🎁 swept ${total}c into ${userId}'s credit wallet`);
 }
 
-module.exports = { recordCommissionForInvoice, reverseCommissionForInvoice, syncReferrerCredit, HOLD_DAYS };
+module.exports = { recordCommissionForInvoice, reverseCommissionForInvoice, sweepClearedCommissions, HOLD_DAYS };

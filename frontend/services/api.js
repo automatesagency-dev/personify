@@ -107,6 +107,8 @@ export const billingAPI = {
   getSubscription: () => api.get('/billing/subscription'),
   checkout: (plan, interval) => api.post('/billing/checkout', { plan, interval }),
   portal: () => api.post('/billing/portal'),
+  credits: () => api.get('/billing/credits'),
+  applyCredit: () => api.post('/billing/apply-credit'),
 };
 
 export default api;
