@@ -1,5 +1,6 @@
 const { verifyToken } = require('../config/jwt');
 const { prisma } = require('../config/database');
+const { isAdmin } = require('../config/admins');
 
 // Middleware to protect routes
 async function authenticateUser(req, res, next) {
@@ -38,6 +39,7 @@ async function authenticateUser(req, res, next) {
 
     // Attach user to request
     req.user = user;
+    req.user.isAdmin = isAdmin(user.email);
     next();
   } catch (error) {
     return res.status(500).json({ 

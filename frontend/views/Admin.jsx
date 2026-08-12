@@ -6,8 +6,6 @@ import { useAuth } from '../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
 import { authAPI, referralAPI } from '../services/api';
 
-const ADMIN_EMAIL = 'admin@automatesagency.com';
-
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
 function timeAgo(date) {
@@ -25,6 +23,8 @@ function fmtNum(n) {
 }
 
 // ── Stat Card ─────────────────────────────────────────────────────────────────
+
+const fmtMoney = (cents) => '$' + ((cents || 0) / 100).toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 function StatCard({ title, value, sub, icon }) {
   return (
@@ -778,6 +778,92 @@ function PlaceholderSection({ title, description, icon, note }) {
 
 // ── Main Admin Component ──────────────────────────────────────────────────────
 
+function RevenueSection({ financials, loading }) {
+  if (loading || !financials) {
+    return (
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
+      </div>
+    );
+  }
+  const s = financials.subscriptions, c = financials.cost;
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="MRR" value={fmtMoney(s.mrrCents)} sub="Active subscriptions" icon="💰" />
+        <StatCard title="Active Subscribers" value={fmtNum(s.activeTotal)} sub={`${s.trialing} on trial`} icon="✅" />
+        <StatCard title="Gross Margin" value={fmtMoney(financials.marginCents)} sub="MRR − est. cost" icon="📈" />
+        <StatCard title="Est. AI Cost" value={fmtMoney(c.thisMonthCents)} sub="This month" icon="🧾" />
+      </div>
+
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Active subscribers by plan</h3>
+        <div className="grid grid-cols-3 gap-4">
+          {[['Starter', s.activeByPlan.starter], ['Pro', s.activeByPlan.pro], ['Studio', s.activeByPlan.studio]].map(([name, n]) => (
+            <div key={name} className="bg-black/20 rounded-xl p-4 text-center">
+              <p className="text-2xl font-bold text-white">{fmtNum(n)}</p>
+              <p className="text-xs text-gray-400 mt-1">{name}</p>
+            </div>
+          ))}
+        </div>
+        {s.pastDue > 0 && <p className="text-xs text-yellow-400 mt-4">⚠️ {s.pastDue} past-due subscription{s.pastDue !== 1 ? 's' : ''} (payment failed)</p>}
+      </div>
+
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-1">Estimated cost this month</h3>
+        <p className="text-xs text-gray-500 mb-4">{fmtNum(c.imageCount)} images × {fmtMoney(c.rates.image)} + {fmtNum(c.textCount)} texts × {fmtMoney(c.rates.text)}. Tune via COST_IMAGE_CENTS / COST_TEXT_CENTS.</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-black/20 rounded-xl p-4"><p className="text-xs text-gray-400">Images</p><p className="text-xl font-bold text-white">{fmtMoney(c.imageCount * c.rates.image)}</p><p className="text-xs text-gray-500">{fmtNum(c.imageCount)} gens</p></div>
+          <div className="bg-black/20 rounded-xl p-4"><p className="text-xs text-gray-400">Text</p><p className="text-xl font-bold text-white">{fmtMoney(c.textCount * c.rates.text)}</p><p className="text-xs text-gray-500">{fmtNum(c.textCount)} gens</p></div>
+        </div>
+      </div>
+
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Top users by usage (this month)</h3>
+        {financials.topUsers.length === 0 ? <p className="text-sm text-gray-500">No usage yet this month.</p> : (
+          <div className="space-y-1">
+            {financials.topUsers.map((u, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                <div className="min-w-0"><p className="text-sm text-white truncate">{u.name || u.email}</p><p className="text-xs text-gray-500 capitalize">{u.plan}</p></div>
+                <span className="text-sm font-semibold text-gray-300">{fmtNum(u.generations)} gens</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function AffiliateStats({ financials, loading }) {
+  if (loading || !financials) return null;
+  const r = financials.referral;
+  const conv = r.referredTotal ? Math.round((r.referredPaid / r.referredTotal) * 100) : 0;
+  return (
+    <div className="space-y-6 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Credit Liability" value={fmtMoney(r.outstandingLiabilityCents)} sub="Owed (pending + wallets)" icon="💳" />
+        <StatCard title="Commissions (mo)" value={fmtMoney(r.commissionsThisMonthCents)} sub="This month" icon="📆" />
+        <StatCard title="Commissions (lifetime)" value={fmtMoney(r.lifetimeCommissionsCents)} sub="All time" icon="🏦" />
+        <StatCard title="Referral → Paid" value={`${conv}%`} sub={`${r.referredPaid}/${r.referredTotal} converted`} icon="🎯" />
+      </div>
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Top referrers</h3>
+        {r.topReferrers.length === 0 ? <p className="text-sm text-gray-500">No commissions yet.</p> : (
+          <div className="space-y-1">
+            {r.topReferrers.map((u, i) => (
+              <div key={i} className="flex items-center justify-between py-2 border-b border-gray-800 last:border-0">
+                <div className="min-w-0"><p className="text-sm text-white truncate">{u.name || u.email}</p><p className="text-xs text-gray-500">{u.referredCount} referred</p></div>
+                <span className="text-sm font-semibold text-brand-pink">{fmtMoney(u.earnedCents)}</span>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user } = useAuth();
   const router = useRouter();
@@ -796,14 +882,16 @@ export default function Admin() {
   const [genMaxUses, setGenMaxUses] = useState(5);
   const [generating, setGenerating] = useState(false);
   const [generatedCodes, setGeneratedCodes] = useState([]);
+  const [financials, setFinancials] = useState(null);
+  const [financialsLoading, setFinancialsLoading] = useState(true);
 
   useEffect(() => {
-    if (user && user.email !== ADMIN_EMAIL) {
+    if (user && user.isAdmin === false) {
       router.push('/dashboard');
       return;
     }
     if (user) {
-      Promise.all([loadOverview(), loadUsers(), loadGenerations(), loadReferralData()]);
+      Promise.all([loadOverview(), loadUsers(), loadGenerations(), loadReferralData(), loadFinancials()]);
     }
   }, [user]);
 
@@ -855,6 +943,18 @@ export default function Admin() {
     }
   };
 
+  const loadFinancials = async () => {
+    try {
+      setFinancialsLoading(true);
+      const { data } = await authAPI.adminFinancials();
+      setFinancials(data);
+    } catch (e) {
+      console.error('Failed to load financials', e);
+    } finally {
+      setFinancialsLoading(false);
+    }
+  };
+
   const handleGenerateCodes = async () => {
     setGenerating(true);
     setGeneratedCodes([]);
@@ -897,12 +997,7 @@ export default function Admin() {
         <GenerationsSection generations={generations} loading={generationsLoading} />
       )}
       {activeSection === 'revenue' && (
-        <PlaceholderSection
-          title="Revenue"
-          description="Subscriptions, MRR, and financial analytics will appear here once a payment provider is connected."
-          icon="💳"
-          note="Connect a payment provider"
-        />
+        <RevenueSection financials={financials} loading={financialsLoading} />
       )}
       {activeSection === 'ai-models' && (
         <AIModelsSection
@@ -920,19 +1015,22 @@ export default function Admin() {
         />
       )}
       {activeSection === 'referrals' && (
-        <ReferralsSection
-          codes={codes}
-          stats={referralStats}
-          codesLoading={codesLoading}
-          onGenerateCodes={handleGenerateCodes}
-          onToggleCode={handleToggleCode}
-          genCount={genCount}
-          setGenCount={setGenCount}
-          genMaxUses={genMaxUses}
-          setGenMaxUses={setGenMaxUses}
-          generating={generating}
-          generatedCodes={generatedCodes}
-        />
+        <>
+          <AffiliateStats financials={financials} loading={financialsLoading} />
+          <ReferralsSection
+            codes={codes}
+            stats={referralStats}
+            codesLoading={codesLoading}
+            onGenerateCodes={handleGenerateCodes}
+            onToggleCode={handleToggleCode}
+            genCount={genCount}
+            setGenCount={setGenCount}
+            genMaxUses={genMaxUses}
+            setGenMaxUses={setGenMaxUses}
+            generating={generating}
+            generatedCodes={generatedCodes}
+          />
+        </>
       )}
       {activeSection === 'settings' && (
         <PlaceholderSection

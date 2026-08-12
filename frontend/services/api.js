@@ -63,6 +63,7 @@ export const authAPI = {
   getAdminUsers: () => api.get('/auth/admin/users'),
   adminOverview: () => api.get('/auth/admin/overview'),
   adminAllGenerations: () => api.get('/auth/admin/generations'),
+  adminFinancials: () => api.get('/auth/admin/financials'),
 };
 
 // Persona API

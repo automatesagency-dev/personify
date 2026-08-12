@@ -6,6 +6,8 @@ const { OAuth2Client } = require('google-auth-library');
 const { generateUniqueCode } = require('./referralController');
 const { sendVerificationEmail } = require('../config/email');
 const { isAdmin } = require('../config/admins');
+const { getPlan } = require('../config/plans');
+const { GENERATION_COST_CENTS } = require('../config/costs');
 
 // Canonical public app URL used to build links in emails. Prefer a dedicated
 // APP_URL (e.g. https://personify.so) so email links don't depend on the order
@@ -142,7 +144,7 @@ async function login(req, res) {
 
     res.json({
       message: 'Login successful',
-      user: userWithoutPassword,
+      user: { ...userWithoutPassword, isAdmin: isAdmin(user.email) },
       token
     });
   } catch (error) {
@@ -498,6 +500,103 @@ async function resendVerification(req, res) {
   }
 }
 
+// GET /auth/admin/financials — revenue/margin/cost + referral affiliate stats
+async function getAdminFinancials(req, res) {
+  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  try {
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    // ── Subscriptions / MRR ──
+    const paidUsers = await prisma.user.findMany({
+      where: { plan: { not: 'free' } },
+      select: { plan: true, billingInterval: true, subscriptionStatus: true },
+    });
+    const activeByPlan = { starter: 0, pro: 0, studio: 0 };
+    let trialing = 0, pastDue = 0, mrrCents = 0;
+    for (const u of paidUsers) {
+      if (u.subscriptionStatus === 'trialing') trialing++;
+      else if (u.subscriptionStatus === 'past_due') pastDue++;
+      else if (u.subscriptionStatus === 'active') {
+        if (activeByPlan[u.plan] !== undefined) activeByPlan[u.plan]++;
+        const p = getPlan(u.plan);
+        const monthly = u.billingInterval === 'yearly' ? (p.yearlyPriceAud || 0) / 12 : (p.monthlyPriceAud || 0);
+        mrrCents += Math.round(monthly * 100);
+      }
+    }
+
+    // ── Cost this month ──
+    const [imageCount, textCount] = await Promise.all([
+      prisma.generation.count({ where: { type: 'image', status: { not: 'failed' }, createdAt: { gte: monthStart } } }),
+      prisma.generation.count({ where: { type: 'text', status: { not: 'failed' }, createdAt: { gte: monthStart } } }),
+    ]);
+    const costCents = imageCount * GENERATION_COST_CENTS.image + textCount * GENERATION_COST_CENTS.text;
+
+    // ── Referral / affiliate ──
+    const [pendingAgg, walletAgg, monthCommAgg, lifetimeCommAgg, referredTotal, referredPaid] = await Promise.all([
+      prisma.commission.aggregate({ where: { status: 'pending' }, _sum: { amountCents: true } }),
+      prisma.user.aggregate({ _sum: { creditCents: true } }),
+      prisma.commission.aggregate({ where: { status: { not: 'reversed' }, createdAt: { gte: monthStart } }, _sum: { amountCents: true } }),
+      prisma.commission.aggregate({ where: { status: { not: 'reversed' } }, _sum: { amountCents: true } }),
+      prisma.user.count({ where: { referredById: { not: null } } }),
+      prisma.user.count({ where: { referredById: { not: null }, subscriptionStatus: { in: ['active', 'trialing'] }, plan: { not: 'free' } } }),
+    ]);
+    const outstandingLiabilityCents = (pendingAgg._sum.amountCents || 0) + (walletAgg._sum.creditCents || 0);
+
+    // Top referrers by lifetime earnings
+    const grouped = await prisma.commission.groupBy({
+      by: ['referrerId'],
+      where: { status: { not: 'reversed' } },
+      _sum: { amountCents: true },
+      orderBy: { _sum: { amountCents: 'desc' } },
+      take: 10,
+    });
+    const referrerIds = grouped.map(g => g.referrerId);
+    const [referrerUsers, refCounts] = await Promise.all([
+      prisma.user.findMany({ where: { id: { in: referrerIds } }, select: { id: true, name: true, email: true } }),
+      prisma.user.groupBy({ by: ['referredById'], where: { referredById: { in: referrerIds } }, _count: { id: true } }),
+    ]);
+    const refCountMap = Object.fromEntries(refCounts.map(r => [r.referredById, r._count.id]));
+    const topReferrers = grouped.map(g => {
+      const u = referrerUsers.find(x => x.id === g.referrerId);
+      return { name: u?.name || null, email: u?.email || '', earnedCents: g._sum.amountCents || 0, referredCount: refCountMap[g.referrerId] || 0 };
+    });
+
+    // ── Top users by usage this month ──
+    const topGen = await prisma.generation.groupBy({
+      by: ['userId'],
+      where: { createdAt: { gte: monthStart }, status: { not: 'failed' } },
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 8,
+    });
+    const topUserIds = topGen.map(g => g.userId);
+    const topUsersData = await prisma.user.findMany({ where: { id: { in: topUserIds } }, select: { id: true, name: true, email: true, plan: true } });
+    const topUsers = topGen.map(g => {
+      const u = topUsersData.find(x => x.id === g.userId);
+      return { name: u?.name || null, email: u?.email || '', plan: u?.plan || 'free', generations: g._count.id };
+    });
+
+    res.json({
+      subscriptions: { activeByPlan, trialing, pastDue, mrrCents, activeTotal: activeByPlan.starter + activeByPlan.pro + activeByPlan.studio },
+      cost: { thisMonthCents: costCents, imageCount, textCount, rates: GENERATION_COST_CENTS },
+      marginCents: mrrCents - costCents,
+      referral: {
+        outstandingLiabilityCents,
+        commissionsThisMonthCents: monthCommAgg._sum.amountCents || 0,
+        lifetimeCommissionsCents: lifetimeCommAgg._sum.amountCents || 0,
+        referredTotal,
+        referredPaid,
+        topReferrers,
+      },
+      topUsers,
+    });
+  } catch (error) {
+    console.error('Admin financials error:', error);
+    res.status(500).json({ error: 'Failed to load financials' });
+  }
+}
+
 module.exports = {
   register,
   login,
@@ -511,4 +610,5 @@ module.exports = {
   getAdminUsers,
   getAdminOverview,
   getAdminAllGenerations,
+  getAdminFinancials,
 };
