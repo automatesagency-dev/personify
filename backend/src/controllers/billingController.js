@@ -37,7 +37,8 @@ async function createCheckoutSession(req, res) {
       mode: 'subscription',
       customer: customerId,
       line_items: [{ price: priceId, quantity: 1 }],
-      subscription_data: { trial_period_days: TRIAL_DAYS },
+      // Omit the trial entirely when TRIAL_DAYS is 0 (Stripe requires >= 1).
+      ...(TRIAL_DAYS > 0 ? { subscription_data: { trial_period_days: TRIAL_DAYS } } : {}),
       allow_promotion_codes: true,
       client_reference_id: user.id,
       success_url: `${APP_URL()}/settings?tab=pricing&checkout=success`,
