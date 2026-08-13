@@ -13,6 +13,7 @@ const passwordResetRoutes = require('./routes/passwordResetRoutes');
 const founderPageRoutes = require('./routes/founderPageRoutes');
 const referralRoutes = require('./routes/referralRoutes');
 const billingRoutes = require('./routes/billingRoutes');
+const grantRoutes = require('./routes/grantRoutes');
 const { handleWebhook } = require('./controllers/billingController');
 
 dotenv.config();
@@ -84,6 +85,7 @@ app.use('/api/founder-page', founderPageRoutes);
 app.use('/api/upload', require('./routes/upload'));
 app.use('/api/referral', referralRoutes);
 app.use('/api/billing', billingRoutes);
+app.use('/api/grant', grantRoutes);
 
 // Start server
 const server = app.listen(PORT, async () => {

@@ -36,6 +36,8 @@ model User {
   // Referral / affiliate
   referredById          String?
   creditCents           Int       @default(0) // Personify credit wallet (referral rewards, etc.)
+  bonusImages           Int       @default(0) // admin-granted bonus image generations
+  bonusTexts            Int       @default(0) // admin-granted bonus text generations
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
   persona               Persona?
@@ -47,6 +49,7 @@ model User {
   referrals             User[]          @relation("UserReferrals")
   commissionsEarned      Commission[]   @relation("CommissionsEarned")
   commissionsFromReferee Commission[]   @relation("CommissionsFromReferee")
+  grantRedemptions       GrantRedemption[]
 }
 
 // Persona model
@@ -154,4 +157,29 @@ model Commission {
 
   @@index([referrerId, status])
   @@index([refereeId])
+}
+
+// Admin-created code that grants bonus generations (separate from referral codes).
+model GrantCode {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  grantImages Int      @default(0)
+  grantTexts  Int      @default(0)
+  maxUses     Int      @default(1)  // -1 = unlimited
+  usedCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  redemptions GrantRedemption[]
+}
+
+// Tracks which user redeemed which grant code (one redemption per user per code).
+model GrantRedemption {
+  id         String    @id @default(uuid())
+  codeId     String
+  userId     String
+  redeemedAt DateTime  @default(now())
+  code       GrantCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([codeId, userId])
 }

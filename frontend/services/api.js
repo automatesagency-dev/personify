@@ -112,4 +112,11 @@ export const billingAPI = {
   applyCredit: () => api.post('/billing/apply-credit'),
 };
 
+export const grantAPI = {
+  redeem: (code) => api.post('/grant/redeem', { code }),
+  adminCreate: (data) => api.post('/grant/admin/create', data),
+  adminList: () => api.get('/grant/admin/codes'),
+  adminToggle: (id) => api.patch(`/grant/admin/codes/${id}/toggle`),
+};
+
 export default api;

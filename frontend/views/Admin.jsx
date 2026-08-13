@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import AdminLayout from '../components/AdminLayout';
-import { authAPI, referralAPI } from '../services/api';
+import { authAPI, referralAPI, grantAPI } from '../services/api';
 
 // ── Utilities ─────────────────────────────────────────────────────────────────
 
@@ -864,6 +864,77 @@ function AffiliateStats({ financials, loading }) {
   );
 }
 
+function GrantsSection({ codes, loading, onCreate, onToggle, images, setImages, maxUses, setMaxUses, creating, createdCode }) {
+  const imgNum = parseInt(images, 10) || 0;
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-white">Grant Codes</h2>
+        <p className="text-sm text-gray-400 mt-0.5">Give a user bonus generations regardless of their plan. Text is granted at 5× the image count.</p>
+      </div>
+
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">Create a grant code</h3>
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Image generations</label>
+            <input type="number" min="1" value={images} onChange={e => setImages(e.target.value)} className="w-32 px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-sm text-white outline-none focus:border-brand-pink" />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Text (auto 5×)</label>
+            <div className="w-32 px-3 py-2.5 bg-black/20 border border-gray-800 rounded-lg text-sm text-gray-400">{imgNum * 5}</div>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-400 mb-1">Max uses</label>
+            <select value={maxUses} onChange={e => setMaxUses(e.target.value)} className="px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-sm text-white outline-none focus:border-brand-pink">
+              <option value="1">1 use</option>
+              <option value="5">5 uses</option>
+              <option value="25">25 uses</option>
+              <option value="0">Unlimited</option>
+            </select>
+          </div>
+          <button onClick={onCreate} disabled={creating || imgNum <= 0} className="px-5 py-2.5 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-40">
+            {creating ? 'Creating…' : 'Generate code'}
+          </button>
+        </div>
+        {createdCode && (
+          <div className="mt-4 p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center justify-between">
+            <span className="font-mono text-green-400 text-lg tracking-widest">{createdCode.code}</span>
+            <button onClick={() => navigator.clipboard.writeText(createdCode.code)} className="text-xs text-gray-300 hover:text-white">Copy</button>
+          </div>
+        )}
+      </div>
+
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+        <h3 className="text-white font-semibold mb-4">All grant codes</h3>
+        {loading ? <Skeleton className="h-20 rounded-xl" /> : codes.length === 0 ? (
+          <p className="text-sm text-gray-500">No grant codes yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead><tr className="text-left text-xs text-gray-500 border-b border-gray-800">
+                <th className="py-2 pr-4">Code</th><th className="pr-4">Grants</th><th className="pr-4">Uses</th><th className="pr-4">Created</th><th className="pr-4">Status</th><th>Action</th>
+              </tr></thead>
+              <tbody>
+                {codes.map(c => (
+                  <tr key={c.id} className="border-b border-gray-800 last:border-0">
+                    <td className="py-3 pr-4 font-mono text-white">{c.code}</td>
+                    <td className="pr-4 text-gray-300 whitespace-nowrap">{c.grantImages} img / {c.grantTexts} txt</td>
+                    <td className="pr-4 text-gray-300">{c.usedCount} / {c.maxUses === -1 ? '∞' : c.maxUses}</td>
+                    <td className="pr-4 text-gray-500 whitespace-nowrap">{new Date(c.createdAt).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: '2-digit' })}</td>
+                    <td className="pr-4">{c.isActive ? <span className="text-green-400 text-xs">Active</span> : <span className="text-red-400 text-xs">Revoked</span>}</td>
+                    <td><button onClick={() => onToggle(c.id)} className={`text-xs ${c.isActive ? 'text-red-400 hover:text-red-300' : 'text-green-400 hover:text-green-300'}`}>{c.isActive ? 'Revoke' : 'Reactivate'}</button></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export default function Admin() {
   const { user } = useAuth();
   const router = useRouter();
@@ -884,6 +955,12 @@ export default function Admin() {
   const [generatedCodes, setGeneratedCodes] = useState([]);
   const [financials, setFinancials] = useState(null);
   const [financialsLoading, setFinancialsLoading] = useState(true);
+  const [grantCodes, setGrantCodes] = useState([]);
+  const [grantLoading, setGrantLoading] = useState(false);
+  const [grantImages, setGrantImages] = useState('50');
+  const [grantMaxUses, setGrantMaxUses] = useState('1');
+  const [grantCreating, setGrantCreating] = useState(false);
+  const [createdGrant, setCreatedGrant] = useState(null);
 
   useEffect(() => {
     if (user && user.isAdmin === false) {
@@ -891,7 +968,7 @@ export default function Admin() {
       return;
     }
     if (user) {
-      Promise.all([loadOverview(), loadUsers(), loadGenerations(), loadReferralData(), loadFinancials()]);
+      Promise.all([loadOverview(), loadUsers(), loadGenerations(), loadReferralData(), loadFinancials(), loadGrantCodes()]);
     }
   }, [user]);
 
@@ -953,6 +1030,37 @@ export default function Admin() {
     } finally {
       setFinancialsLoading(false);
     }
+  };
+
+  const loadGrantCodes = async () => {
+    setGrantLoading(true);
+    try {
+      const { data } = await grantAPI.adminList();
+      setGrantCodes(data.codes);
+    } catch (e) {
+      console.error('Failed to load grant codes', e);
+    } finally {
+      setGrantLoading(false);
+    }
+  };
+
+  const handleCreateGrant = async () => {
+    setGrantCreating(true);
+    setCreatedGrant(null);
+    try {
+      const { data } = await grantAPI.adminCreate({ images: parseInt(grantImages, 10), maxUses: parseInt(grantMaxUses, 10) });
+      setCreatedGrant(data.code);
+      await loadGrantCodes();
+    } catch (e) {
+      alert(e.response?.data?.error || 'Failed to create grant code');
+    } finally {
+      setGrantCreating(false);
+    }
+  };
+
+  const handleToggleGrant = async (id) => {
+    try { await grantAPI.adminToggle(id); await loadGrantCodes(); }
+    catch { alert('Failed to toggle code'); }
   };
 
   const handleGenerateCodes = async () => {
@@ -1031,6 +1139,20 @@ export default function Admin() {
             generatedCodes={generatedCodes}
           />
         </>
+      )}
+      {activeSection === 'grants' && (
+        <GrantsSection
+          codes={grantCodes}
+          loading={grantLoading}
+          onCreate={handleCreateGrant}
+          onToggle={handleToggleGrant}
+          images={grantImages}
+          setImages={setGrantImages}
+          maxUses={grantMaxUses}
+          setMaxUses={setGrantMaxUses}
+          creating={grantCreating}
+          createdCode={createdGrant}
+        />
       )}
       {activeSection === 'settings' && (
         <PlaceholderSection

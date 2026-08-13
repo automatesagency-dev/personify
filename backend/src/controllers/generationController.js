@@ -92,14 +92,19 @@ async function reserveGeneration({ userId, type, prompt, model }) {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${userId}))`;
     const user = await tx.user.findUnique({
       where: { id: userId },
-      select: { plan: true, currentPeriodStart: true }
+      select: { plan: true, currentPeriodStart: true, bonusImages: true, bonusTexts: true }
     });
     const limits = getLimits(user?.plan);
     const windowStart = usageWindowStart(user);
     const count = await tx.generation.count({
       where: { userId, type, status: { not: 'failed' }, createdAt: { gte: windowStart } }
     });
-    if (count >= limits[type]) return null;
+    if (count >= limits[type]) {
+      // Plan quota used up — draw from any admin-granted bonus pool.
+      const bonusField = type === 'image' ? 'bonusImages' : 'bonusTexts';
+      if ((user?.[bonusField] || 0) <= 0) return null;
+      await tx.user.update({ where: { id: userId }, data: { [bonusField]: { decrement: 1 } } });
+    }
     return tx.generation.create({
       data: { userId, type, prompt, model, status: 'pending' }
     });

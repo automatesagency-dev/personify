@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import PricingPlans from '../components/PricingPlans';
 import { useAuth } from '../context/AuthContext';
-import { generationAPI, authAPI, referralAPI } from '../services/api';
+import { generationAPI, authAPI, referralAPI, grantAPI } from '../services/api';
 import ReferralEarnings from '../components/ReferralEarnings';
 import CreditsWallet from '../components/CreditsWallet';
 
@@ -26,6 +26,9 @@ export default function Settings() {
   // Referrals state
   const [referralCode, setReferralCode] = useState(null);
   const [referralLoading, setReferralLoading] = useState(false);
+  const [grantCodeInput, setGrantCodeInput] = useState('');
+  const [grantRedeeming, setGrantRedeeming] = useState(false);
+  const [grantMsg, setGrantMsg] = useState(null);
   const [unlockCode, setUnlockCode] = useState('');
   const [unlockLoading, setUnlockLoading] = useState(false);
   const [unlockMsg, setUnlockMsg] = useState(null);
@@ -528,6 +531,49 @@ export default function Settings() {
         {/* Usage & Limits Tab */}
         {activeTab === 'usage' && (
           <div className="space-y-6">
+            {/* Redeem a bonus-generation code */}
+            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
+              <h2 className="text-xl font-semibold text-white mb-2">Redeem a code</h2>
+              <p className="text-sm text-gray-400 mb-4">Have a code for bonus generations? Enter it to add them to your account.</p>
+              <form
+                onSubmit={async (e) => {
+                  e.preventDefault();
+                  if (!grantCodeInput.trim()) return;
+                  setGrantRedeeming(true);
+                  setGrantMsg(null);
+                  try {
+                    const { data } = await grantAPI.redeem(grantCodeInput.trim());
+                    setGrantMsg({ type: 'success', text: `Success! Added ${data.grantedImages} image and ${data.grantedTexts} text generations.` });
+                    setGrantCodeInput('');
+                  } catch (err) {
+                    setGrantMsg({ type: 'error', text: err.response?.data?.error || 'Invalid code.' });
+                  } finally {
+                    setGrantRedeeming(false);
+                  }
+                }}
+                className="flex flex-col sm:flex-row gap-3"
+              >
+                <input
+                  type="text"
+                  value={grantCodeInput}
+                  onChange={(e) => setGrantCodeInput(e.target.value.toUpperCase())}
+                  placeholder="Enter code"
+                  maxLength={8}
+                  className="flex-1 px-4 py-2.5 bg-black border border-gray-700 rounded-xl text-white font-mono tracking-widest text-center sm:text-left placeholder:font-sans placeholder:tracking-normal outline-none focus:border-brand-pink"
+                />
+                <button
+                  type="submit"
+                  disabled={grantRedeeming || !grantCodeInput.trim()}
+                  className="px-6 py-2.5 bg-brand-pink text-white rounded-xl font-semibold hover:opacity-90 transition disabled:opacity-40"
+                >
+                  {grantRedeeming ? 'Redeeming…' : 'Redeem'}
+                </button>
+              </form>
+              {grantMsg && (
+                <p className={`text-sm mt-3 ${grantMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>{grantMsg.text}</p>
+              )}
+            </div>
+
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
               <h2 className="text-xl font-semibold text-white mb-2">Daily Usage</h2>
               <p className="text-sm text-gray-400 mb-6">Track your generation usage for today</p>

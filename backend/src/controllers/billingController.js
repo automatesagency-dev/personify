@@ -81,7 +81,8 @@ async function getSubscription(req, res) {
       where: { id: req.user.id },
       select: {
         plan: true, billingInterval: true, subscriptionStatus: true,
-        currentPeriodStart: true, currentPeriodEnd: true, trialEndsAt: true, cancelAtPeriodEnd: true
+        currentPeriodStart: true, currentPeriodEnd: true, trialEndsAt: true, cancelAtPeriodEnd: true,
+        bonusImages: true, bonusTexts: true
       }
     });
 
@@ -108,6 +109,7 @@ async function getSubscription(req, res) {
       cancelAtPeriodEnd: user.cancelAtPeriodEnd,
       limits: plan.limits,
       usage: { image: imageUsed, text: textUsed },
+      bonus: { image: user.bonusImages, text: user.bonusTexts },
     });
   } catch (error) {
     console.error('Get subscription error:', error);
