@@ -1,5 +1,4 @@
 const { prisma } = require('../config/database');
-const { isAdmin } = require('../config/admins');
 
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I ambiguity
 const TEXT_PER_IMAGE = 5; // ratio 1 image : 5 text
@@ -15,7 +14,7 @@ async function generateUniqueGrantCode() {
 
 // POST /grant/admin/create — create a bonus-generation code (text auto = 5× images)
 async function adminCreateGrantCode(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const grantImages = Math.max(0, parseInt(req.body.images, 10) || 0);
     if (grantImages <= 0) return res.status(400).json({ error: 'Enter a number of image generations to grant.' });
@@ -34,7 +33,7 @@ async function adminCreateGrantCode(req, res) {
 
 // GET /grant/admin/codes
 async function adminGetGrantCodes(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const codes = await prisma.grantCode.findMany({ orderBy: { createdAt: 'desc' } });
     res.json({ codes });
@@ -46,7 +45,7 @@ async function adminGetGrantCodes(req, res) {
 
 // PATCH /grant/admin/codes/:id/toggle
 async function adminToggleGrantCode(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const code = await prisma.grantCode.findUnique({ where: { id: req.params.id } });
     if (!code) return res.status(404).json({ error: 'Code not found' });

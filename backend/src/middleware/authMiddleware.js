@@ -28,7 +28,7 @@ async function authenticateUser(req, res, next) {
     // Get user from database
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true, profilePictureUrl: true, referralVerified: true, emailVerified: true, plan: true, subscriptionStatus: true }
+      select: { id: true, email: true, name: true, profilePictureUrl: true, referralVerified: true, emailVerified: true, plan: true, subscriptionStatus: true, role: true }
     });
 
     if (!user) {
@@ -39,7 +39,7 @@ async function authenticateUser(req, res, next) {
 
     // Attach user to request
     req.user = user;
-    req.user.isAdmin = isAdmin(user.email);
+    req.user.isAdmin = isAdmin(user);
     next();
   } catch (error) {
     return res.status(500).json({ 
@@ -61,4 +61,17 @@ function requireVerifiedEmail(req, res, next) {
   next();
 }
 
-module.exports = { authenticateUser, requireVerifiedEmail };
+// Founder Pages are an invite-only feature. The UI already presents this
+// restriction, but enforcement must live on the API as well so a caller cannot
+// bypass it by invoking the endpoint directly.
+function requireFounderAccess(req, res, next) {
+  if (!req.user?.referralVerified) {
+    return res.status(403).json({
+      error: 'A Founder Page access code is required to use this feature.',
+      code: 'FOUNDER_ACCESS_REQUIRED'
+    });
+  }
+  next();
+}
+
+module.exports = { authenticateUser, requireVerifiedEmail, requireFounderAccess };

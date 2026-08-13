@@ -45,7 +45,8 @@ export default function Settings() {
   const [accountForm, setAccountForm] = useState({
     name: '',
     email: '',
-    username: ''
+    username: '',
+    currentPassword: ''
   });
 
   // Password form state
@@ -114,7 +115,8 @@ export default function Settings() {
       setAccountForm({
         name: user.name || '',
         email: user.email || '',
-        username: user.email?.split('@')[0] || ''
+        username: user.email?.split('@')[0] || '',
+        currentPassword: ''
       });
     }
   };
@@ -191,10 +193,20 @@ export default function Settings() {
   const handleAccountSubmit = async (e) => {
     e.preventDefault();
     setAccountMsg(null);
+    const emailChanged = accountForm.email.trim().toLowerCase() !== (user?.email || '').toLowerCase();
+    if (emailChanged && !accountForm.currentPassword) {
+      setAccountMsg({ type: 'error', text: 'Enter your current password to change your email address.' });
+      return;
+    }
     try {
-      await authAPI.updateProfile({ name: accountForm.name, email: accountForm.email });
+      const response = await authAPI.updateProfile({
+        name: accountForm.name,
+        email: accountForm.email,
+        ...(emailChanged ? { currentPassword: accountForm.currentPassword } : {})
+      });
       await refreshUser();
-      setAccountMsg({ type: 'success', text: 'Profile updated successfully!' });
+      setAccountForm(current => ({ ...current, currentPassword: '' }));
+      setAccountMsg({ type: 'success', text: response.data.message || 'Profile updated successfully!' });
     } catch (error) {
       setAccountMsg({ type: 'error', text: error.response?.data?.error || 'Failed to update profile' });
     }
@@ -320,6 +332,23 @@ export default function Settings() {
                       className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
                     />
                   </div>
+
+                  {accountForm.email.trim().toLowerCase() !== (user?.email || '').toLowerCase() && (
+                    <div>
+                      <label className="block text-sm font-medium text-white mb-2">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={accountForm.currentPassword}
+                        onChange={(e) => setAccountForm({...accountForm, currentPassword: e.target.value})}
+                        placeholder="Required to change your email"
+                        autoComplete="current-password"
+                        className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
+                      />
+                      <p className="mt-2 text-xs text-gray-400">We’ll ask you to verify the new address before email-gated features can be used.</p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">

@@ -13,6 +13,7 @@ model User {
   id                    String   @id @default(uuid())
   email                 String   @unique
   password              String
+  role                  String   @default("user") // user | admin; authorization is role-based, never email-based
   name                  String?
   profilePictureUrl     String?
   googleId              String?  @unique

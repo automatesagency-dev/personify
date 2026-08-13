@@ -16,18 +16,52 @@ const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').s
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+function normalizeEmail(email) {
+  return typeof email === 'string' ? email.trim().toLowerCase() : '';
+}
+
+function isValidEmail(email) {
+  return email.length <= 254 && EMAIL_REGEX.test(email);
+}
+
+async function findUserByEmail(email) {
+  return prisma.user.findFirst({
+    where: { email: { equals: email, mode: 'insensitive' } }
+  });
+}
+
+function serializeUser(user) {
+  const {
+    password,
+    resetPasswordToken,
+    resetPasswordExpires,
+    emailVerifyToken,
+    emailVerifyExpires,
+    role,
+    ...safeUser
+  } = user;
+  return { ...safeUser, isAdmin: isAdmin(user) };
+}
+
 /**
  * Register new user
  */
 async function register(req, res) {
   try {
-    const { email, password, name, marketingConsent } = req.body;
+    const { password, name, marketingConsent } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validate input
     if (!email || !password) {
       return res.status(400).json({
         error: 'Email and password are required'
       });
+    }
+
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ error: 'Enter a valid email address' });
     }
 
     if (password.length < 8) {
@@ -37,9 +71,7 @@ async function register(req, res) {
     }
 
     // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email }
-    });
+    const existingUser = await findUserByEmail(email);
 
     if (existingUser) {
       return res.status(400).json({
@@ -107,7 +139,8 @@ async function register(req, res) {
  */
 async function login(req, res) {
   try {
-    const { email, password } = req.body;
+    const { password } = req.body;
+    const email = normalizeEmail(req.body.email);
 
     // Validate input
     if (!email || !password) {
@@ -117,9 +150,7 @@ async function login(req, res) {
     }
 
     // Find user
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    const user = await findUserByEmail(email);
 
     if (!user) {
       return res.status(401).json({
@@ -139,12 +170,9 @@ async function login(req, res) {
     // Generate token
     const token = generateToken(user.id);
 
-    // Return user without password
-    const { password: _, ...userWithoutPassword } = user;
-
     res.json({
       message: 'Login successful',
-      user: { ...userWithoutPassword, isAdmin: isAdmin(user.email) },
+      user: serializeUser(user),
       token
     });
   } catch (error) {
@@ -208,21 +236,51 @@ const updateProfilePicture = async (req, res) => {
 async function updateProfile(req, res) {
   try {
     const userId = req.user.id;
-    const { name, email } = req.body;
+    const { name, currentPassword } = req.body;
+    const email = normalizeEmail(req.body.email);
 
-    if (!name && !email) {
+    if (name === undefined && req.body.email === undefined) {
       return res.status(400).json({ error: 'At least one field (name or email) is required' });
     }
 
     const updateData = {};
     if (name !== undefined) updateData.name = name;
 
+    if (req.body.email !== undefined && !email) {
+      return res.status(400).json({ error: 'Enter a valid email address' });
+    }
+
     if (email && email !== req.user.email) {
-      const existing = await prisma.user.findUnique({ where: { email } });
+      if (!isValidEmail(email)) {
+        return res.status(400).json({ error: 'Enter a valid email address' });
+      }
+
+      // Email is both a login identifier and a recovery channel.  Require the
+      // account password before changing it, then require verification of the
+      // new address before email-gated product actions are available again.
+      if (!currentPassword) {
+        return res.status(400).json({ error: 'Enter your current password to change your email address' });
+      }
+
+      const user = await prisma.user.findUnique({ where: { id: userId } });
+      const isPasswordValid = await comparePassword(currentPassword, user.password);
+      if (!isPasswordValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+
+      const existing = await prisma.user.findFirst({
+        where: {
+          id: { not: userId },
+          email: { equals: email, mode: 'insensitive' }
+        }
+      });
       if (existing) {
         return res.status(400).json({ error: 'Email is already in use' });
       }
       updateData.email = email;
+      updateData.emailVerified = false;
+      updateData.emailVerifyToken = crypto.randomBytes(32).toString('hex');
+      updateData.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
     }
 
     const updatedUser = await prisma.user.update({
@@ -237,7 +295,24 @@ async function updateProfile(req, res) {
       }
     });
 
-    res.json({ message: 'Profile updated successfully', user: updatedUser });
+    if (updateData.emailVerifyToken) {
+      try {
+        await sendVerificationEmail(
+          updatedUser.email,
+          updatedUser.name,
+          `${APP_URL()}/verify-email?token=${updateData.emailVerifyToken}`
+        );
+      } catch (emailError) {
+        console.error('Failed to send email-change verification:', emailError.message);
+      }
+    }
+
+    res.json({
+      message: updateData.emailVerifyToken
+        ? 'Profile updated. Check your new email address to verify it.'
+        : 'Profile updated successfully',
+      user: updatedUser
+    });
   } catch (error) {
     console.error('Update profile error:', error);
     res.status(500).json({ error: 'Failed to update profile' });
@@ -289,20 +364,25 @@ async function googleAuth(req, res) {
       headers: { Authorization: `Bearer ${credential}` }
     });
     if (!googleRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
-    const { email, name, picture, sub: googleId } = await googleRes.json();
+    const googleProfile = await googleRes.json();
+    const { name, picture, sub: googleId } = googleProfile;
+    const email = normalizeEmail(googleProfile.email);
+    if (!isValidEmail(email)) {
+      return res.status(401).json({ error: 'Google did not return a valid email address' });
+    }
 
-    let user = await prisma.user.findUnique({ where: { email } });
+    let user = await findUserByEmail(email);
 
     if (user) {
       // Update googleId and picture if missing
       if (!user.googleId || !user.profilePictureUrl) {
         user = await prisma.user.update({
-          where: { email },
+          where: { id: user.id },
           data: {
             googleId: user.googleId || googleId,
             profilePictureUrl: user.profilePictureUrl || picture
           },
-          select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
+          select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true, role: true }
         });
       }
     } else {
@@ -315,7 +395,7 @@ async function googleAuth(req, res) {
           profilePictureUrl: picture,
           emailVerified: true // Google has already verified this email
         },
-        select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true }
+        select: { id: true, email: true, name: true, profilePictureUrl: true, createdAt: true, role: true }
       });
 
       // Auto-generate personal referral code for new Google user
@@ -328,7 +408,7 @@ async function googleAuth(req, res) {
     }
 
     const token = generateToken(user.id);
-    res.json({ message: 'Google login successful', user, token });
+    res.json({ message: 'Google login successful', user: serializeUser(user), token });
   } catch (error) {
     console.error('Google auth error:', error);
     res.status(401).json({ error: 'Google authentication failed' });
@@ -337,7 +417,7 @@ async function googleAuth(req, res) {
 
 async function getAdminUsers(req, res) {
   try {
-    if (!isAdmin(req.user.email)) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -364,7 +444,7 @@ async function getAdminUsers(req, res) {
 }
 
 async function getAdminOverview(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const [totalUsers, googleUsers, usersWithPersona, publishedPages, totalGenerations] = await Promise.all([
       prisma.user.count(),
@@ -428,7 +508,7 @@ async function getAdminOverview(req, res) {
 }
 
 async function getAdminAllGenerations(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const generations = await prisma.generation.findMany({
       take: 500,
@@ -502,7 +582,7 @@ async function resendVerification(req, res) {
 
 // GET /auth/admin/financials — revenue/margin/cost + referral affiliate stats
 async function getAdminFinancials(req, res) {
-  if (!isAdmin(req.user.email)) return res.status(403).json({ error: 'Access denied' });
+  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

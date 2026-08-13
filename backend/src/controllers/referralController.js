@@ -1,5 +1,4 @@
 const { prisma } = require('../config/database');
-const { isAdmin } = require('../config/admins');
 const { sweepClearedCommissions } = require('../services/commissions');
 
 function maskEmail(email) {
@@ -126,7 +125,7 @@ async function getMyCode(req, res) {
 // POST /admin/referral/generate — admin generates campaign codes
 async function adminGenerateCodes(req, res) {
   try {
-    if (!isAdmin(req.user.email)) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -153,7 +152,7 @@ async function adminGenerateCodes(req, res) {
 // GET /admin/referral/codes — admin views all campaign codes + usage
 async function adminGetCodes(req, res) {
   try {
-    if (!isAdmin(req.user.email)) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -178,7 +177,7 @@ async function adminGetCodes(req, res) {
 // PATCH /admin/referral/codes/:id/toggle — revoke or reactivate a code
 async function adminToggleCode(req, res) {
   try {
-    if (!isAdmin(req.user.email)) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ error: 'Access denied' });
     }
 
@@ -201,7 +200,7 @@ async function adminToggleCode(req, res) {
 // GET /admin/referral/stats — overview stats for admin dashboard
 async function adminGetStats(req, res) {
   try {
-    if (!isAdmin(req.user.email)) {
+    if (!req.user.isAdmin) {
       return res.status(403).json({ error: 'Access denied' });
     }
 

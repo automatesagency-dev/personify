@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateUser } = require('../middleware/authMiddleware'); 
+const { authenticateUser, requireFounderAccess } = require('../middleware/authMiddleware');
 const {
   getFounderPage,
   upsertFounderPage,
@@ -13,11 +13,11 @@ const {
 
 // Protected routes (require authentication)
 router.get('/', authenticateUser, getFounderPage);
-router.post('/', authenticateUser, upsertFounderPage);
-router.patch('/publish', authenticateUser, publishFounderPage);
-router.get('/preview', authenticateUser, previewFounderPage);
+router.post('/', authenticateUser, requireFounderAccess, upsertFounderPage);
+router.patch('/publish', authenticateUser, requireFounderAccess, publishFounderPage);
+router.get('/preview', authenticateUser, requireFounderAccess, previewFounderPage);
 router.get('/check-username/:username', authenticateUser, checkUsername);
-router.delete('/', authenticateUser, deleteFounderPage);
+router.delete('/', authenticateUser, requireFounderAccess, deleteFounderPage);
 
 // Public route (no auth required)
 router.get('/public/:username', getPublicFounderPage);
