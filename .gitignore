@@ -6,6 +6,9 @@ backend/.env
 backend/.env.*
 frontend/.env
 frontend/.env.*
+# ...but DO allow the example templates (no secrets in them)
+!backend/.env.example
+!frontend/.env.local.example
 
 # Dependencies
 node_modules/
