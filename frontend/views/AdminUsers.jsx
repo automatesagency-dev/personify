@@ -6,8 +6,6 @@ import Layout from '../components/Layout';
 import { useAuth } from '../context/AuthContext';
 import { authAPI, referralAPI } from '../services/api';
 
-const ADMIN_EMAIL = 'admin@automatesagency.com';
-
 export default function AdminUsers() {
   const { user } = useAuth();
   const router = useRouter();
@@ -27,7 +25,7 @@ export default function AdminUsers() {
   const [generatedCodes, setGeneratedCodes] = useState([]);
 
   useEffect(() => {
-    if (user && user.email !== ADMIN_EMAIL) {
+    if (user && user.isAdmin === false) {
       router.push('/dashboard');
       return;
     }

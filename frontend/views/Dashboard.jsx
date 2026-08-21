@@ -182,7 +182,7 @@ export default function Dashboard() {
             <h1 className="text-xl md:text-3xl font-semibold text-white mb-1">Welcome Back, {user?.name || 'User'} 👋</h1>
             <p className="text-gray-400 text-sm">Ready to create something amazing today?</p>
           </div>
-          {user?.email === 'admin@automatesagency.com' && (
+          {user?.isAdmin && (
             <Link href="/admin" className="px-3 py-1.5 bg-brand-pink/20 text-brand-pink rounded-lg text-xs font-semibold hover:bg-brand-pink/30 transition">
               Admin →
             </Link>

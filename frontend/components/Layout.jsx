@@ -217,7 +217,7 @@ export default function Layout({ children }) {
             <span className="font-medium">Community</span>
           </Link>
 
-          {user?.email === 'admin@automatesagency.com' && (
+          {user?.isAdmin && (
             <Link
               href="/admin"
               target="_blank"
@@ -371,7 +371,7 @@ export default function Layout({ children }) {
                 <span className="font-medium">Settings</span>
               </Link>
 
-              {user?.email === 'admin@automatesagency.com' && (
+              {user?.isAdmin && (
                 <Link
                   href="/admin"
                   target="_blank"
