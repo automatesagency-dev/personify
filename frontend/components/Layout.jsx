@@ -255,7 +255,13 @@ export default function Layout({ children }) {
       </aside>
 
       {/* ── Main Content ── */}
-      <main className="flex-1 overflow-auto pb-24 lg:pb-0">
+      {/* No overflow-auto here: the page scrolls at the window level (that's
+          what makes the sidebar's `sticky top-0` work). overflow-auto on
+          this element doesn't add real scrolling — main never actually
+          overflows itself, it just grows — but it does make `main` the
+          sticky containing block for everything inside it, silently
+          breaking `position: sticky` for any descendant. */}
+      <main className="flex-1 pb-24 lg:pb-0">
         <PastDueBanner />
         <EmailVerifyBanner />
         {children}

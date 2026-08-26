@@ -8,9 +8,47 @@ import { generationAPI, authAPI, referralAPI, grantAPI } from '../services/api';
 import ReferralEarnings from '../components/ReferralEarnings';
 import CreditsWallet from '../components/CreditsWallet';
 
+const SETTINGS_SECTIONS = [
+  {
+    id: 'account',
+    label: 'Profile & security',
+    description: 'Your details, photo and password',
+  },
+  {
+    id: 'plan',
+    label: 'Plan & usage',
+    description: 'Billing, credit and activity',
+  },
+  {
+    id: 'founder',
+    label: 'Founder access',
+    description: 'Invite codes and earnings',
+  },
+  {
+    id: 'advanced',
+    label: 'Advanced',
+    description: 'Upcoming preferences and alerts',
+  },
+];
+
+const SECTION_ICONS = {
+  account: '👤',
+  plan: '💳',
+  founder: '🎁',
+  advanced: '⚙️',
+};
+
+const PLAN_TABS = ['pricing', 'credits', 'usage'];
+const ADVANCED_TABS = ['preferences', 'notifications', 'aimodel'];
+
 export default function Settings() {
   const { user, refreshUser } = useAuth();
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeSection, setActiveSection] = useState('account');
+  const [activePlanTab, setActivePlanTab] = useState('pricing');
+  const [activeAdvancedTab, setActiveAdvancedTab] = useState('preferences');
+  // Mobile only: whether a section has been opened (drill-down nav). Desktop
+  // always shows the active section regardless of this flag.
+  const [mobileDrilledIn, setMobileDrilledIn] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [accountMsg, setAccountMsg] = useState(null);
   const [passwordMsg, setPasswordMsg] = useState(null);
@@ -19,7 +57,18 @@ export default function Settings() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const tab = new URLSearchParams(window.location.search).get('tab');
-      if (tab) setActiveTab(tab);
+      if (PLAN_TABS.includes(tab)) {
+        setActiveSection('plan');
+        setActivePlanTab(tab);
+        setMobileDrilledIn(true);
+      } else if (ADVANCED_TABS.includes(tab)) {
+        setActiveSection('advanced');
+        setActiveAdvancedTab(tab);
+        setMobileDrilledIn(true);
+      } else if (tab === 'referrals') {
+        setActiveSection('founder');
+        setMobileDrilledIn(true);
+      }
     }
   }, []);
 
@@ -45,7 +94,6 @@ export default function Settings() {
   const [accountForm, setAccountForm] = useState({
     name: '',
     email: '',
-    username: '',
     currentPassword: ''
   });
 
@@ -56,31 +104,17 @@ export default function Settings() {
     confirmPassword: ''
   });
 
-  // Preferences state
-  const [preferences, setPreferences] = useState({
-    autoEnhancePrompts: true,
-    saveToHistory: true,
-    highQualityMode: false
-  });
-
-  // Notifications state
-  const [notifications, setNotifications] = useState({
-    generationCompleted: true,
-    weeklySummary: true,
-    productUpdates: false,
-    marketingEmails: false,
-    pushNotifications: true
-  });
-
   useEffect(() => {
     loadUserData();
-    loadStats();
-    if (activeTab === 'referrals') loadReferralCode();
   }, [user]);
 
   useEffect(() => {
-    if (activeTab === 'referrals' && !referralCode) loadReferralCode();
-  }, [activeTab]);
+    if (activeSection === 'founder' && !referralCode) loadReferralCode();
+  }, [activeSection, referralCode]);
+
+  useEffect(() => {
+    if (activeSection === 'plan' && activePlanTab === 'usage') loadStats();
+  }, [activeSection, activePlanTab, user?.id]);
 
   const loadReferralCode = async () => {
     setReferralLoading(true);
@@ -115,7 +149,6 @@ export default function Settings() {
       setAccountForm({
         name: user.name || '',
         email: user.email || '',
-        username: user.email?.split('@')[0] || '',
         currentPassword: ''
       });
     }
@@ -233,7 +266,7 @@ export default function Settings() {
 
   const handleDeleteAccount = () => {
     if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
-      alert('Account deletion functionality coming soon!');
+      alert('Account deletion is not available in the app yet. Please contact Personify support for help with your account.');
     }
   };
 
@@ -241,74 +274,121 @@ export default function Settings() {
     <Layout>
       <div className="p-4 md:p-8 max-w-6xl mx-auto">
         {/* Header */}
-        <div className="mb-6 md:mb-8">
+        <div className="mb-5 md:mb-8">
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1 md:mb-2">Settings</h1>
-          <p className="text-gray-400 text-sm md:text-base">Manage your account and preferences</p>
+          <p className="text-gray-400 text-sm md:text-base">Manage your profile, plan and access in one place.</p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-3 md:gap-6 mb-6 md:mb-8 border-b border-gray-800 overflow-x-auto scrollbar-hide -mx-4 px-4 md:mx-0 md:px-0">
-          {['account', 'preferences', 'aimodel', 'usage', 'pricing', 'credits', 'notifications', 'referrals'].map((tab) => (
+        {/* Nav elements below are direct children of this full-height page
+            container (not a short wrapper) so that sticky has room to stay
+            pinned for the whole scroll, not just the height of the nav itself. */}
+
+        {/* Desktop: underline tabs, sticky so they stay reachable while scrolling a long section */}
+        <nav aria-label="Settings sections" className="sticky top-0 z-20 mb-6 hidden border-b border-gray-800 bg-dark-bg md:mb-8 lg:block">
+          <div className="flex gap-6">
+            {SETTINGS_SECTIONS.map((section) => {
+              const isActive = activeSection === section.id;
+              return (
+                <button
+                  key={section.id}
+                  type="button"
+                  onClick={() => setActiveSection(section.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative pb-3 text-sm font-medium transition ${
+                    isActive ? 'text-white' : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {section.label}
+                  {isActive && <span className="absolute inset-x-0 -bottom-px h-0.5 rounded-full bg-brand-pink" />}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+
+        {/* Mobile: section list — tap a row to drill into it */}
+        <nav aria-label="Settings sections" className={`mb-6 lg:hidden ${mobileDrilledIn ? 'hidden' : 'block'}`}>
+          <div className="divide-y divide-gray-800 overflow-hidden rounded-2xl border border-gray-800 bg-dark-card">
+            {SETTINGS_SECTIONS.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                onClick={() => { setActiveSection(section.id); setMobileDrilledIn(true); }}
+                className="flex w-full items-center gap-3 px-4 py-4 text-left transition hover:bg-white/5"
+              >
+                <span className="text-xl">{SECTION_ICONS[section.id]}</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold text-white">{section.label}</span>
+                  <span className="block truncate text-xs text-gray-500">{section.description}</span>
+                </span>
+                <span className="text-gray-600">›</span>
+              </button>
+            ))}
+          </div>
+        </nav>
+
+        {/* Mobile: sticky back header, shown once a section is open */}
+        {mobileDrilledIn && (
+          <div className="sticky top-0 z-20 -mx-4 mb-6 flex items-center gap-3 border-b border-gray-800 bg-dark-bg px-4 py-3 lg:hidden">
             <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-3 md:pb-4 px-1 text-xs md:text-sm font-medium whitespace-nowrap transition flex-shrink-0 ${
-                activeTab === tab
-                  ? 'text-white border-b-2 border-white'
-                  : 'text-gray-400 hover:text-white'
-              }`}
+              type="button"
+              onClick={() => setMobileDrilledIn(false)}
+              aria-label="Back to settings"
+              className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-gray-300 transition hover:bg-white/10"
             >
-              {tab === 'account' && 'Account'}
-              {tab === 'preferences' && 'Preferences'}
-              {tab === 'aimodel' && 'AI Model'}
-              {tab === 'usage' && 'Usage'}
-              {tab === 'pricing' && 'Pricing'}
-              {tab === 'credits' && 'Credits'}
-              {tab === 'notifications' && 'Alerts'}
-              {tab === 'referrals' && 'Referrals'}
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-          ))}
-        </div>
+            <span className="text-base font-semibold text-white">
+              {SETTINGS_SECTIONS.find((s) => s.id === activeSection)?.label}
+            </span>
+          </div>
+        )}
 
-        {/* Account Tab */}
-        {activeTab === 'account' && (
-          <div className="space-y-6">
+        <div className={`min-w-0 ${mobileDrilledIn ? 'block' : 'hidden lg:block'}`}>
+        {/* Profile & security */}
+        {activeSection === 'account' && (
+          <div className="space-y-5 md:space-y-6">
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h2 className="text-xl font-semibold text-white mb-2">Prompt Information</h2>
+              <h2 className="text-xl font-semibold text-white mb-2">Profile</h2>
               <p className="text-sm text-gray-400 mb-6">Update your account details and profile picture</p>
 
-              <form onSubmit={handleAccountSubmit}>
+              <form onSubmit={handleAccountSubmit} className="md:grid md:grid-cols-[13rem_minmax(0,1fr)] md:gap-8">
                 {/* Profile Picture */}
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-pink to-purple-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
-                    {user?.profilePictureUrl ? (
-                      <img src={user.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      user?.name?.charAt(0).toUpperCase() || 'U'
-                    )}
-                  </div>
-                  <div>
-                    <p className="text-white font-medium mb-1">Profile Picture</p>
-                    <p className="text-sm text-gray-400 mb-3">JPG or PNG. Max size 5MB</p>
-                    <input
-                      type="file"
-                      id="profile-picture-upload"
-                      accept="image/*"
-                      onChange={handleProfilePictureUpload}
-                      className="hidden"
-                      disabled={uploading}
-                    />
-                    <label
-                      htmlFor="profile-picture-upload"
-                      className={`inline-block px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    >
-                      {uploading ? 'Uploading...' : 'Upload New Picture'}
-                    </label>
+                <div className="mb-6 border-b border-gray-800 pb-6 md:mb-0 md:border-b-0 md:border-r md:pb-0 md:pr-8">
+                  <div className="flex items-center gap-4 md:flex-col md:items-start">
+                    <div className="w-20 h-20 rounded-full bg-gradient-to-br from-brand-pink to-purple-600 flex items-center justify-center text-white text-2xl font-bold overflow-hidden">
+                      {user?.profilePictureUrl ? (
+                        <img src={user.profilePictureUrl} alt="Profile" className="w-full h-full object-cover" />
+                      ) : (
+                        user?.name?.charAt(0).toUpperCase() || 'U'
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-white font-medium mb-1">Profile Picture</p>
+                      <p className="text-sm text-gray-400 mb-3">JPG or PNG. Max size 5MB</p>
+                      <input
+                        type="file"
+                        id="profile-picture-upload"
+                        accept="image/*"
+                        onChange={handleProfilePictureUpload}
+                        className="hidden"
+                        disabled={uploading}
+                      />
+                      <label
+                        htmlFor="profile-picture-upload"
+                        className={`inline-block min-h-11 px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-medium transition cursor-pointer ${uploading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                      >
+                        {uploading ? 'Uploading...' : 'Upload new picture'}
+                      </label>
+                    </div>
                   </div>
                 </div>
 
-                {/* Form Fields */}
-                <div className="space-y-4">
+                <div>
+                  {/* Form Fields */}
+                  <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-white mb-2">
                       Full Name
@@ -350,40 +430,30 @@ export default function Settings() {
                     </div>
                   )}
 
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Username
-                    </label>
-                    <input
-                      type="text"
-                      value={accountForm.username}
-                      onChange={(e) => setAccountForm({...accountForm, username: e.target.value})}
-                      className="w-full px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
-                    />
                   </div>
-                </div>
 
-                {accountMsg && (
-                  <p className={`mt-4 text-sm ${accountMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                    {accountMsg.text}
-                  </p>
-                )}
+                  {accountMsg && (
+                    <p className={`mt-4 text-sm ${accountMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                      {accountMsg.text}
+                    </p>
+                  )}
 
-                {/* Buttons */}
-                <div className="flex flex-wrap gap-3 mt-6">
-                  <button
-                    type="submit"
-                    className="flex-1 sm:flex-none px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition"
-                  >
-                    Save Changes
-                  </button>
-                  <button
-                    type="button"
-                    onClick={loadUserData}
-                    className="flex-1 sm:flex-none px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
-                  >
-                    Cancel
-                  </button>
+                  {/* Buttons */}
+                  <div className="flex flex-wrap gap-3 mt-6">
+                    <button
+                      type="submit"
+                      className="flex-1 sm:flex-none px-6 py-3 bg-white text-black rounded-lg font-semibold hover:bg-gray-200 transition"
+                    >
+                      Save Changes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={loadUserData}
+                      className="flex-1 sm:flex-none px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg font-semibold transition"
+                    >
+                      Cancel
+                    </button>
+                  </div>
                 </div>
               </form>
             </div>
@@ -450,40 +520,64 @@ export default function Settings() {
               </form>
             </div>
 
-            {/* Delete Account */}
-            <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h2 className="text-xl font-semibold text-white mb-2">Delete Account</h2>
-              <p className="text-sm text-gray-400 mb-4">
-                Permanently delete your account and all associated data
-              </p>
-
-              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
-                <div className="flex gap-2">
-                  <span className="text-yellow-500">⚠️</span>
-                  <p className="text-yellow-500 text-sm">
-                    <strong>Warning:</strong> This action cannot be undone. All your data, including generations and personas will be permanently deleted.
-                  </p>
+            <details className="rounded-xl border border-red-500/20 bg-red-500/5">
+              <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-red-300 marker:hidden [&::-webkit-details-marker]:hidden">
+                <span className="flex items-center justify-between gap-4">
+                  Danger zone
+                  <span className="text-xs font-medium text-red-300/70">Delete account</span>
+                </span>
+              </summary>
+              <div className="border-t border-red-500/20 px-5 pb-5 pt-4">
+                <p className="text-sm text-gray-400 mb-4">Permanently delete your account and all associated data.</p>
+                <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 mb-4">
+                  <div className="flex gap-2">
+                    <span className="text-yellow-500">⚠️</span>
+                    <p className="text-yellow-500 text-sm">This action cannot be undone. Generations and personas will be permanently deleted.</p>
+                  </div>
                 </div>
+                <button
+                  onClick={handleDeleteAccount}
+                  className="min-h-11 px-5 py-2.5 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg text-sm font-semibold transition border border-red-500/30"
+                >
+                  Delete my account
+                </button>
               </div>
-
-              <button
-                onClick={handleDeleteAccount}
-                className="px-6 py-3 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg font-semibold transition border border-red-500/30"
-              >
-                Delete My Account
-              </button>
-            </div>
+            </details>
           </div>
         )}
 
-        {/* Preferences Tab */}
-        {activeTab === 'preferences' && (
+        {activeSection === 'advanced' && (
+          <div className="mb-5 grid grid-cols-3 gap-2 rounded-xl border border-gray-800 bg-dark-card p-2">
+            {[
+              ['preferences', 'Preferences'],
+              ['notifications', 'Alerts'],
+              ['aimodel', 'AI models'],
+            ].map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveAdvancedTab(tab)}
+                className={`min-h-11 rounded-lg px-2 py-2 text-xs font-semibold transition sm:text-sm ${
+                  activeAdvancedTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Advanced: preferences */}
+        {activeSection === 'advanced' && activeAdvancedTab === 'preferences' && (
           <div className="space-y-6">
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h2 className="text-xl font-semibold text-white mb-2">Prompt Information</h2>
-              <p className="text-sm text-gray-400 mb-6">Update your account details and profile picture</p>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h2 className="text-xl font-semibold text-white">Generation preferences</h2>
+                <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-400">Coming soon</span>
+              </div>
+              <p className="text-sm text-gray-400 mb-6">These controls will be available once they are connected to your account and generation workflow.</p>
 
-              <div className="space-y-6">
+              <div className="space-y-6 opacity-60">
                 <div className="flex items-center justify-between py-4 border-b border-gray-700">
                   <div>
                     <p className="text-white font-medium mb-1">Auto-enhance prompts</p>
@@ -491,11 +585,11 @@ export default function Settings() {
                       Automatically enhance prompts with your persona data
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={preferences.autoEnhancePrompts}
-                      onChange={(e) => setPreferences({...preferences, autoEnhancePrompts: e.target.checked})}
+                      checked
+                      disabled
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-pink rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-pink"></div>
@@ -509,11 +603,11 @@ export default function Settings() {
                       Save all generations to your history by default
                     </p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={preferences.saveToHistory}
-                      onChange={(e) => setPreferences({...preferences, saveToHistory: e.target.checked})}
+                      checked
+                      disabled
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-pink rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-pink"></div>
@@ -532,11 +626,11 @@ export default function Settings() {
                       </p>
                     </div>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={preferences.highQualityMode}
-                      onChange={(e) => setPreferences({...preferences, highQualityMode: e.target.checked})}
+                      checked={false}
+                      disabled
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-pink rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-pink"></div>
@@ -547,8 +641,8 @@ export default function Settings() {
           </div>
         )}
 
-        {/* AI Model Tab */}
-        {activeTab === 'aimodel' && (
+        {/* Advanced: AI models */}
+        {activeSection === 'advanced' && activeAdvancedTab === 'aimodel' && (
           <div className="bg-dark-card rounded-xl p-6 border border-gray-800 text-center py-12">
             <div className="text-6xl mb-4">🚀</div>
             <h2 className="text-2xl font-semibold text-white mb-3">Coming Soon</h2>
@@ -557,8 +651,29 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Usage & Limits Tab */}
-        {activeTab === 'usage' && (
+        {activeSection === 'plan' && (
+          <div className="mb-5 grid grid-cols-3 gap-2 rounded-xl border border-gray-800 bg-dark-card p-2">
+            {[
+              ['pricing', 'Plan'],
+              ['credits', 'Credits'],
+              ['usage', 'Activity'],
+            ].map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActivePlanTab(tab)}
+                className={`min-h-11 rounded-lg px-2 py-2 text-xs font-semibold transition sm:text-sm ${
+                  activePlanTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:bg-white/10 hover:text-white'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Plan & usage: activity */}
+        {activeSection === 'plan' && activePlanTab === 'usage' && (
           <div className="space-y-6">
             {/* Redeem a bonus-generation code */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
@@ -604,30 +719,18 @@ export default function Settings() {
             </div>
 
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h2 className="text-xl font-semibold text-white mb-2">Daily Usage</h2>
-              <p className="text-sm text-gray-400 mb-6">Track your generation usage for today</p>
+              <h2 className="text-xl font-semibold text-white mb-2">Today&apos;s activity</h2>
+              <p className="text-sm text-gray-400 mb-6">See what you&apos;ve generated today.</p>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 md:gap-6">
                 <div className="bg-black/40 rounded-xl p-4 md:p-6">
-                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Image Generations</p>
-                  <p className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">{stats.imagesUsedToday}/10</p>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-purple-500 h-2 rounded-full transition-all"
-                      style={{ width: `${(stats.imagesUsedToday / 10) * 100}%` }}
-                    ></div>
-                  </div>
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Images created</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white">{stats.imagesUsedToday}</p>
                 </div>
 
                 <div className="bg-black/40 rounded-xl p-4 md:p-6">
-                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Text Generations</p>
-                  <p className="text-2xl md:text-3xl font-bold text-white mb-3 md:mb-4">{stats.textUsedToday}/50</p>
-                  <div className="w-full bg-gray-700 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all"
-                      style={{ width: `${(stats.textUsedToday / 50) * 100}%` }}
-                    ></div>
-                  </div>
+                  <p className="text-gray-400 text-xs md:text-sm mb-1 md:mb-2">Text generated</p>
+                  <p className="text-2xl md:text-3xl font-bold text-white">{stats.textUsedToday}</p>
                 </div>
               </div>
             </div>
@@ -661,28 +764,32 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Pricing Tab */}
-        {activeTab === 'pricing' && <PricingPlans />}
+        {/* Plan & usage: billing */}
+        {activeSection === 'plan' && activePlanTab === 'pricing' && <PricingPlans />}
 
-        {activeTab === 'credits' && <CreditsWallet />}
+        {/* Plan & usage: credits */}
+        {activeSection === 'plan' && activePlanTab === 'credits' && <CreditsWallet />}
 
-        {/* Notifications Tab */}
-        {activeTab === 'notifications' && (
+        {/* Advanced: notifications */}
+        {activeSection === 'advanced' && activeAdvancedTab === 'notifications' && (
           <div className="space-y-6">
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
-              <h2 className="text-xl font-semibold text-white mb-2">Email Notifications</h2>
+              <div className="flex flex-wrap items-center gap-2 mb-2">
+                <h2 className="text-xl font-semibold text-white">Notifications</h2>
+                <span className="rounded-full bg-yellow-500/10 px-2 py-0.5 text-xs font-medium text-yellow-400">Coming soon</span>
+              </div>
+              <p className="mb-5 text-sm text-gray-400">Notification controls will appear here when they are available.</p>
               <div className="space-y-6">
-                {/* Toggles... */}
-                <div className="flex items-center justify-between py-4">
+                <div className="flex items-center justify-between rounded-lg border border-gray-800 bg-black/20 px-4 py-4 opacity-60">
                   <div>
                     <p className="text-white font-medium mb-1">Enable push notifications</p>
                     <p className="text-sm text-gray-400">Receive real-time updates in your browser</p>
                   </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
+                  <label className="relative inline-flex items-center cursor-not-allowed">
                     <input
                       type="checkbox"
-                      checked={notifications.pushNotifications}
-                      onChange={(e) => setNotifications({...notifications, pushNotifications: e.target.checked})}
+                      checked={false}
+                      disabled
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-700 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand-pink rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-brand-pink"></div>
@@ -693,9 +800,9 @@ export default function Settings() {
           </div>
         )}
 
-        {/* Referrals Tab */}
-        {activeTab === 'referrals' && (
-          <div className="space-y-6">
+        {/* Founder access */}
+        {activeSection === 'founder' && (
+          <div className="space-y-5 md:space-y-6">
 
             {/* Referral earnings dashboard */}
             <ReferralEarnings />
@@ -715,7 +822,7 @@ export default function Settings() {
               </p>
 
               {!user?.referralVerified && (
-                <form onSubmit={handleUnlockAccess} className="flex gap-3">
+                <form onSubmit={handleUnlockAccess} className="flex flex-col gap-3 sm:flex-row">
                   <input
                     type="text"
                     value={unlockCode}
@@ -727,7 +834,7 @@ export default function Settings() {
                   <button
                     type="submit"
                     disabled={unlockLoading || !unlockCode.trim()}
-                    className="px-5 py-2.5 bg-brand-pink text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-40"
+                    className="min-h-11 w-full px-5 py-2.5 bg-brand-pink text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 sm:w-auto"
                   >
                     {unlockLoading ? 'Checking...' : 'Unlock'}
                   </button>
@@ -749,13 +856,13 @@ export default function Settings() {
                 <div className="text-gray-500 text-sm">Loading...</div>
               ) : referralCode ? (
                 <>
-                  <div className="flex gap-3 mb-6">
-                    <div className="flex-1 px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg font-mono text-xl text-white tracking-widest text-center">
+                  <div className="flex flex-col gap-3 mb-6 sm:flex-row">
+                    <div className="w-full flex-1 px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg font-mono text-xl text-white tracking-widest text-center">
                       {referralCode.code}
                     </div>
                     <button
                       onClick={() => { navigator.clipboard.writeText(referralCode.code); alert('Code copied!'); }}
-                      className="px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition text-sm"
+                      className="min-h-11 w-full px-4 py-3 bg-dark-bg border border-gray-700 rounded-lg text-gray-400 hover:text-white hover:border-gray-500 transition text-sm sm:w-auto"
                     >
                       Copy
                     </button>
@@ -765,7 +872,7 @@ export default function Settings() {
                         navigator.clipboard.writeText(url);
                         alert('Invite link copied!');
                       }}
-                      className="px-4 py-3 bg-brand-pink/10 border border-brand-pink/30 rounded-lg text-brand-pink hover:bg-brand-pink/20 transition text-sm font-medium"
+                      className="min-h-11 w-full px-4 py-3 bg-brand-pink/10 border border-brand-pink/30 rounded-lg text-brand-pink hover:bg-brand-pink/20 transition text-sm font-medium sm:w-auto"
                     >
                       Copy Link
                     </button>
@@ -808,6 +915,7 @@ export default function Settings() {
             </div>
           </div>
         )}
+          </div>
       </div>
     </Layout>
   );
