@@ -25,12 +25,15 @@ export default function Login() {
     }
   }, []);
 
+  // Authorization-code flow: the browser never handles an access token. The
+  // one-time code is exchanged and audience-verified server-side.
   const handleGoogleLogin = useGoogleLogin({
-    onSuccess: async ({ access_token }) => {
+    flow: 'auth-code',
+    onSuccess: async ({ code }) => {
       setError('');
       setLoading(true);
       try {
-        await loginWithGoogle(access_token);
+        await loginWithGoogle(code);
         router.push('/dashboard');
       } catch (err) {
         setError('Google login failed. Please try again.');
