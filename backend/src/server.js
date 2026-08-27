@@ -1,7 +1,10 @@
+// Load environment variables before any local module is required — config modules
+// (ai.js, fal.js, database.js) read process.env at import time.
+require('dotenv').config();
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const dotenv = require('dotenv');
 const path = require('path');
 const { prisma, testConnection } = require('./config/database');
 const { testOpenAIConnection } = require('./config/ai');
@@ -15,8 +18,6 @@ const referralRoutes = require('./routes/referralRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const grantRoutes = require('./routes/grantRoutes');
 const { handleWebhook } = require('./controllers/billingController');
-
-dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 5000;

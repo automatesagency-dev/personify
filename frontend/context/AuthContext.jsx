@@ -60,8 +60,8 @@ export function AuthProvider({ children }) {
     return response.data;
   };
 
-  const loginWithGoogle = async (credential) => {
-    const response = await authAPI.googleAuth(credential);
+  const loginWithGoogle = async (code) => {
+    const response = await authAPI.googleAuth(code);
     const { user, token } = response.data;
     localStorage.setItem('token', token);
     setToken(token);

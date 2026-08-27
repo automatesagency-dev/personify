@@ -30,12 +30,14 @@ export default function Register() {
     }
   }, [searchParams]);
 
+  // Authorization-code flow — see the note in Login.jsx.
   const handleGoogleSignup = useGoogleLogin({
-    onSuccess: async ({ access_token }) => {
+    flow: 'auth-code',
+    onSuccess: async ({ code }) => {
       setError('');
       setLoading(true);
       try {
-        await loginWithGoogle(access_token);
+        await loginWithGoogle(code);
         router.push('/onboarding');
       } catch (err) {
         setError('Google sign up failed. Please try again.');

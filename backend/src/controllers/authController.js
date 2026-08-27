@@ -14,7 +14,15 @@ const { GENERATION_COST_CENTS } = require('../config/costs');
 // of the FRONTEND_URL CORS list; fall back to the first FRONTEND_URL entry.
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+// Google OAuth client for the authorization-code flow. The client secret is
+// required to exchange a code for tokens, and 'postmessage' is the redirect URI
+// reserved for the popup/JS code flow (it is not a real URL and does not need
+// registering in the Google console).
+const googleClient = new OAuth2Client(
+  process.env.GOOGLE_CLIENT_ID,
+  process.env.GOOGLE_CLIENT_SECRET,
+  'postmessage'
+);
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -354,24 +362,75 @@ async function updatePassword(req, res) {
   }
 }
 
+/**
+ * Google sign-in (authorization-code flow).
+ *
+ * SECURITY: the client sends a one-time authorization code, never an access
+ * token. We exchange it server-side (which requires the client secret, so only
+ * we can do it) and then verify the returned ID token's *audience* against our
+ * own client id.
+ *
+ * The audience check is the load-bearing part. Google's userinfo endpoint
+ * accepts any valid access token regardless of which OAuth app minted it, so
+ * trusting a caller-supplied access token would let anyone who can obtain a
+ * token for a victim — via their own Google app — sign in as that victim here.
+ * Never reintroduce a path that accepts an access token from the client.
+ */
 async function googleAuth(req, res) {
   try {
-    const { credential } = req.body;
-    if (!credential) return res.status(400).json({ error: 'Google credential is required' });
+    const { code } = req.body;
+    if (!code) return res.status(400).json({ error: 'Google authorization code is required' });
 
-    // Verify access token by fetching user info from Google
-    const googleRes = await fetch(`https://www.googleapis.com/oauth2/v3/userinfo`, {
-      headers: { Authorization: `Bearer ${credential}` }
-    });
-    if (!googleRes.ok) return res.status(401).json({ error: 'Invalid Google token' });
-    const googleProfile = await googleRes.json();
-    const { name, picture, sub: googleId } = googleProfile;
-    const email = normalizeEmail(googleProfile.email);
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error('Google auth is not configured: GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET missing');
+      return res.status(503).json({ error: 'Google sign-in is not available right now.' });
+    }
+
+    // Exchange the one-time code for tokens. Requires the client secret, so a
+    // code intercepted by a third party is useless without it.
+    let idToken;
+    try {
+      const { tokens } = await googleClient.getToken({ code, redirect_uri: 'postmessage' });
+      idToken = tokens.id_token;
+    } catch (e) {
+      console.warn('Google code exchange failed:', e.message);
+      return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+    }
+    if (!idToken) return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+
+    // Verify signature, issuer, expiry — and critically, that the token was
+    // issued for THIS application.
+    let payload;
+    try {
+      const ticket = await googleClient.verifyIdToken({
+        idToken,
+        audience: process.env.GOOGLE_CLIENT_ID
+      });
+      payload = ticket.getPayload();
+    } catch (e) {
+      console.warn('Google ID token verification failed:', e.message);
+      return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
+    }
+
+    const googleId = payload?.sub;
+    const name = payload?.name;
+    const picture = payload?.picture;
+    const email = normalizeEmail(payload?.email);
+
+    if (!googleId) return res.status(401).json({ error: 'Google sign-in failed. Please try again.' });
     if (!isValidEmail(email)) {
       return res.status(401).json({ error: 'Google did not return a valid email address' });
     }
+    // Only a Google-verified address may be used to match an existing account,
+    // otherwise an unverified Google address could claim someone else's login.
+    if (payload.email_verified !== true) {
+      return res.status(401).json({ error: 'Your Google email address is not verified.' });
+    }
 
-    let user = await findUserByEmail(email);
+    // Identity is keyed on the immutable Google subject id first; the verified
+    // email is used only to link a pre-existing password account on first use.
+    let user = await prisma.user.findUnique({ where: { googleId } });
+    if (!user) user = await findUserByEmail(email);
 
     if (user) {
       // Update googleId and picture if missing
@@ -399,9 +458,10 @@ async function googleAuth(req, res) {
       });
 
       // Auto-generate personal referral code for new Google user
+      // (named referralCode, not code — `code` is the Google auth code above)
       try {
-        const code = await generateUniqueCode();
-        await prisma.referralCode.create({ data: { code, ownerId: user.id, maxUses: 5 } });
+        const referralCode = await generateUniqueCode();
+        await prisma.referralCode.create({ data: { code: referralCode, ownerId: user.id, maxUses: 5 } });
       } catch (e) {
         console.error('Failed to create referral code for Google user:', e.message);
       }
