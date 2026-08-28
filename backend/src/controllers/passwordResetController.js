@@ -1,7 +1,7 @@
 const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
-const crypto = require('crypto');
 const { sendPasswordResetEmail } = require('../config/email');
+const { createSecureToken, hashToken, TTL } = require('../utils/tokens');
 
 // Canonical public app URL for links in emails (see authController for rationale).
 const APP_URL = () => (process.env.APP_URL || (process.env.FRONTEND_URL || '').split(',')[0] || '').trim().replace(/\/+$/, '');
@@ -29,16 +29,14 @@ async function requestPasswordReset(req, res) {
       });
     }
 
-    // Generate reset token
-    const resetToken = crypto.randomBytes(32).toString('hex');
-    const resetTokenExpiry = new Date(Date.now() + 3600000); // 1 hour from now
+    // Only the hash is persisted; the raw token exists solely in the emailed link.
+    const { token: resetToken, tokenHash, expiresAt } = createSecureToken(TTL.passwordReset);
 
-    // Save token to database
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        resetPasswordToken: resetToken,
-        resetPasswordExpires: resetTokenExpiry
+        resetPasswordToken: tokenHash,
+        resetPasswordExpires: expiresAt
       }
     });
 
@@ -76,10 +74,10 @@ async function resetPassword(req, res) {
       });
     }
 
-    // Find user with valid token
+    // Look the token up by hash — the stored value is never the emailed one.
     const user = await prisma.user.findFirst({
       where: {
-        resetPasswordToken: token,
+        resetPasswordToken: hashToken(token),
         resetPasswordExpires: {
           gte: new Date() // Token hasn't expired
         }

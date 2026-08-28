@@ -1,5 +1,5 @@
-const crypto = require('crypto');
 const { prisma } = require('../config/database');
+const { createSecureToken, hashToken, TTL } = require('../utils/tokens');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
 const { OAuth2Client } = require('google-auth-library');
@@ -90,9 +90,8 @@ async function register(req, res) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Email verification token (valid 24h)
-    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
-    const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    // Email verification token (valid 24h). Only the hash is stored.
+    const verification = createSecureToken(TTL.emailVerification);
 
     // Create user
     const user = await prisma.user.create({
@@ -101,8 +100,8 @@ async function register(req, res) {
         password: hashedPassword,
         name: name || null,
         marketingConsent: !!marketingConsent,
-        emailVerifyToken,
-        emailVerifyExpires
+        emailVerifyToken: verification.tokenHash,
+        emailVerifyExpires: verification.expiresAt
       },
       select: {
         id: true,
@@ -123,7 +122,7 @@ async function register(req, res) {
 
     // Send verification email (non-fatal — user can request a resend later)
     try {
-      await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${emailVerifyToken}`);
+      await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${verification.token}`);
     } catch (e) {
       console.error('Failed to send verification email:', e.message);
     }
@@ -252,6 +251,7 @@ async function updateProfile(req, res) {
     }
 
     const updateData = {};
+    let rawVerificationToken = null;
     if (name !== undefined) updateData.name = name;
 
     if (req.body.email !== undefined && !email) {
@@ -287,8 +287,10 @@ async function updateProfile(req, res) {
       }
       updateData.email = email;
       updateData.emailVerified = false;
-      updateData.emailVerifyToken = crypto.randomBytes(32).toString('hex');
-      updateData.emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+      const verification = createSecureToken(TTL.emailVerification);
+      updateData.emailVerifyToken = verification.tokenHash;
+      updateData.emailVerifyExpires = verification.expiresAt;
+      rawVerificationToken = verification.token;
     }
 
     const updatedUser = await prisma.user.update({
@@ -308,7 +310,7 @@ async function updateProfile(req, res) {
         await sendVerificationEmail(
           updatedUser.email,
           updatedUser.name,
-          `${APP_URL()}/verify-email?token=${updateData.emailVerifyToken}`
+          `${APP_URL()}/verify-email?token=${rawVerificationToken}`
         );
       } catch (emailError) {
         console.error('Failed to send email-change verification:', emailError.message);
@@ -594,7 +596,7 @@ async function verifyEmail(req, res) {
     if (!token) return res.status(400).json({ error: 'Verification token is required' });
 
     const user = await prisma.user.findFirst({
-      where: { emailVerifyToken: token, emailVerifyExpires: { gte: new Date() } }
+      where: { emailVerifyToken: hashToken(token), emailVerifyExpires: { gte: new Date() } }
     });
 
     if (!user) {
@@ -623,15 +625,14 @@ async function resendVerification(req, res) {
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.emailVerified) return res.json({ message: 'Email already verified', alreadyVerified: true });
 
-    const emailVerifyToken = crypto.randomBytes(32).toString('hex');
-    const emailVerifyExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    const verification = createSecureToken(TTL.emailVerification);
 
     await prisma.user.update({
       where: { id: userId },
-      data: { emailVerifyToken, emailVerifyExpires }
+      data: { emailVerifyToken: verification.tokenHash, emailVerifyExpires: verification.expiresAt }
     });
 
-    await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${emailVerifyToken}`);
+    await sendVerificationEmail(user.email, user.name, `${APP_URL()}/verify-email?token=${verification.token}`);
 
     res.json({ message: 'Verification email sent' });
   } catch (error) {
