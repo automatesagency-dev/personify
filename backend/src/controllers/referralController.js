@@ -125,10 +125,6 @@ async function getMyCode(req, res) {
 // POST /admin/referral/generate — admin generates campaign codes
 async function adminGenerateCodes(req, res) {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const { count = 1, maxUses = 5 } = req.body;
     const safeCount = Math.min(Math.max(1, count), 100);
     const safeMaxUses = maxUses === 0 ? -1 : maxUses; // 0 means unlimited
@@ -152,10 +148,6 @@ async function adminGenerateCodes(req, res) {
 // GET /admin/referral/codes — admin views all campaign codes + usage
 async function adminGetCodes(req, res) {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const codes = await prisma.referralCode.findMany({
       where: { ownerId: null },
       include: {
@@ -177,10 +169,6 @@ async function adminGetCodes(req, res) {
 // PATCH /admin/referral/codes/:id/toggle — revoke or reactivate a code
 async function adminToggleCode(req, res) {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const { id } = req.params;
     const code = await prisma.referralCode.findUnique({ where: { id } });
     if (!code) return res.status(404).json({ error: 'Code not found' });
@@ -200,10 +188,6 @@ async function adminToggleCode(req, res) {
 // GET /admin/referral/stats — overview stats for admin dashboard
 async function adminGetStats(req, res) {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const [totalUsers, verifiedUsers, totalCodes, totalRedemptions] = await Promise.all([
       prisma.user.count(),
       prisma.user.count({ where: { referralVerified: true } }),

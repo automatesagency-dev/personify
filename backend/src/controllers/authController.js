@@ -468,10 +468,6 @@ async function googleAuth(req, res) {
 
 async function getAdminUsers(req, res) {
   try {
-    if (!req.user.isAdmin) {
-      return res.status(403).json({ error: 'Access denied' });
-    }
-
     const users = await prisma.user.findMany({
       select: {
         id: true,
@@ -495,7 +491,6 @@ async function getAdminUsers(req, res) {
 }
 
 async function getAdminOverview(req, res) {
-  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const [totalUsers, googleUsers, usersWithPersona, publishedPages, totalGenerations] = await Promise.all([
       prisma.user.count(),
@@ -559,7 +554,6 @@ async function getAdminOverview(req, res) {
 }
 
 async function getAdminAllGenerations(req, res) {
-  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const generations = await prisma.generation.findMany({
       take: 500,
@@ -632,7 +626,6 @@ async function resendVerification(req, res) {
 
 // GET /auth/admin/financials — revenue/margin/cost + referral affiliate stats
 async function getAdminFinancials(req, res) {
-  if (!req.user.isAdmin) return res.status(403).json({ error: 'Access denied' });
   try {
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
