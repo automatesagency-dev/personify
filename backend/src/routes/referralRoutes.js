@@ -9,15 +9,15 @@ const {
   adminGetStats,
   getReferralEarnings
 } = require('../controllers/referralController');
-const { authenticateUser } = require('../middleware/authMiddleware');
+const { authenticateUser, requireAdmin } = require('../middleware/authMiddleware');
 
 router.post('/use', authenticateUser, useCode);
 router.get('/my-code', authenticateUser, getMyCode);
 router.get('/earnings', authenticateUser, getReferralEarnings);
 
-router.get('/admin/stats', authenticateUser, adminGetStats);
-router.post('/admin/generate', authenticateUser, adminGenerateCodes);
-router.get('/admin/codes', authenticateUser, adminGetCodes);
-router.patch('/admin/codes/:id/toggle', authenticateUser, adminToggleCode);
+router.get('/admin/stats', authenticateUser, requireAdmin, adminGetStats);
+router.post('/admin/generate', authenticateUser, requireAdmin, adminGenerateCodes);
+router.get('/admin/codes', authenticateUser, requireAdmin, adminGetCodes);
+router.patch('/admin/codes/:id/toggle', authenticateUser, requireAdmin, adminToggleCode);
 
 module.exports = router;

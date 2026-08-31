@@ -49,6 +49,20 @@ async function authenticateUser(req, res, next) {
   }
 }
 
+// Restrict a route to administrators.
+//
+// Authorization belongs on the route, not inside each handler. It was
+// previously copy-pasted into eleven controllers, which made an admin endpoint
+// indistinguishable from an ordinary authenticated one at the routing layer —
+// so a single omission in a new handler would expose every user's email,
+// revenue figures and prompt history. Must run after authenticateUser.
+function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+}
+
 // Require a verified email for gated actions (e.g. content generation).
 // Must run after authenticateUser so req.user is populated.
 function requireVerifiedEmail(req, res, next) {
@@ -74,4 +88,4 @@ function requireFounderAccess(req, res, next) {
   next();
 }
 
-module.exports = { authenticateUser, requireVerifiedEmail, requireFounderAccess };
+module.exports = { authenticateUser, requireAdmin, requireVerifiedEmail, requireFounderAccess };
