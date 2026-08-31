@@ -1,6 +1,7 @@
 const { prisma } = require('../config/database');
 const bcrypt = require('bcryptjs');
 const { sendPasswordResetEmail } = require('../config/email');
+const { findUserByEmail } = require('../utils/email');
 const { createSecureToken, hashToken, TTL } = require('../utils/tokens');
 
 // Canonical public app URL for links in emails (see authController for rationale).
@@ -17,10 +18,11 @@ async function requestPasswordReset(req, res) {
       });
     }
 
-    // Find user by email
-    const user = await prisma.user.findUnique({
-      where: { email }
-    });
+    // Case-insensitive, normalized lookup — the same helper every other auth
+    // path uses. Querying `email` directly meant accounts created before email
+    // canonicalization could never reset their password, and it presented as a
+    // mail-delivery problem rather than a bug.
+    const user = await findUserByEmail(email);
 
     if (!user) {
       // Don't reveal if user exists or not (security best practice)
