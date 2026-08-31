@@ -18,6 +18,7 @@ const referralRoutes = require('./routes/referralRoutes');
 const billingRoutes = require('./routes/billingRoutes');
 const grantRoutes = require('./routes/grantRoutes');
 const { handleWebhook } = require('./controllers/billingController');
+const { notFound, errorHandler } = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -45,7 +46,9 @@ app.use(cors({
         if (!origin || allowedOrigins.includes(origin)) {
           callback(null, true);
         } else {
-          callback(new Error(`CORS blocked: ${origin}`));
+          const error = new Error(`CORS blocked: ${origin}`);
+          error.code = 'CORS_BLOCKED';
+          callback(error);
         }
       }
     : true,
@@ -87,6 +90,13 @@ app.use('/api/upload', require('./routes/upload'));
 app.use('/api/referral', referralRoutes);
 app.use('/api/billing', billingRoutes);
 app.use('/api/grant', grantRoutes);
+
+// Unmatched paths return JSON, not Express's HTML 404.
+app.use(notFound);
+
+// Terminal error handler — must be last, and must take four arguments for
+// Express to recognise it as an error handler.
+app.use(errorHandler);
 
 // Start server
 const server = app.listen(PORT, async () => {
