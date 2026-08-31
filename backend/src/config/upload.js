@@ -12,9 +12,14 @@ const fileFilter = (req, file, cb) => {
 
   if (mimetype && extname) {
     return cb(null, true);
-  } else {
-    cb(new Error('Only image files are allowed (jpeg, jpg, png, gif, webp, heic)'));
   }
+
+  // Tagged so the error handler can map it to a 400 without matching on the
+  // message text. Note this checks the declared type only — the controllers
+  // additionally verify the file's magic bytes before storing it.
+  const error = new Error('Only image files are allowed (jpeg, jpg, png, gif, webp, heic)');
+  error.code = 'INVALID_FILE_TYPE';
+  cb(error);
 };
 
 // Configure multer
