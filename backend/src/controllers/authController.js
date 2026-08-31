@@ -1,4 +1,5 @@
 const { prisma } = require('../config/database');
+const { normalizeEmail, isValidEmail, findUserByEmail } = require('../utils/email');
 const { createSecureToken, hashToken, TTL } = require('../utils/tokens');
 const { hashPassword, comparePassword } = require('../config/auth');
 const { generateToken } = require('../config/jwt');
@@ -24,21 +25,9 @@ const googleClient = new OAuth2Client(
   'postmessage'
 );
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-function normalizeEmail(email) {
-  return typeof email === 'string' ? email.trim().toLowerCase() : '';
-}
-
-function isValidEmail(email) {
-  return email.length <= 254 && EMAIL_REGEX.test(email);
-}
-
-async function findUserByEmail(email) {
-  return prisma.user.findFirst({
-    where: { email: { equals: email, mode: 'insensitive' } }
-  });
-}
+// normalizeEmail / isValidEmail / findUserByEmail live in utils/email so every
+// auth path shares one lookup. Password reset was the odd one out and silently
+// failed for accounts created before email canonicalization.
 
 function serializeUser(user) {
   const {
