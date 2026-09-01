@@ -6,6 +6,7 @@ const {
   upsertFounderPage,
   publishFounderPage,
   getPublicFounderPage,
+  listPublishedFounderPages,
   previewFounderPage,
   checkUsername,
   deleteFounderPage
@@ -19,7 +20,10 @@ router.get('/preview', authenticateUser, requireFounderAccess, previewFounderPag
 router.get('/check-username/:username', authenticateUser, checkUsername);
 router.delete('/', authenticateUser, requireFounderAccess, deleteFounderPage);
 
-// Public route (no auth required)
+// Public routes (no auth required)
+// Note: /published must be declared before /public/:username is irrelevant here
+// (different prefixes), but keep both grouped so the public surface is obvious.
+router.get('/published', listPublishedFounderPages);
 router.get('/public/:username', getPublicFounderPage);
 
 module.exports = router;

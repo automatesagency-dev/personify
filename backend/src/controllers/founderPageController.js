@@ -165,6 +165,35 @@ async function getPublicFounderPage(req, res) {
 }
 
 // =====================================
+// List Published Pages (public — powers the sitemap)
+// =====================================
+// Returns only what a sitemap needs: the public slug and when it last changed.
+// No profile content, no owner details. Everything here is already reachable
+// at /:username, so this exposes nothing that was not already public.
+const SITEMAP_MAX = 5000;
+
+async function listPublishedFounderPages(req, res) {
+  try {
+    const pages = await prisma.founderPage.findMany({
+      where: { published: true },
+      select: { username: true, updatedAt: true },
+      orderBy: { updatedAt: 'desc' },
+      take: SITEMAP_MAX
+    });
+
+    // If this ever hits the cap the sitemap is silently truncated, so say so.
+    if (pages.length === SITEMAP_MAX) {
+      console.warn(`⚠️  Published page list hit the ${SITEMAP_MAX} cap — sitemap needs pagination.`);
+    }
+
+    res.json({ pages, count: pages.length });
+  } catch (error) {
+    console.error('List published founder pages error:', error);
+    res.status(500).json({ error: 'Failed to list published pages' });
+  }
+}
+
+// =====================================
 // Preview Own Founder Page (auth, ignores published)
 // =====================================
 async function previewFounderPage(req, res) {
@@ -236,6 +265,7 @@ async function deleteFounderPage(req, res) {
 
 module.exports = {
   getFounderPage,
+  listPublishedFounderPages,
   upsertFounderPage,
   publishFounderPage,
   getPublicFounderPage,

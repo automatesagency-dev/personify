@@ -39,6 +39,28 @@ export async function fetchPublicFounderPage(username) {
   }
 }
 
+/**
+ * Every published Founder Page, for the sitemap: just the slug and when it
+ * last changed. Returns [] on failure — a sitemap missing the dynamic entries
+ * is far better than a sitemap route that 500s.
+ */
+export async function fetchPublishedFounderPages() {
+  try {
+    const res = await fetch(`${API_BASE}/founder-page/published`, {
+      next: { revalidate: FOUNDER_PAGE_REVALIDATE },
+    });
+    if (!res.ok) {
+      console.error(`Published page list failed: HTTP ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    return Array.isArray(data?.pages) ? data.pages : [];
+  } catch (err) {
+    console.error('Published page list failed:', err.message);
+    return [];
+  }
+}
+
 /** First non-empty trimmed string from the arguments, or ''. */
 function firstOf(...values) {
   for (const v of values) {
