@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, Suspense } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
 import founderPageAPI from '../services/founderPageAPI';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -83,37 +82,31 @@ function FAQAccordion({ faqs, dark = false }) {
 
 // ── Router ───────────────────────────────────────────────────────────────────
 
-function PublicFounderPageInner() {
-  const params = useParams();
-  const username = params?.username;
-  const searchParams = useSearchParams();
-  const isPreview = searchParams.get('preview') === 'true';
+// Renders a Founder Page. `page` is supplied by the server component, so the
+// full page is present in the initial HTML — this component still runs on the
+// server for that first render, and only hydrates for the interactive pieces
+// (share button, FAQ accordion).
+//
+// Preview is the one exception: it shows the owner their unpublished page and
+// needs their auth token, which only exists in the browser, so that path
+// fetches client-side and shows a loading state.
+function PublicFounderPagePreview() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(null);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const loadPage = async () => {
-      try {
-        setLoading(true);
-        const response = isPreview
-          ? await founderPageAPI.getPreview()
-          : await founderPageAPI.getPublic(username);
-        setPage(response.data.founderPage);
-      } catch (err) {
-        setError(err.response?.data?.error || 'Page not found');
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadPage();
-  }, [username, isPreview]);
+    founderPageAPI.getPreview()
+      .then(res => setPage(res.data.founderPage))
+      .catch(err => setError(err.response?.data?.error || 'Page not found'))
+      .finally(() => setLoading(false));
+  }, []);
 
   if (loading) return (
     <div className="min-h-screen bg-black flex items-center justify-center text-white">
       <div className="text-center">
         <div className="animate-spin text-4xl mb-4">⏳</div>
-        <p>Loading...</p>
+        <p>Loading preview...</p>
       </div>
     </div>
   );
@@ -122,15 +115,19 @@ function PublicFounderPageInner() {
     <div className="min-h-screen bg-black flex items-center justify-center text-white p-6">
       <div className="text-center">
         <div className="text-6xl mb-4">😕</div>
-        <h1 className="text-2xl mb-2">Page Not Found</h1>
-        <p className="text-gray-400 mb-6">{error || 'This page does not exist.'}</p>
-        <a href="https://personify.so" className="inline-block px-6 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition">
-          Go to Personify
+        <h1 className="text-2xl mb-2">Preview unavailable</h1>
+        <p className="text-gray-400 mb-6">{error || 'No founder page found.'}</p>
+        <a href="/founder-page" className="inline-block px-6 py-3 bg-white text-black rounded-lg font-bold hover:bg-gray-200 transition">
+          Back to editor
         </a>
       </div>
     </div>
   );
 
+  return <FounderPageBody page={page} isPreview />;
+}
+
+function FounderPageBody({ page, isPreview = false }) {
   return (
     <>
       {isPreview && (
@@ -152,12 +149,15 @@ function PublicFounderPageInner() {
   );
 }
 
-export default function PublicFounderPage() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white"><p>Loading...</p></div>}>
-      <PublicFounderPageInner />
-    </Suspense>
-  );
+export default function PublicFounderPage({ page, preview = false }) {
+  if (preview) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-black" />}>
+        <PublicFounderPagePreview />
+      </Suspense>
+    );
+  }
+  return <FounderPageBody page={page} />;
 }
 
 // ── VISIONARY TEMPLATE ────────────────────────────────────────────────────────
