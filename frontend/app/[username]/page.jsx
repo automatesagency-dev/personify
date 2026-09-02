@@ -31,7 +31,7 @@ export async function generateMetadata({ params, searchParams }) {
     // `absolute` opts out of the root title template: this is the founder's own
     // page and their name should own the title. The brand is still carried by
     // og:site_name, and appending it here produced a double em-dash
-    // ("Dan Giang — Creative Technologist — Personify").
+    // ("Dan Giang | Creative Technologist | Personify").
     title: { absolute: seo.title },
     description: seo.description,
     alternates: { canonical: `/${username}` },

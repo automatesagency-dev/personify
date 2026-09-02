@@ -10,7 +10,7 @@ const CATEGORY_COLORS = {
   'Founder Page': 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400',
 };
 
-// Bare title — the root layout's template appends " — Personify".
+// Bare title: the root layout's template appends " | Personify".
 export const metadata = {
   title: 'Blog',
   description: 'Tutorials and guides on how to use Personify to build your personal brand with AI.',

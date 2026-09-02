@@ -82,7 +82,7 @@ export function founderPageSeo(page, username) {
   const tagline = firstOf(basic.tagline, ecom.tagline);
   const about = firstOf(basic.about1, basic.about2);
 
-  const title = role ? `${name} — ${role}` : name;
+  const title = role ? `${name} | ${role}` : name;
 
   let description = firstOf(tagline, about, `${name} on Personify.`);
   if (description.length > 300) description = `${description.slice(0, 297).trimEnd()}…`;

@@ -25,8 +25,8 @@ export const metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
     default: SITE_TITLE,
-    // Pages set a bare title ("Blog") and get "Blog — Personify".
-    template: `%s — ${SITE_NAME}`,
+    // Pages set a bare title ("Blog") and get "Blog | Personify".
+    template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
   applicationName: SITE_NAME,

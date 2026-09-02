@@ -7,7 +7,7 @@ import { ImageResponse } from 'next/og';
 // Generated rather than committed as a binary so it can never drift from the
 // brand, and so there is no 1200x630 asset to maintain by hand.
 
-export const alt = 'Personify — AI-Powered Personal Branding';
+export const alt = 'Personify | AI-Powered Personal Branding';
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
 

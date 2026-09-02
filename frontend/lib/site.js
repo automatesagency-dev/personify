@@ -11,4 +11,4 @@ export const SITE_NAME = "Personify";
 export const SITE_TITLE = "Personify | AI-Powered Personal Branding";
 
 export const SITE_DESCRIPTION =
-  "Generate studio-quality AI photos of yourself and publish a Founder Page that showcases your story, services and work — personal branding without the photoshoot.";
+  "Generate studio-quality AI photos of yourself and publish a Founder Page that showcases your story, services and work. Personal branding without the photoshoot.";
