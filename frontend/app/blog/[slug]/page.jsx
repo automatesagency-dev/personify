@@ -11,9 +11,11 @@ export function generateStaticParams() {
 export function generateMetadata({ params }) {
   const post = getPost(params.slug);
   if (!post) return {};
+  // Bare title — the root layout's template appends " — Personify".
   return {
-    title: `${post.title} — Personify Blog`,
-    description: post.description
+    title: post.title,
+    description: post.description,
+    alternates: { canonical: `/blog/${post.slug}` }
   };
 }
 

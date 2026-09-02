@@ -5,9 +5,9 @@
 // loading spinner — search engines, link unfurlers (LinkedIn, X, Slack) and AI
 // crawlers all saw nothing, and every page shared the same generic title.
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
+import { SITE_URL } from './site';
 
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://personify.so').replace(/\/+$/, '');
+const API_BASE = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api').replace(/\/+$/, '');
 
 // How long a rendered page stays cached before being re-fetched (seconds).
 export const FOUNDER_PAGE_REVALIDATE = 3600;
