@@ -1,10 +1,6 @@
 import { notFound } from 'next/navigation';
 import PublicFounderPage from '../../views/PublicFounderPage';
-import {
-  fetchPublicFounderPage,
-  founderPageSeo,
-  SITE_URL,
-} from '../../lib/founderPage';
+import { fetchPublicFounderPage, founderPageSeo } from '../../lib/founderPage';
 
 // Rendered on the server and cached. Founder Pages change rarely, so an hour of
 // staleness is a fair trade for pages that are served instantly and are fully
@@ -31,8 +27,12 @@ export async function generateMetadata({ params, searchParams }) {
   const seo = founderPageSeo(page, username);
 
   return {
-    metadataBase: new URL(SITE_URL),
-    title: seo.title,
+    // metadataBase is inherited from the root layout.
+    // `absolute` opts out of the root title template: this is the founder's own
+    // page and their name should own the title. The brand is still carried by
+    // og:site_name, and appending it here produced a double em-dash
+    // ("Dan Giang | Creative Technologist | Personify").
+    title: { absolute: seo.title },
     description: seo.description,
     alternates: { canonical: `/${username}` },
     openGraph: {

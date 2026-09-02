@@ -1,4 +1,4 @@
-import { SITE_URL } from '../lib/founderPage';
+import { SITE_URL } from '../lib/site';
 
 // Authenticated application screens. These render nothing useful without a
 // session, so crawling them wastes budget — and it kept the admin path in

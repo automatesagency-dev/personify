@@ -1,5 +1,6 @@
 import { BLOG_POSTS } from '../lib/blogPosts';
-import { SITE_URL, fetchPublishedFounderPages } from '../lib/founderPage';
+import { SITE_URL } from '../lib/site';
+import { fetchPublishedFounderPages } from '../lib/founderPage';
 
 // Regenerated hourly, matching the Founder Page cache.
 export const revalidate = 3600;
