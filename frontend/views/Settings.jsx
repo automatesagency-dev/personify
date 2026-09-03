@@ -78,9 +78,9 @@ export default function Settings() {
   const [grantCodeInput, setGrantCodeInput] = useState('');
   const [grantRedeeming, setGrantRedeeming] = useState(false);
   const [grantMsg, setGrantMsg] = useState(null);
-  const [unlockCode, setUnlockCode] = useState('');
-  const [unlockLoading, setUnlockLoading] = useState(false);
-  const [unlockMsg, setUnlockMsg] = useState(null);
+  const [referralCodeInput, setReferralCodeInput] = useState('');
+  const [applyingReferralCode, setApplyingReferralCode] = useState(false);
+  const [referralApplyMsg, setReferralApplyMsg] = useState(null);
   const [stats, setStats] = useState({
     imagesUsedToday: 0,
     textUsedToday: 0,
@@ -128,19 +128,19 @@ export default function Settings() {
     }
   };
 
-  const handleUnlockAccess = async (e) => {
+  const handleApplyReferralCode = async (e) => {
     e.preventDefault();
-    setUnlockMsg(null);
-    setUnlockLoading(true);
+    setReferralApplyMsg(null);
+    setApplyingReferralCode(true);
     try {
-      await referralAPI.useCode(unlockCode.trim());
+      await referralAPI.useCode(referralCodeInput.trim());
       await refreshUser();
-      setUnlockMsg({ type: 'success', text: 'Access unlocked! You can now use the Founder Page.' });
-      setUnlockCode('');
+      setReferralApplyMsg({ type: 'success', text: 'Referral code applied — thanks for joining through an invite!' });
+      setReferralCodeInput('');
     } catch (err) {
-      setUnlockMsg({ type: 'error', text: err.response?.data?.error || 'Invalid code.' });
+      setReferralApplyMsg({ type: 'error', text: err.response?.data?.error || 'Invalid code.' });
     } finally {
-      setUnlockLoading(false);
+      setApplyingReferralCode(false);
     }
   };
 
@@ -807,42 +807,46 @@ export default function Settings() {
             {/* Referral earnings dashboard */}
             <ReferralEarnings />
 
-            {/* Founder Page access status */}
+            {/* Apply a referral code (doesn't gate any feature — it just links
+                you to whoever invited you, so they can earn a commission if
+                you later subscribe). */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
               <div className="flex items-center gap-3 mb-1">
-                <h2 className="text-xl font-semibold text-white">Founder Page Access</h2>
-                <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${user?.referralVerified ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
-                  {user?.referralVerified ? 'Unlocked' : 'Locked'}
-                </span>
+                <h2 className="text-xl font-semibold text-white">Referral Code</h2>
+                {user?.referralVerified && (
+                  <span className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-500/20 text-green-400">
+                    Applied
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-400 mb-5">
                 {user?.referralVerified
-                  ? 'You have full access to the Founder Page builder.'
-                  : 'Enter an access code to unlock the Founder Page feature.'}
+                  ? "You've already applied a referral code."
+                  : 'Have a referral code from a friend? Apply it to credit them.'}
               </p>
 
               {!user?.referralVerified && (
-                <form onSubmit={handleUnlockAccess} className="flex flex-col gap-3 sm:flex-row">
+                <form onSubmit={handleApplyReferralCode} className="flex flex-col gap-3 sm:flex-row">
                   <input
                     type="text"
-                    value={unlockCode}
-                    onChange={e => setUnlockCode(e.target.value.toUpperCase())}
-                    placeholder="Enter access code"
+                    value={referralCodeInput}
+                    onChange={e => setReferralCodeInput(e.target.value.toUpperCase())}
+                    placeholder="Enter referral code"
                     maxLength={8}
                     className="flex-1 px-4 py-2.5 bg-dark-bg border border-gray-700 rounded-lg text-sm font-mono text-white placeholder:text-gray-600 placeholder:font-sans outline-none focus:border-brand-pink transition"
                   />
                   <button
                     type="submit"
-                    disabled={unlockLoading || !unlockCode.trim()}
+                    disabled={applyingReferralCode || !referralCodeInput.trim()}
                     className="min-h-11 w-full px-5 py-2.5 bg-brand-pink text-white rounded-lg text-sm font-semibold hover:opacity-90 transition disabled:opacity-40 sm:w-auto"
                   >
-                    {unlockLoading ? 'Checking...' : 'Unlock'}
+                    {applyingReferralCode ? 'Checking...' : 'Apply'}
                   </button>
                 </form>
               )}
-              {unlockMsg && (
-                <p className={`mt-3 text-sm ${unlockMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                  {unlockMsg.text}
+              {referralApplyMsg && (
+                <p className={`mt-3 text-sm ${referralApplyMsg.type === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  {referralApplyMsg.text}
                 </p>
               )}
             </div>
@@ -850,7 +854,7 @@ export default function Settings() {
             {/* Personal referral code */}
             <div className="bg-dark-card rounded-xl p-6 border border-gray-800">
               <h2 className="text-xl font-semibold text-white mb-1">Your Invite Code</h2>
-              <p className="text-sm text-gray-400 mb-5">Share this code with up to 5 people to give them access to the Founder Page.</p>
+              <p className="text-sm text-gray-400 mb-5">Share this code with up to 5 people — you'll earn a commission if they subscribe.</p>
 
               {referralLoading ? (
                 <div className="text-gray-500 text-sm">Loading...</div>
