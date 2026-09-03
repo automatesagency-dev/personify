@@ -93,3 +93,106 @@ export function founderPageSeo(page, username) {
 
   return { name, title, description, image, url: `${SITE_URL}/${username}` };
 }
+
+// Preset FAQ questions. Shared with the renderer so the markup below and the
+// visible accordion can never describe different questions.
+export const FAQ_PRESET_QUESTIONS = {
+  connections: 'How will your connections help me grow my business?',
+  contact: 'Where can I contact you?',
+};
+
+/**
+ * Schema.org JSON-LD for a Founder Page.
+ *
+ * This is the machine-readable layer search engines and AI assistants read to
+ * understand that a page is about a *person*, which is what can place a founder
+ * in a knowledge panel or a people-shaped answer.
+ *
+ * Rules applied throughout:
+ *  - only emit a field when there is real content for it; the stored JSON uses
+ *    empty strings rather than nulls, so every value is trimmed and checked
+ *  - only describe what is actually rendered on the page
+ *  - `sameAs` is deliberately omitted: the stored social values are free-text
+ *    handles ("@luxbykate", "jo"), not the absolute profile URLs the property
+ *    requires. Emitting handles would be invalid markup.
+ */
+export function founderPageJsonLd(page, username) {
+  if (!page) return null;
+
+  const seo = founderPageSeo(page, username);
+  const basic = page.basicInfo || {};
+  const contact = page.contact || {};
+  const pageUrl = `${SITE_URL}/${username}`;
+
+  const person = {
+    '@type': 'Person',
+    '@id': `${pageUrl}#person`,
+    name: seo.name,
+    url: pageUrl,
+  };
+
+  const jobTitle = firstOf(basic.title);
+  if (jobTitle) person.jobTitle = jobTitle;
+
+  const about = firstOf(basic.about1, basic.about2, basic.tagline);
+  if (about) person.description = about;
+
+  if (seo.image) person.image = seo.image;
+
+  const locality = firstOf(contact.location);
+  if (locality) {
+    person.address = { '@type': 'PostalAddress', addressLocality: locality };
+  }
+
+  // Services the founder offers, when they have actually been filled in.
+  const services = Array.isArray(page.services) ? page.services : [];
+  const offers = services
+    .filter((s) => s && firstOf(s.title))
+    .map((s) => {
+      const offer = {
+        '@type': 'Offer',
+        itemOffered: { '@type': 'Service', name: firstOf(s.title) },
+      };
+      const desc = firstOf(s.description);
+      if (desc) offer.itemOffered.description = desc;
+      return offer;
+    });
+  if (offers.length) person.makesOffer = offers;
+
+  const graph = [
+    {
+      '@type': 'ProfilePage',
+      '@id': pageUrl,
+      url: pageUrl,
+      name: seo.title,
+      ...(seo.description ? { description: seo.description } : {}),
+      mainEntity: { '@id': `${pageUrl}#person` },
+      isPartOf: { '@type': 'WebSite', '@id': `${SITE_URL}#website`, name: 'Personify', url: SITE_URL },
+    },
+    person,
+  ];
+
+  // Only the founder's own questions. The two boilerplate Personify FAQs are
+  // rendered too, but they describe the product rather than this person, so
+  // marking them up per-page would be misleading.
+  const faqs = (Array.isArray(page.faq) ? page.faq : [])
+    .map((item) => ({
+      question: item?.type === 'custom' ? firstOf(item.customQuestion) : firstOf(FAQ_PRESET_QUESTIONS[item?.type]),
+      answer: firstOf(item?.answer),
+    }))
+    .filter((f) => f.question && f.answer);
+
+  if (faqs.length) {
+    graph.push({
+      '@type': 'FAQPage',
+      '@id': `${pageUrl}#faq`,
+      mainEntity: faqs.map((f) => ({
+        '@type': 'Question',
+        name: f.question,
+        acceptedAnswer: { '@type': 'Answer', text: f.answer },
+      })),
+    });
+  }
+
+  return { '@context': 'https://schema.org', '@graph': graph };
+}

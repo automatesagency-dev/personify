@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import PublicFounderPage from '../../views/PublicFounderPage';
-import { fetchPublicFounderPage, founderPageSeo } from '../../lib/founderPage';
+import { fetchPublicFounderPage, founderPageSeo, founderPageJsonLd } from '../../lib/founderPage';
 
 // Rendered on the server and cached. Founder Pages change rarely, so an hour of
 // staleness is a fair trade for pages that are served instantly and are fully
@@ -70,5 +70,24 @@ export default async function FounderPageRoute({ params, searchParams }) {
   // an indexable soft-404.
   if (!page) notFound();
 
-  return <PublicFounderPage page={page} />;
+  // Structured data describing the page as being about a person. This is what
+  // lets a search engine or AI assistant treat the founder as an entity rather
+  // than as loose text.
+  const jsonLd = founderPageJsonLd(page, username);
+
+  return (
+    <>
+      {jsonLd && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            // JSON.stringify escapes the content; additionally neutralise any
+            // "</script>" sequence a founder could place in their own copy.
+            __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c'),
+          }}
+        />
+      )}
+      <PublicFounderPage page={page} />
+    </>
+  );
 }

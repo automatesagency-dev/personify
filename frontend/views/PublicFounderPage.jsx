@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import founderPageAPI from '../services/founderPageAPI';
+import { FAQ_PRESET_QUESTIONS } from '../lib/founderPage';
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -31,11 +32,6 @@ function ShareButton({ username, name, light = false }) {
     </button>
   );
 }
-
-const FAQ_PRESET_QUESTIONS = {
-  connections: 'How will your connections help me grow my business?',
-  contact: 'Where can I contact you?',
-};
 
 const STATIC_FAQS = [
   {
