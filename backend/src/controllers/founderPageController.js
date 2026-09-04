@@ -1,5 +1,6 @@
 const { prisma } = require('../config/database');
 const { uploadToR2, deleteFromR2 } = require('../config/r2');
+const { isReservedUsername } = require('../config/reservedUsernames');
 
 const USERNAME_REGEX = /^[a-z0-9-]{3,30}$/;
 
@@ -45,6 +46,14 @@ async function upsertFounderPage(req, res) {
     if (username && !USERNAME_REGEX.test(username)) {
       return res.status(400).json({
         error: 'Username must be 3-30 characters and contain only lowercase letters, numbers, and hyphens'
+      });
+    }
+
+    // Founder Pages live at the site root, so a claimed word blocks that path
+    // for the site itself. See config/reservedUsernames.
+    if (username && isReservedUsername(username)) {
+      return res.status(400).json({
+        error: 'That username is reserved. Please choose another.'
       });
     }
 
@@ -225,6 +234,10 @@ async function checkUsername(req, res) {
 
     if (!USERNAME_REGEX.test(username)) {
       return res.json({ available: false, reason: 'Invalid format' });
+    }
+
+    if (isReservedUsername(username)) {
+      return res.json({ available: false, reason: 'Reserved' });
     }
 
     const existing = await prisma.founderPage.findUnique({
