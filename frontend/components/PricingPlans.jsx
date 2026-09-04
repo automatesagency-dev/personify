@@ -2,13 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { billingAPI } from '../services/api';
-
-const PLANS = [
-  { key: 'free',    name: 'Free',    monthly: 0,  yearly: 0,   images: 10,  texts: 50,   blurb: 'Try it out',            features: ['10 images / month', '50 text generations / month', 'Freestyle + Brand Persona'] },
-  { key: 'starter', name: 'Starter', monthly: 19, yearly: 190, images: 50,  texts: 150,  blurb: 'For getting started',   features: ['50 images / month', '150 text generations / month', 'Everything in Free'] },
-  { key: 'pro',     name: 'Pro',     monthly: 49, yearly: 490, images: 200, texts: 500,  blurb: 'For regular creators',  popular: true, features: ['200 images / month', '500 text generations / month', 'Priority generation'] },
-  { key: 'studio',  name: 'Studio',  monthly: 99, yearly: 990, images: 500, texts: 5000, blurb: 'For power users',       features: ['500 images / month', '5,000 text generations / month', 'Everything in Pro'] },
-];
+import { PLANS } from '../lib/plans';
 
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
 
