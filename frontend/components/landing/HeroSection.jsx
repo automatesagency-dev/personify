@@ -13,12 +13,20 @@ export function HeroSection({ isAuthenticated }) {
           <Typography className="text-sm font-medium">AI That Makes You Stand Out</Typography>
         </div>
 
-        <Typography variant="heading" className="text-4xl md:text-6xl mb-2 md:mb-4">
-          Level Up Your Personal Brand
-        </Typography>
-        <Typography variant="subHeading" className="text-4xl md:text-6xl mb-6 md:mb-8">
-          with Stunning AI Photos
-        </Typography>
+        {/* One h1 spanning both lines: the page's topic is the whole sentence,
+            not half of it. The spans keep the existing two-line styling. */}
+        <h1 className="mb-6 md:mb-8">
+          <Typography as="span" variant="heading" className="block text-4xl md:text-6xl mb-2 md:mb-4">
+            Level Up Your Personal Brand
+          </Typography>
+          {/* The spans are block-level, so this space changes no layout, but it
+              keeps the h1's text content readable: without it the accessible
+              name is "Personal Brandwith Stunning". */}
+          {' '}
+          <Typography as="span" variant="subHeading" className="block text-4xl md:text-6xl">
+            with Stunning AI Photos
+          </Typography>
+        </h1>
 
         <PhotoGallery />
 

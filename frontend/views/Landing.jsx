@@ -14,14 +14,15 @@ export default function Landing() {
   const { isAuthenticated, loading } = useAuth();
   const router = useRouter();
 
-  // Redirect logged-in users to dashboard
+  // Signed-in visitors are sent to the dashboard, but only after the page has
+  // rendered. This used to be gated by `if (loading) return null`, which meant
+  // the prerendered HTML was an empty document: no headings, no copy, nothing
+  // for a crawler or a link preview to read.
   useEffect(() => {
     if (!loading && isAuthenticated) {
       router.replace('/dashboard');
     }
   }, [isAuthenticated, loading, router]);
-
-  if (loading) return null;
 
   return (
     <div className="bg-white dark:bg-zinc-950 min-h-screen">
