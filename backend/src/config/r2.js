@@ -1,4 +1,4 @@
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 const crypto = require('crypto');
 const path = require('path');
 
@@ -66,6 +66,28 @@ async function uploadToR2(fileBuffer, originalName, mimetype) {
 }
 
 /**
+ * Fetch an object from R2 to proxy through our own domain, rather than
+ * linking directly at R2's shared pub-*.r2.dev domain. That domain is
+ * shared across every R2 bucket on Cloudflare, so it shows up on several
+ * ad-blocker / DNS-filter blocklists — serving through our own backend
+ * domain sidesteps that entirely.
+ * @param {string} key - Object key, e.g. "uploads/169...-abc.png"
+ * @returns {Promise<{ body: import('stream').Readable, contentType: string, contentLength?: number }>}
+ */
+async function getR2Object(key) {
+  const command = new GetObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: key,
+  });
+  const response = await r2Client.send(command);
+  return {
+    body: response.Body,
+    contentType: response.ContentType || 'application/octet-stream',
+    contentLength: response.ContentLength,
+  };
+}
+
+/**
  * Delete a file from R2
  * @param {string} fileUrl - Full URL of the file to delete
  * @returns {Promise<void>}
@@ -93,4 +115,5 @@ async function deleteFromR2(fileUrl) {
 module.exports = {
   uploadToR2,
   deleteFromR2,
+  getR2Object,
 };

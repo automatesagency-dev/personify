@@ -19,6 +19,7 @@ const billingRoutes = require('./routes/billingRoutes');
 const grantRoutes = require('./routes/grantRoutes');
 const { handleWebhook } = require('./controllers/billingController');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { getR2Object } = require('./config/r2');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -63,8 +64,33 @@ app.post('/api/billing/webhook', express.raw({ type: 'application/json' }), hand
 app.use(express.json({ limit: '20mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
-// Serve uploaded files statically
+// Serve uploaded files statically (legacy local-disk fallback — calls next()
+// when a file isn't found locally, falling through to the R2 proxy below).
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Proxy R2-hosted uploads through our own domain instead of linking directly
+// at R2's shared pub-*.r2.dev domain, which several ad blockers and DNS
+// filters block outright (it's shared across every unrelated R2 bucket on
+// Cloudflare, so it shows up on some blocklists). No auth here — these were
+// publicly accessible at the old R2 URL too (persona photos, generated
+// images, profile pictures, some of them shown on public Founder Pages).
+app.get('/uploads/:filename', async (req, res) => {
+  try {
+    const key = `uploads/${req.params.filename}`;
+    const { body, contentType, contentLength } = await getR2Object(key);
+    res.set('Content-Type', contentType);
+    if (contentLength) res.set('Content-Length', contentLength);
+    // Filenames are random and content never changes after upload — safe to cache hard.
+    res.set('Cache-Control', 'public, max-age=31536000, immutable');
+    body.pipe(res);
+  } catch (error) {
+    if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    console.error('R2 proxy error:', error.message);
+    res.status(502).json({ error: 'Failed to fetch file' });
+  }
+});
 
 // Routes
 app.get('/api/health', (req, res) => {
