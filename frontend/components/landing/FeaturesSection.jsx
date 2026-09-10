@@ -40,7 +40,7 @@ export function FeaturesSection() {
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-12">
           <Typography className="mb-3">Why Choose Personify?</Typography>
-          <Typography variant="heading">
+          <Typography as="h2" variant="heading">
             Everything you need to build a powerful personal brand
           </Typography>
         </div>

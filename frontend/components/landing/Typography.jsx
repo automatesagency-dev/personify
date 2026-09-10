@@ -19,6 +19,10 @@ export const text = tv({
   },
 });
 
-export function Typography({ variant, className, children }) {
-  return <p className={cn(text({ type: variant }), className)}>{children}</p>;
+// `as` chooses the element. It defaults to <p>, which is right for body copy,
+// but headings must render as real heading elements: this component previously
+// rendered <p> unconditionally, so the landing page had no <h1> at all and
+// search engines saw no topic for it.
+export function Typography({ as: Component = 'p', variant, className, children }) {
+  return <Component className={cn(text({ type: variant }), className)}>{children}</Component>;
 }

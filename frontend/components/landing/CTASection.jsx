@@ -6,7 +6,7 @@ export function CTASection({ isAuthenticated }) {
     <section className="pb-20 px-6">
       <div className="py-10 md:py-20 px-6 max-w-6xl mx-auto bg-gradient-to-b from-[#F7B758]/10 via-[#B62161]/10 to-[#B62161]/10 dark:from-zinc-700 dark:via-zinc-800 dark:to-zinc-900 rounded-3xl">
         <div className="max-w-4xl mx-auto text-center">
-          <Typography variant="heading" className="mb-6 leading-snug">
+          <Typography as="h2" variant="heading" className="mb-6 leading-snug">
             Transform Your Personal Brand <br />Starting Today
           </Typography>
           <Typography variant="title" className="mb-8 max-w-2xl mx-auto">
