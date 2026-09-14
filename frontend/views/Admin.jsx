@@ -28,13 +28,13 @@ const fmtMoney = (cents) => '$' + ((cents || 0) / 100).toLocaleString('en-AU', {
 
 function StatCard({ title, value, sub, icon }) {
   return (
-    <div className="bg-[#111] rounded-2xl p-5 border border-white/[0.07]">
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1 min-w-0 pr-2">
+    <div className="bg-[#111] rounded-2xl p-4 sm:p-5 border border-white/[0.07]">
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <div className="flex-1 min-w-0">
           <p className="text-xs text-gray-500 mb-1">{title}</p>
-          <p className="text-2xl font-bold text-white leading-none">{value}</p>
+          <p className="text-xl sm:text-2xl font-bold text-white leading-tight truncate">{value}</p>
         </div>
-        <div className="w-9 h-9 bg-white/[0.06] rounded-xl flex items-center justify-center text-base flex-shrink-0">
+        <div className="w-8 h-8 sm:w-9 sm:h-9 bg-white/[0.06] rounded-xl flex items-center justify-center text-sm sm:text-base flex-shrink-0">
           {icon}
         </div>
       </div>
@@ -112,16 +112,16 @@ function Skeleton({ className = '' }) {
 function OverviewSection({ data, loading }) {
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-40" />
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-28 rounded-2xl" />)}
         </div>
-        <div className="grid grid-cols-3 gap-4">
-          <Skeleton className="col-span-2 h-52 rounded-2xl" />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4">
+          <Skeleton className="lg:col-span-2 h-52 rounded-2xl" />
           <Skeleton className="h-52 rounded-2xl" />
         </div>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
           <Skeleton className="h-64 rounded-2xl" />
           <Skeleton className="h-64 rounded-2xl" />
         </div>
@@ -135,14 +135,14 @@ function OverviewSection({ data, loading }) {
   ];
 
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Overview</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Overview</h1>
         <p className="text-gray-500 text-sm mt-0.5">Platform analytics and key performance metrics</p>
       </div>
 
       {/* Stat cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard title="Total Users" value={fmtNum(data?.users?.total || 0)} sub={`${data?.users?.newThisWeek || 0} new this week`} icon="👥" />
         <StatCard title="Total Generations" value={fmtNum(data?.generations?.total || 0)} sub={`${data?.generations?.todayTotal || 0} today`} icon="⚡" />
         <StatCard title="Monthly Revenue" value="—" sub="No payment provider connected" icon="💳" />
@@ -150,11 +150,11 @@ function OverviewSection({ data, loading }) {
       </div>
 
       {/* Charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
 
         {/* Daily generations line chart */}
         <div className="lg:col-span-2 bg-[#111] rounded-2xl p-5 border border-white/[0.07]">
-          <div className="flex items-start justify-between mb-4">
+          <div className="flex items-start justify-between flex-wrap gap-2 mb-4">
             <div>
               <p className="text-white font-semibold text-sm">Daily Generations</p>
               <p className="text-gray-600 text-xs mt-0.5">Images vs Text — this week</p>
@@ -184,7 +184,7 @@ function OverviewSection({ data, loading }) {
         <div className="bg-[#111] rounded-2xl p-5 border border-white/[0.07]">
           <p className="text-white font-semibold text-sm mb-0.5">User Distribution</p>
           <p className="text-gray-600 text-xs mb-5">Signup methods</p>
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-4 sm:gap-5 flex-wrap">
             <DonutChart segments={userSegments} />
             <div className="space-y-2.5">
               {userSegments.map((s, i) => (
@@ -203,7 +203,7 @@ function OverviewSection({ data, loading }) {
       </div>
 
       {/* Model usage + recent activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
 
         {/* Model usage */}
         <div className="bg-[#111] rounded-2xl p-5 border border-white/[0.07]">
@@ -298,22 +298,22 @@ function UsersSection({ users, loading, onCopyEmails }) {
     });
 
   return (
-    <div className="p-6">
-      <div className="flex items-start justify-between mb-6">
+    <div>
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-white">Users</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-white">Users</h1>
           <p className="text-gray-500 text-sm mt-0.5">Manage and monitor all user accounts</p>
         </div>
         <button
           onClick={() => onCopyEmails(filtered)}
-          className="px-4 py-2 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-200 transition"
+          className="px-4 py-2 bg-white text-black rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex-shrink-0 self-start"
         >
           Copy {filtered.length} Emails
         </button>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard title="Total Users" value={fmtNum(users.length)} sub="All time" icon="👥" />
         <StatCard title="Google Signups" value={fmtNum(users.filter(u => u.googleId).length)} sub="OAuth logins" icon="🔗" />
         <StatCard title="With Persona" value={fmtNum(users.filter(u => u.persona).length)} sub="Active personas" icon="👤" />
@@ -322,7 +322,7 @@ function UsersSection({ users, loading, onCopyEmails }) {
 
       {/* Search + filters */}
       <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="relative flex-1 min-w-48 max-w-sm">
+        <div className="relative flex-1 min-w-0 sm:min-w-48 max-w-full sm:max-w-sm">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -333,12 +333,12 @@ function UsersSection({ users, loading, onCopyEmails }) {
             className="w-full pl-9 pr-4 py-2 bg-[#111] border border-white/[0.07] rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-white/20 transition"
           />
         </div>
-        <div className="flex items-center gap-0.5 bg-[#111] border border-white/[0.07] rounded-xl p-1">
+        <div className="flex items-center gap-0.5 bg-[#111] border border-white/[0.07] rounded-xl p-1 max-w-full overflow-x-auto">
           {FILTERS.map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${filter === f.id ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 whitespace-nowrap ${filter === f.id ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
             >
               {f.label}
             </button>
@@ -447,14 +447,14 @@ function GenerationsSection({ generations, loading }) {
   });
 
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Generations</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Generations</h1>
         <p className="text-gray-500 text-sm mt-0.5">All AI generations across the platform</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6">
         <StatCard title="Today Total" value={todayGens.length} sub={`${fmtNum(generations.length)} all time`} icon="📊" />
         <StatCard title="Images" value={todayGens.filter(g => g.type === 'image').length} sub="Today" icon="🖼️" />
         <StatCard title="Text" value={todayGens.filter(g => g.type === 'text').length} sub="Today" icon="✍️" />
@@ -463,8 +463,8 @@ function GenerationsSection({ generations, loading }) {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="relative flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="relative flex-1 min-w-0 max-w-full sm:max-w-sm">
           <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
           </svg>
@@ -475,12 +475,12 @@ function GenerationsSection({ generations, loading }) {
             className="w-full pl-9 pr-4 py-2 bg-[#111] border border-white/[0.07] rounded-xl text-sm text-white placeholder-gray-600 outline-none focus:border-white/20 transition"
           />
         </div>
-        <div className="flex items-center gap-0.5 bg-[#111] border border-white/[0.07] rounded-xl p-1">
+        <div className="flex items-center gap-0.5 bg-[#111] border border-white/[0.07] rounded-xl p-1 max-w-full overflow-x-auto">
           {[{ id: 'all', label: 'All' }, { id: 'image', label: 'Image' }, { id: 'text', label: 'Text' }].map(f => (
             <button
               key={f.id}
               onClick={() => setFilter(f.id)}
-              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition ${filter === f.id ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
+              className={`px-4 py-1.5 rounded-lg text-xs font-medium transition flex-shrink-0 whitespace-nowrap ${filter === f.id ? 'bg-white text-black' : 'text-gray-500 hover:text-white'}`}
             >
               {f.label}
             </button>
@@ -563,22 +563,22 @@ const MODEL_META = {
 function AIModelsSection({ modelUsage, totalGenerations, loading }) {
   if (loading) {
     return (
-      <div className="p-6 space-y-6">
+      <div className="space-y-6">
         <Skeleton className="h-8 w-36" />
-        <div className="grid grid-cols-4 gap-4"><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /></div>
-        <div className="grid grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /><Skeleton className="h-28 rounded-2xl" /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-44 rounded-2xl" />)}</div>
       </div>
     );
   }
 
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">AI Models</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">AI Models</h1>
         <p className="text-gray-500 text-sm mt-0.5">Monitor AI model usage and performance</p>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard title="Active Models" value={modelUsage.length} sub="In use" icon="🧠" />
         <StatCard title="Total Generations" value={fmtNum(totalGenerations)} sub="All time" icon="⚡" />
         <StatCard title="Avg Latency" value="—" sub="Not tracked" icon="⏱️" />
@@ -586,11 +586,11 @@ function AIModelsSection({ modelUsage, totalGenerations, loading }) {
       </div>
 
       {modelUsage.length === 0 ? (
-        <div className="bg-[#111] rounded-2xl p-16 border border-white/[0.07] text-center">
+        <div className="bg-[#111] rounded-2xl p-10 sm:p-16 border border-white/[0.07] text-center">
           <p className="text-gray-700 text-sm">No model usage data yet</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
           {modelUsage.map((m, i) => {
             const meta = MODEL_META[m.model] || { color: '#6b7280', type: 'Generation', provider: 'Unknown' };
             return (
@@ -637,14 +637,14 @@ function ReferralsSection({ codes, stats, codesLoading, onGenerateCodes, onToggl
   };
 
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">Referrals</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">Referrals</h1>
         <p className="text-gray-500 text-sm mt-0.5">Manage referral codes and track redemptions</p>
       </div>
 
       {stats && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
           <StatCard title="Total Users" value={fmtNum(stats.totalUsers)} sub="Registered" icon="👥" />
           <StatCard title="Verified" value={fmtNum(stats.verifiedUsers)} sub="With referral code" icon="✅" />
           <StatCard title="Campaign Codes" value={fmtNum(stats.totalCodes)} sub="Admin generated" icon="🎫" />
@@ -762,12 +762,12 @@ function ReferralsSection({ codes, stats, codesLoading, onGenerateCodes, onToggl
 
 function PlaceholderSection({ title, description, icon, note }) {
   return (
-    <div className="p-6">
+    <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white">{title}</h1>
+        <h1 className="text-xl sm:text-2xl font-bold text-white">{title}</h1>
         <p className="text-gray-500 text-sm mt-0.5">{description}</p>
       </div>
-      <div className="bg-[#111] rounded-2xl border border-white/[0.07] p-20 flex flex-col items-center justify-center text-center">
+      <div className="bg-[#111] rounded-2xl border border-white/[0.07] p-10 sm:p-20 flex flex-col items-center justify-center text-center">
         <span className="text-5xl mb-5">{icon}</span>
         <p className="text-white font-semibold text-base mb-2">{note}</p>
         <p className="text-gray-600 text-sm max-w-xs">{description}</p>
@@ -781,7 +781,7 @@ function PlaceholderSection({ title, description, icon, note }) {
 function RevenueSection({ financials, loading }) {
   if (loading || !financials) {
     return (
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         {[0, 1, 2, 3].map(i => <Skeleton key={i} className="h-28 rounded-2xl" />)}
       </div>
     );
@@ -789,16 +789,16 @@ function RevenueSection({ financials, loading }) {
   const s = financials.subscriptions, c = financials.cost;
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard title="MRR" value={fmtMoney(s.mrrCents)} sub="Active subscriptions" icon="💰" />
         <StatCard title="Active Subscribers" value={fmtNum(s.activeTotal)} sub={`${s.trialing} on trial`} icon="✅" />
         <StatCard title="Gross Margin" value={fmtMoney(financials.marginCents)} sub="MRR − est. cost" icon="📈" />
         <StatCard title="Est. AI Cost" value={fmtMoney(c.thisMonthCents)} sub="This month" icon="🧾" />
       </div>
 
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-4">Active subscribers by plan</h3>
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-4">
           {[['Starter', s.activeByPlan.starter], ['Pro', s.activeByPlan.pro], ['Studio', s.activeByPlan.studio]].map(([name, n]) => (
             <div key={name} className="bg-black/20 rounded-xl p-4 text-center">
               <p className="text-2xl font-bold text-white">{fmtNum(n)}</p>
@@ -809,16 +809,16 @@ function RevenueSection({ financials, loading }) {
         {s.pastDue > 0 && <p className="text-xs text-yellow-400 mt-4">⚠️ {s.pastDue} past-due subscription{s.pastDue !== 1 ? 's' : ''} (payment failed)</p>}
       </div>
 
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-1">Estimated cost this month</h3>
         <p className="text-xs text-gray-500 mb-4">{fmtNum(c.imageCount)} images × {fmtMoney(c.rates.image)} + {fmtNum(c.textCount)} texts × {fmtMoney(c.rates.text)}. Tune via COST_IMAGE_CENTS / COST_TEXT_CENTS.</p>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
           <div className="bg-black/20 rounded-xl p-4"><p className="text-xs text-gray-400">Images</p><p className="text-xl font-bold text-white">{fmtMoney(c.imageCount * c.rates.image)}</p><p className="text-xs text-gray-500">{fmtNum(c.imageCount)} gens</p></div>
           <div className="bg-black/20 rounded-xl p-4"><p className="text-xs text-gray-400">Text</p><p className="text-xl font-bold text-white">{fmtMoney(c.textCount * c.rates.text)}</p><p className="text-xs text-gray-500">{fmtNum(c.textCount)} gens</p></div>
         </div>
       </div>
 
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-4">Top users by usage (this month)</h3>
         {financials.topUsers.length === 0 ? <p className="text-sm text-gray-500">No usage yet this month.</p> : (
           <div className="space-y-1">
@@ -841,13 +841,13 @@ function AffiliateStats({ financials, loading }) {
   const conv = r.referredTotal ? Math.round((r.referredPaid / r.referredTotal) * 100) : 0;
   return (
     <div className="space-y-6 mb-8">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <StatCard title="Credit Liability" value={fmtMoney(r.outstandingLiabilityCents)} sub="Owed (pending + wallets)" icon="💳" />
         <StatCard title="Commissions (mo)" value={fmtMoney(r.commissionsThisMonthCents)} sub="This month" icon="📆" />
         <StatCard title="Commissions (lifetime)" value={fmtMoney(r.lifetimeCommissionsCents)} sub="All time" icon="🏦" />
         <StatCard title="Referral → Paid" value={`${conv}%`} sub={`${r.referredPaid}/${r.referredTotal} converted`} icon="🎯" />
       </div>
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-4">Top referrers</h3>
         {r.topReferrers.length === 0 ? <p className="text-sm text-gray-500">No commissions yet.</p> : (
           <div className="space-y-1">
@@ -873,7 +873,7 @@ function GrantsSection({ codes, loading, onCreate, onToggle, images, setImages, 
         <p className="text-sm text-gray-400 mt-0.5">Give a user bonus generations regardless of their plan. Text is granted at 5× the image count.</p>
       </div>
 
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-4">Create a grant code</h3>
         <div className="flex flex-col sm:flex-row gap-3 sm:items-end">
           <div>
@@ -905,7 +905,7 @@ function GrantsSection({ codes, loading, onCreate, onToggle, images, setImages, 
         )}
       </div>
 
-      <div className="bg-dark-card border border-gray-800 rounded-2xl p-6">
+      <div className="bg-dark-card border border-gray-800 rounded-2xl p-5 sm:p-6">
         <h3 className="text-white font-semibold mb-4">All grant codes</h3>
         {loading ? <Skeleton className="h-20 rounded-xl" /> : codes.length === 0 ? (
           <p className="text-sm text-gray-500">No grant codes yet.</p>
