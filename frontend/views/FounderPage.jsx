@@ -9,12 +9,17 @@ import ColorPicker from '../components/ColorPicker';
 
 // ── Helper Components ──────────────────────────────────────────────────────────
 
+// `text-base` on mobile is deliberate: iOS Safari zooms the viewport whenever a
+// focused field renders below 16px, which throws the whole editor off-screen.
+const FIELD = "w-full px-3 md:px-4 py-3 bg-black/40 border border-gray-700 rounded-lg text-base md:text-sm text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition";
+const LABEL = "block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2";
+
 const TextInput = ({ label, value, onChange, placeholder, type = "text", note, prefix, className = "" }) => (
   <div className={className}>
-    <label className="block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2">{label}</label>
+    {label && <label className={LABEL}>{label}</label>}
     <div className={prefix ? "flex items-center gap-2" : ""}>
       {prefix && <span className="text-gray-400 text-xs md:text-sm truncate max-w-[120px] md:max-w-none">{prefix}</span>}
-      <input type={type} value={value} onChange={onChange} placeholder={placeholder} className="flex-1 w-full px-3 md:px-4 py-2.5 md:py-3 bg-black/40 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition" />
+      <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`${FIELD} flex-1`} />
     </div>
     {note && <p className="text-xs text-gray-500 mt-1.5 md:mt-2">{note}</p>}
   </div>
@@ -22,14 +27,14 @@ const TextInput = ({ label, value, onChange, placeholder, type = "text", note, p
 
 const TextArea = ({ label, value, onChange, placeholder, rows = 3, className = "" }) => (
   <div className={className}>
-    <label className="block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2">{label}</label>
-    <textarea value={value} onChange={onChange} rows={rows} placeholder={placeholder} className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-black/40 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition resize-none" />
+    <label className={LABEL}>{label}</label>
+    <textarea value={value} onChange={onChange} rows={rows} placeholder={placeholder} className={`${FIELD} resize-none`} />
   </div>
 );
 
 const ImageUpload = ({ label, id, onUpload, onRemove, imageUrl, uploading, isSquare = false, note }) => (
   <div>
-    {label && <label className="block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2">{label}</label>}
+    {label && <label className={LABEL}>{label}</label>}
     <input type="file" accept="image/*" onChange={(e) => e.target.files[0] && onUpload(e.target.files[0])} className="hidden" id={id} disabled={uploading} />
     <div className="relative">
       <label htmlFor={id} className={`block border-2 border-dashed border-gray-700 rounded-lg p-4 md:p-8 text-center hover:border-brand-pink transition cursor-pointer ${uploading ? 'opacity-50' : ''} ${isSquare ? 'aspect-square flex items-center justify-center' : ''}`}>
@@ -47,8 +52,9 @@ const ImageUpload = ({ label, id, onUpload, onRemove, imageUrl, uploading, isSqu
           type="button"
           onClick={onRemove}
           disabled={uploading}
+          aria-label="Remove image"
           title="Remove image"
-          className="absolute top-2 right-2 w-7 h-7 flex items-center justify-center bg-black/70 hover:bg-red-500 text-white rounded-full text-sm shadow-md transition disabled:opacity-50"
+          className="absolute top-1.5 right-1.5 w-10 h-10 flex items-center justify-center bg-black/70 hover:bg-red-500 active:bg-red-500 text-white rounded-full text-base shadow-md transition disabled:opacity-50"
         >
           ✕
         </button>
@@ -60,12 +66,59 @@ const ImageUpload = ({ label, id, onUpload, onRemove, imageUrl, uploading, isSqu
 
 const SelectInput = ({ label, value, onChange, options }) => (
   <div>
-    <label className="block text-xs md:text-sm font-medium text-white mb-1.5 md:mb-2">{label}</label>
-    <select value={value} onChange={onChange} className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-black/40 border border-gray-700 rounded-lg text-sm text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition">
+    <label className={LABEL}>{label}</label>
+    <select value={value} onChange={onChange} className={FIELD}>
       {options.map(opt => <option key={opt} value={opt}>{opt}</option>)}
     </select>
   </div>
 );
+
+// 40px hit area: a bare 🗑️ glyph is well under the minimum comfortable tap target.
+const DeleteButton = ({ onClick, label, className = "-mr-2 -mt-2" }) => (
+  <button
+    type="button"
+    onClick={onClick}
+    aria-label={label}
+    title={label}
+    className={`w-10 h-10 flex-shrink-0 flex items-center justify-center rounded-full text-red-400 hover:text-red-300 hover:bg-red-500/10 active:bg-red-500/20 transition ${className}`}
+  >
+    🗑️
+  </button>
+);
+
+// Non-blocking replacement for alert(): a native dialog on mobile steals focus,
+// collapses the keyboard and needs a second tap to dismiss mid-edit.
+// `link` renders a tappable anchor, because mobile Safari blocks window.open() that
+// isn't the direct result of a tap, so the user opens their page from here.
+const Toast = ({ toast, onDismiss }) => {
+  if (!toast) return null;
+  const tone = toast.type === 'error'
+    ? 'bg-red-500/15 border-red-500/40 text-red-200'
+    : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-100';
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed left-3 right-3 bottom-[9.5rem] lg:bottom-6 lg:left-auto lg:right-6 lg:max-w-sm z-[90]"
+    >
+      <div className={`flex items-start gap-3 rounded-xl border backdrop-blur-md px-4 py-3 shadow-2xl ${tone}`}>
+        <p className="flex-1 text-sm font-medium leading-snug">{toast.message}</p>
+        {toast.link && (
+          <a
+            href={toast.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={onDismiss}
+            className="flex-shrink-0 px-3 py-1.5 rounded-lg bg-white text-black text-xs font-semibold"
+          >
+            {toast.linkLabel || 'Open'}
+          </a>
+        )}
+        <button type="button" onClick={onDismiss} aria-label="Dismiss" className="flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/10 text-sm">✕</button>
+      </div>
+    </div>
+  );
+};
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -101,6 +154,18 @@ const TEMPLATE_META = {
   'ecommerce-bold':    { icon: '💎', label: 'Bold & Dramatic', style: 'Dark · Luxury · High-Impact', color: 'text-fuchsia-400' },
 };
 
+const buildInitialForm = () => ({
+  username: '', template: '', published: false,
+  design: { titleFont: 'Afacad', bodyFont: 'Poppins', primaryColor: '#623437', secondaryColor: '#f5a623' },
+  basicInfo: { name: '', title: '', tagline: '', about1: '', about2: '', heroImageUrl: '', logoUrl: '' },
+  contact: { email: '', phone: '', location: '', social1: '', social2: '', ctaText: "Let's Work Together", ctaDescription: '' },
+  services: [{ id: '1', title: '', description: '' }, { id: '2', title: '', description: '' }],
+  portfolio: { images: [] },
+  featured: [],
+  faq: [],
+  ecommerce: { ...DEFAULT_ECOMMERCE },
+});
+
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 export default function FounderPage() {
@@ -114,18 +179,11 @@ export default function FounderPage() {
   const [selectorCategory, setSelectorCategory] = useState('personal');
   const [showCategoryWarnModal, setShowCategoryWarnModal] = useState(false);
   const [pendingTemplateId, setPendingTemplateId] = useState(null);
+  const [showSectionSheet, setShowSectionSheet] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [savedSnapshot, setSavedSnapshot] = useState(null);
 
-  const [formData, setFormData] = useState({
-    username: '', template: '', published: false,
-    design: { titleFont: 'Afacad', bodyFont: 'Poppins', primaryColor: '#623437', secondaryColor: '#f5a623' },
-    basicInfo: { name: '', title: '', tagline: '', about1: '', about2: '', heroImageUrl: '', logoUrl: '' },
-    contact: { email: '', phone: '', location: '', social1: '', social2: '', ctaText: "Let's Work Together", ctaDescription: '' },
-    services: [{ id: '1', title: '', description: '' }, { id: '2', title: '', description: '' }],
-    portfolio: { images: [] },
-    featured: [],
-    faq: [],
-    ecommerce: { ...DEFAULT_ECOMMERCE },
-  });
+  const [formData, setFormData] = useState(() => buildInitialForm());
 
   const isEcommerce = ECOMMERCE_TEMPLATES.includes(formData.template);
   const personalTabs = ['design', 'basicInfo', 'contact', 'services', 'portfolio', 'featured', 'faq'];
@@ -143,11 +201,45 @@ export default function FounderPage() {
     { value: 'custom', label: 'Other (write your own)' },
   ];
 
+  const dirty = savedSnapshot !== null && JSON.stringify(formData) !== savedSnapshot;
+
+  const notify = (message, type = 'success', extra = {}) => setToast({ message, type, ...extra });
+
+  // Moving to another section without resetting scroll drops the user into the
+  // middle of the new form, which on a phone reads as "nothing happened".
+  const goToTab = (tab) => {
+    setActiveTab(tab);
+    setShowSectionSheet(false);
+    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   useEffect(() => {
     const cat = searchParams?.get('category');
     if (cat === 'ecommerce' || cat === 'personal') setSelectorCategory(cat);
     loadFounderPage();
   }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), toast.link ? 12000 : 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  useEffect(() => {
+    const locked = showSectionSheet || showCategoryWarnModal;
+    if (!locked) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [showSectionSheet, showCategoryWarnModal]);
+
+  // A stray back-swipe on mobile otherwise discards everything typed so far.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e) => { e.preventDefault(); e.returnValue = ''; };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [dirty]);
 
   const loadFounderPage = async () => {
     try {
@@ -155,20 +247,27 @@ export default function FounderPage() {
       const { data } = await founderPageAPI.get();
       if (data.founderPage) {
         const fp = data.founderPage;
-        setFormData(prev => ({
-          ...prev, ...fp,
-          services: fp.services?.length ? fp.services : prev.services,
+        const base = buildInitialForm();
+        const next = {
+          ...base, ...fp,
+          services: fp.services?.length ? fp.services : base.services,
           featured: Array.isArray(fp.featured) ? fp.featured : [],
           faq: Array.isArray(fp.faq) ? fp.faq : [],
           portfolio: { images: Array.isArray(fp.portfolio?.images) ? fp.portfolio.images : [] },
-          ecommerce: fp.ecommerce ? { ...DEFAULT_ECOMMERCE, ...fp.ecommerce } : prev.ecommerce,
-        }));
+          ecommerce: fp.ecommerce ? { ...DEFAULT_ECOMMERCE, ...fp.ecommerce } : base.ecommerce,
+        };
+        setFormData(next);
+        setSavedSnapshot(JSON.stringify(next));
         setShowTemplateSelector(!fp.template);
         if (fp.template) setSelectorCategory(ECOMMERCE_TEMPLATES.includes(fp.template) ? 'ecommerce' : 'personal');
       } else {
+        setSavedSnapshot(JSON.stringify(buildInitialForm()));
         setShowTemplateSelector(true);
       }
-    } catch { setShowTemplateSelector(true); }
+    } catch {
+      setSavedSnapshot(JSON.stringify(buildInitialForm()));
+      setShowTemplateSelector(true);
+    }
     finally { setLoading(false); }
   };
 
@@ -179,7 +278,7 @@ export default function FounderPage() {
       fd.append('image', file);
       const { data } = await uploadAPI.uploadImage(fd);
       onSuccess(data.image.imageUrl);
-    } catch { alert('Failed to upload image.'); }
+    } catch { notify('Failed to upload image. Please try again.', 'error'); }
     finally { setUploading(false); }
   };
 
@@ -220,7 +319,7 @@ export default function FounderPage() {
   const updateNested = (parent, field, value) => setFormData(prev => ({ ...prev, [parent]: { ...prev[parent], [field]: value } }));
   const updateArray = (arrName, id, field, value) => setFormData(prev => ({ ...prev, [arrName]: (prev[arrName] || []).map(item => item.id === id ? { ...item, [field]: value } : item) }));
   const deleteArrayItem = (arrName, id, min = 0) => {
-    if ((formData[arrName] || []).length <= min) return alert(`You must have at least ${min} items`);
+    if ((formData[arrName] || []).length <= min) return notify(`You need at least ${min} items here.`, 'error');
     setFormData(prev => ({ ...prev, [arrName]: (prev[arrName] || []).filter(item => item.id !== id) }));
   };
   const addArrayItem = (arrName, defaultObj) => setFormData(prev => ({ ...prev, [arrName]: [...(prev[arrName] || []), { id: Date.now().toString(), ...defaultObj }] }));
@@ -272,25 +371,45 @@ export default function FounderPage() {
     setActiveTab('design');
   };
 
+  const requireUsername = () => {
+    if (formData.username) return true;
+    notify('Add a username first, it becomes your page address.', 'error');
+    goToTab(isEcommerce ? 'brand' : 'basicInfo');
+    return false;
+  };
+
   const handleAction = async (action, isPublish = false) => {
     try {
-      if (isPublish && !formData.username) {
-        alert('Please enter a username');
-        return setActiveTab(isEcommerce ? 'brand' : 'basicInfo');
-      }
+      if (isPublish && !requireUsername()) return;
       setSaving(true);
-      await founderPageAPI.upsert(formData);
+      const payload = formData;
+      await founderPageAPI.upsert(payload);
       if (isPublish) {
         await founderPageAPI.publish(true);
         setFormData(prev => ({ ...prev, published: true }));
-        alert('🎉 Your page is now live!');
-        window.open(`/${formData.username}`, '_blank');
+        setSavedSnapshot(JSON.stringify({ ...payload, published: true }));
+        notify('🎉 Your page is live!', 'success', { link: `/${formData.username}`, linkLabel: 'View' });
       } else {
-        alert('Founder page saved successfully!');
+        setSavedSnapshot(JSON.stringify(payload));
+        notify('Draft saved.');
       }
     } catch (error) {
-      alert(error.response?.data?.error || `Failed to ${isPublish ? 'publish' : 'save'}.`);
+      notify(error.response?.data?.error || `Failed to ${isPublish ? 'publish' : 'save'}. Please try again.`, 'error');
     } finally { setSaving(false); }
+  };
+
+  const handlePreview = async () => {
+    if (!requireUsername()) return;
+    try {
+      setSaving(true);
+      const payload = formData;
+      await founderPageAPI.upsert(payload);
+      setSavedSnapshot(JSON.stringify(payload));
+      // Opening a tab here would be blocked on mobile Safari (the await breaks
+      // the gesture chain), so hand the user a link to tap instead.
+      notify('Changes saved, your preview is ready.', 'success', { link: `/${formData.username}?preview=true`, linkLabel: 'Preview' });
+    } catch { notify('Failed to save changes before preview. Please try again.', 'error'); }
+    finally { setSaving(false); }
   };
 
   if (loading) return <Layout><div className="p-8 flex items-center justify-center min-h-screen text-white">Loading...</div></Layout>;
@@ -468,17 +587,18 @@ export default function FounderPage() {
           <h1 className="text-2xl md:text-3xl font-semibold text-white mb-1">Choose Your Template</h1>
           <p className="text-gray-400 text-sm md:text-base mb-6">Pick a style that fits your brand.</p>
 
-          {/* Category tabs */}
-          <div className="flex gap-2 mb-8">
+          {/* Category tabs: full-width halves on mobile so neither label wraps
+              into an awkward two-line pill */}
+          <div className="grid grid-cols-2 sm:inline-flex gap-2 mb-6 md:mb-8">
             <button
               onClick={() => setSelectorCategory('personal')}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${selectorCategory === 'personal' ? 'bg-white text-black' : 'bg-white/10 text-gray-300 hover:bg-white/15'}`}
+              className={`px-4 sm:px-5 h-12 rounded-xl text-sm font-semibold transition ${selectorCategory === 'personal' ? 'bg-white text-black' : 'bg-white/10 text-gray-300 hover:bg-white/15 active:bg-white/20'}`}
             >
               Personal Branding
             </button>
             <button
               onClick={() => setSelectorCategory('ecommerce')}
-              className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition ${selectorCategory === 'ecommerce' ? 'bg-white text-black' : 'bg-white/10 text-gray-300 hover:bg-white/15'}`}
+              className={`px-4 sm:px-5 h-12 rounded-xl text-sm font-semibold transition ${selectorCategory === 'ecommerce' ? 'bg-white text-black' : 'bg-white/10 text-gray-300 hover:bg-white/15 active:bg-white/20'}`}
             >
               E-Commerce
             </button>
@@ -531,59 +651,101 @@ export default function FounderPage() {
         </div>
       )}
 
-      <div className="p-4 md:p-8 max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-3 mb-6 md:mb-8">
-          <div>
-            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white mb-2 md:mb-4 flex items-center gap-2 text-sm">← Back</button>
-            <h1 className="text-2xl md:text-3xl font-semibold text-white">Founder Page Builder</h1>
+      <Toast toast={toast} onDismiss={() => setToast(null)} />
+
+      {/* Section picker: reaching section 7 of 7 by tapping "next" six times is
+          the single biggest source of friction in the mobile builder. */}
+      {showSectionSheet && (
+        <div className="lg:hidden fixed inset-0 z-[95] flex flex-col justify-end" role="dialog" aria-modal="true" aria-label="Jump to section">
+          <button type="button" aria-label="Close section list" onClick={() => setShowSectionSheet(false)} className="absolute inset-0 bg-black/70" />
+          <div className="relative bg-[#111] border-t border-gray-800 rounded-t-3xl px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] max-h-[75vh] overflow-y-auto">
+            <div className="w-10 h-1 bg-gray-700 rounded-full mx-auto mb-4" />
+            <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold mb-3 px-1">Jump to section</p>
+            <div className="space-y-1.5">
+              {tabs.map((tab, i) => (
+                <button
+                  key={tab}
+                  onClick={() => goToTab(tab)}
+                  className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-xl text-left transition ${activeTab === tab ? 'bg-white text-black font-semibold' : 'bg-white/5 text-gray-300 active:bg-white/10'}`}
+                >
+                  <span className={`w-6 h-6 flex-shrink-0 flex items-center justify-center rounded-full text-xs font-semibold ${activeTab === tab ? 'bg-black/10 text-black' : 'bg-white/10 text-gray-400'}`}>{i + 1}</span>
+                  <span className="text-sm">{tabLabels[tab]}</span>
+                  {activeTab === tab && <span className="ml-auto text-xs">Editing</span>}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 md:gap-4">
+        </div>
+      )}
+
+      <div className="p-4 lg:p-8 max-w-7xl mx-auto pb-24 lg:pb-8">
+        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 mb-4 lg:mb-8">
+          <div>
+            <button onClick={() => router.push('/dashboard')} className="text-gray-400 hover:text-white mb-1 lg:mb-4 flex items-center gap-2 text-sm py-1">← Back</button>
+            <h1 className="text-xl lg:text-3xl font-semibold text-white">Founder Page Builder</h1>
+          </div>
+          {/* On mobile these live in the sticky action bar instead. */}
+          <div className="hidden lg:flex gap-4">
             <button
-              onClick={async () => {
-                if (!formData.username) { alert('Please enter a username first to preview your page'); setActiveTab(isEcommerce ? 'brand' : 'basicInfo'); return; }
-                try {
-                  setSaving(true);
-                  await founderPageAPI.upsert(formData);
-                  await new Promise(r => setTimeout(r, 500));
-                  window.open(`/${formData.username}?preview=true`, '_blank');
-                } catch { alert('Failed to save changes before preview. Please try again.'); }
-                finally { setSaving(false); }
-              }}
+              onClick={handlePreview}
               disabled={saving}
-              className="flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50"
+              className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition flex items-center justify-center gap-2 disabled:opacity-50"
             >
               {saving ? '💾 Saving...' : '👁️ Preview'}
             </button>
-            <button onClick={() => handleAction('publish', true)} disabled={saving} className="flex-1 md:flex-none px-3 md:px-6 py-2.5 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
+            <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
           </div>
         </div>
 
-        {/* Mobile stepper */}
-        <div className="md:hidden mb-4">
-          <div className="flex items-center justify-between mb-2">
-            <button onClick={() => activeTab !== tabs[0] && setActiveTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white disabled:opacity-30 active:bg-white/20 transition">‹</button>
-            <div className="text-center">
-              <p className="text-white font-semibold text-sm">{tabLabels[activeTab]}</p>
-              <p className="text-gray-500 text-xs">{tabs.indexOf(activeTab) + 1} of {tabs.length}</p>
-            </div>
-            {activeTab === tabs[tabs.length - 1] ? (
-              <button onClick={() => handleAction('publish', true)} disabled={saving} className="w-9 h-9 flex items-center justify-center rounded-full bg-white text-black disabled:opacity-50 text-lg active:bg-gray-200 transition">🚀</button>
-            ) : (
-              <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} className="w-9 h-9 flex items-center justify-center rounded-full bg-white/10 text-white active:bg-white/20 transition">›</button>
-            )}
+        {/* Mobile stepper, sticky so section navigation stays reachable inside
+            long sections like Brand, instead of scrolling back to the top. */}
+        <div className="lg:hidden sticky top-0 z-20 -mx-4 px-4 py-2.5 mb-4 bg-dark-bg/95 backdrop-blur-md border-b border-gray-800">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => activeTab !== tabs[0] && goToTab(tabs[tabs.indexOf(activeTab) - 1])}
+              disabled={activeTab === tabs[0]}
+              aria-label="Previous section"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 text-white text-xl disabled:opacity-30 active:bg-white/20 transition"
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => setShowSectionSheet(true)}
+              className="flex-1 min-w-0 h-11 px-3 rounded-xl bg-white/5 active:bg-white/10 transition flex items-center justify-center gap-2"
+              aria-haspopup="dialog"
+            >
+              <span className="text-white font-semibold text-sm truncate">{tabLabels[activeTab]}</span>
+              <span className="text-gray-500 text-xs flex-shrink-0">{tabs.indexOf(activeTab) + 1}/{tabs.length}</span>
+              <span className="text-gray-500 text-[10px] flex-shrink-0">▼</span>
+            </button>
+            <button
+              onClick={() => activeTab !== tabs[tabs.length - 1] && goToTab(tabs[tabs.indexOf(activeTab) + 1])}
+              disabled={activeTab === tabs[tabs.length - 1]}
+              aria-label="Next section"
+              className="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full bg-white/10 text-white text-xl disabled:opacity-30 active:bg-white/20 transition"
+            >
+              ›
+            </button>
           </div>
-          <div className="flex gap-1">
+          <div className="flex gap-1 mt-2">
             {tabs.map((tab, i) => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`h-1 rounded-full flex-1 transition-all ${activeTab === tab ? 'bg-white' : i < tabs.indexOf(activeTab) ? 'bg-gray-500' : 'bg-gray-700'}`} />
+              <button
+                key={tab}
+                onClick={() => goToTab(tab)}
+                aria-label={`Go to ${tabLabels[tab]}`}
+                className="flex-1 py-1.5 -my-1.5 flex items-center"
+              >
+                <span className={`h-1 w-full rounded-full transition-all ${activeTab === tab ? 'bg-white' : i < tabs.indexOf(activeTab) ? 'bg-gray-500' : 'bg-gray-700'}`} />
+              </button>
             ))}
           </div>
         </div>
 
         {/* Desktop tab bar */}
-        <div className="hidden md:block mb-8">
+        <div className="hidden lg:block mb-8">
           <div className="bg-dark-card rounded-xl p-1.5 inline-flex gap-1 flex-wrap">
             {tabs.map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)} className={`px-5 py-3 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
+              <button key={tab} onClick={() => goToTab(tab)} className={`px-5 py-3 rounded-lg text-sm font-medium transition whitespace-nowrap ${activeTab === tab ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}>
                 {tabLabels[tab]}
               </button>
             ))}
@@ -606,7 +768,7 @@ export default function FounderPage() {
                 <p className="text-blue-400 text-xs md:text-sm">Template: <strong>{meta.icon} {meta.label}</strong></p>
                 <p className="text-blue-300 text-xs mt-0.5">{meta.style}</p>
               </div>
-              <div className="grid grid-cols-2 gap-4 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
                 <SelectInput label="Title Font" value={formData.design.titleFont} onChange={e => updateNested('design', 'titleFont', e.target.value)} options={['Afacad', 'Poppins', 'Inter', 'Montserrat']} />
                 <SelectInput label="Body Font" value={formData.design.bodyFont} onChange={e => updateNested('design', 'bodyFont', e.target.value)} options={['Poppins', 'Inter', 'Roboto']} />
                 <ColorPicker label="Primary Color" value={formData.design.primaryColor} onChange={c => updateNested('design', 'primaryColor', c)} />
@@ -651,13 +813,13 @@ export default function FounderPage() {
             <div className="space-y-4 md:space-y-6">
               <div className="flex justify-between items-center mb-4 md:mb-6">
                 <div><h2 className="text-lg md:text-2xl font-semibold text-white">Services</h2><p className="text-gray-400 text-xs md:text-sm mt-0.5">Minimum 2 required</p></div>
-                <button onClick={() => addArrayItem('services', { title: '', description: '' })} className="px-4 md:px-6 py-2 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
+                <button onClick={() => addArrayItem('services', { title: '', description: '' })} className="flex-shrink-0 px-4 md:px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
               </div>
               {formData.services.map((service, index) => (
                 <div key={service.id} className="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-700 space-y-3 md:space-y-4">
                   <div className="flex justify-between items-start">
                     <h3 className="text-white text-sm md:text-base font-semibold">Service {index + 1}</h3>
-                    {formData.services.length > 2 && <button onClick={() => deleteArrayItem('services', service.id, 2)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>}
+                    {formData.services.length > 2 && <DeleteButton onClick={() => deleteArrayItem('services', service.id, 2)} label={`Delete service ${index + 1}`} />}
                   </div>
                   <TextInput label="Title" placeholder="Consulting" value={service.title} onChange={e => updateArray('services', service.id, 'title', e.target.value)} />
                   <TextArea label="Description" placeholder="Describe this service..." value={service.description} onChange={e => updateArray('services', service.id, 'description', e.target.value)} />
@@ -673,7 +835,7 @@ export default function FounderPage() {
                 <h2 className="text-lg md:text-2xl font-semibold text-white">Gallery</h2>
                 <p className="text-xs md:text-sm text-gray-400 mt-0.5">Square images (1:1) · 1000×1000px recommended</p>
               </div>
-              <div className="grid grid-cols-3 md:grid-cols-2 gap-3 md:gap-6">
+              <div className="grid grid-cols-2 gap-3 md:gap-6">
                 {[...Array(6)].map((_, i) => (
                   <ImageUpload key={i} label={`${i + 1}`} id={`portfolio-${i}`} onUpload={file => handlePortfolioUpload(file, i)} onRemove={() => setFormData(prev => { const imgs = [...(prev.portfolio.images || [])]; imgs[i] = { id: Date.now().toString(), url: '' }; return { ...prev, portfolio: { images: imgs } }; })} imageUrl={formData.portfolio.images?.[i]?.url} uploading={uploading} isSquare />
                 ))}
@@ -686,7 +848,7 @@ export default function FounderPage() {
             <div className="space-y-4 md:space-y-6">
               <div className="flex justify-between items-center mb-4 md:mb-6">
                 <div><h2 className="text-lg md:text-2xl font-semibold text-white">Featured Work</h2><p className="text-gray-400 text-xs md:text-sm mt-0.5">Showcase your best projects</p></div>
-                <button onClick={() => addArrayItem('featured', { title: '', subtitle: '', year: '', imageUrl: '' })} className="px-4 md:px-6 py-2 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
+                <button onClick={() => addArrayItem('featured', { title: '', subtitle: '', year: '', imageUrl: '' })} className="flex-shrink-0 px-4 md:px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
               </div>
               {formData.featured.length === 0 ? (
                 <div className="text-center py-10 text-gray-500 text-sm">No featured work yet. Tap "+ Add" to get started.</div>
@@ -694,9 +856,9 @@ export default function FounderPage() {
                 <div key={work.id} className="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-700 space-y-3 md:space-y-4">
                   <div className="flex justify-between items-start">
                     <h3 className="text-white text-sm md:text-base font-semibold">Project {index + 1}</h3>
-                    <button onClick={() => deleteArrayItem('featured', work.id)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>
+                    <DeleteButton onClick={() => deleteArrayItem('featured', work.id)} label={`Delete project ${index + 1}`} />
                   </div>
-                  <div className="grid grid-cols-2 gap-3 md:gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                     <TextInput label="Title" placeholder="Vogue Magazine" value={work.title} onChange={e => updateArray('featured', work.id, 'title', e.target.value)} />
                     <TextInput label="Subtitle" placeholder="Editorial Feature" value={work.subtitle} onChange={e => updateArray('featured', work.id, 'subtitle', e.target.value)} />
                   </div>
@@ -819,7 +981,7 @@ export default function FounderPage() {
                 <div className="flex justify-between items-center mb-1">
                   <h3 className="text-white font-semibold">Product Collection</h3>
                   {formData.ecommerce.collection.length < 6 && (
-                    <button onClick={() => addEcommerceItem('collection', { name: '', price: '', badge: '', imageUrl: '' })} className="px-4 py-2 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
+                    <button onClick={() => addEcommerceItem('collection', { name: '', price: '', badge: '', imageUrl: '' })} className="flex-shrink-0 px-4 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
                   )}
                 </div>
                 <p className="text-gray-400 text-xs mb-5">Up to 6 products displayed in your collection grid</p>
@@ -836,15 +998,15 @@ export default function FounderPage() {
                       <div key={item.id} className="bg-black/20 rounded-xl p-4 border border-gray-700">
                         <div className="flex justify-between items-center mb-3">
                           <span className="text-white text-sm font-semibold">Product {i + 1}</span>
-                          <button onClick={() => deleteEcommerceItem('collection', item.id)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>
+                          <DeleteButton onClick={() => deleteEcommerceItem('collection', item.id)} label={`Delete product ${i + 1}`} />
                         </div>
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                           <ImageUpload
                             label="Image (600×600px)"
                             note="Square"
                             id={`ec-col-${item.id}`} onUpload={file => handleCollectionImageUpload(file, item.id)} onRemove={() => updateCollectionItem(item.id, 'imageUrl', '')} imageUrl={item.imageUrl} uploading={uploading} isSquare
                           />
-                          <div className="col-span-1 md:col-span-3 grid md:grid-cols-3 gap-3 content-start">
+                          <div className="md:col-span-3 grid md:grid-cols-3 gap-3 content-start">
                             <TextInput label="Product Name" placeholder="Crème Riche" value={item.name} onChange={e => updateCollectionItem(item.id, 'name', e.target.value)} />
                             <TextInput label="Price" placeholder="$64.00" value={item.price} onChange={e => updateCollectionItem(item.id, 'price', e.target.value)} />
                             <TextInput label="Badge (optional)" placeholder="New · Sale · etc." value={item.badge} onChange={e => updateCollectionItem(item.id, 'badge', e.target.value)} />
@@ -890,9 +1052,9 @@ export default function FounderPage() {
                       placeholder="Paste YouTube, TikTok, or Instagram URL..."
                       value={v.url}
                       onChange={e => setFormData(prev => ({ ...prev, ecommerce: { ...prev.ecommerce, videos: prev.ecommerce.videos.map(x => x.id === v.id ? { ...x, url: e.target.value } : x) } }))}
-                      className="flex-1 px-3 py-2.5 bg-black/40 border border-gray-700 rounded-lg text-sm text-white placeholder-gray-500 focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition"
+                      className={`${FIELD} flex-1`}
                     />
-                    <button onClick={() => deleteEcommerceItem('videos', v.id)} className="text-red-400 hover:text-red-300 text-sm flex-shrink-0">🗑️</button>
+                    <DeleteButton onClick={() => deleteEcommerceItem('videos', v.id)} label={`Remove video ${i + 1}`} className="-mr-1" />
                   </div>
                 ))}
                 {formData.ecommerce.videos.length < 4 && (
@@ -916,7 +1078,7 @@ export default function FounderPage() {
                   <p className="text-gray-400 text-xs md:text-sm mt-0.5">Up to 6 reviews displayed on your page</p>
                 </div>
                 {formData.ecommerce.reviews.length < 6 && (
-                  <button onClick={() => addEcommerceItem('reviews', { name: '', rating: 5, text: '' })} className="px-4 py-2 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
+                  <button onClick={() => addEcommerceItem('reviews', { name: '', rating: 5, text: '' })} className="flex-shrink-0 px-4 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
                 )}
               </div>
               <div className="grid md:grid-cols-2 gap-4">
@@ -930,15 +1092,21 @@ export default function FounderPage() {
                   <div key={r.id} className="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-700 space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-white text-sm font-semibold">Review {i + 1}</span>
-                      <button onClick={() => deleteEcommerceItem('reviews', r.id)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>
+                      <DeleteButton onClick={() => deleteEcommerceItem('reviews', r.id)} label={`Delete review ${i + 1}`} />
                     </div>
                     <div className="grid md:grid-cols-2 gap-3">
                       <TextInput label="Customer Name" placeholder="Sarah M." value={r.name} onChange={e => setFormData(prev => ({ ...prev, ecommerce: { ...prev.ecommerce, reviews: prev.ecommerce.reviews.map(x => x.id === r.id ? { ...x, name: e.target.value } : x) } }))} />
                       <div>
                         <label className="block text-xs md:text-sm font-medium text-white mb-1.5">Star Rating</label>
-                        <div className="flex gap-2">
+                        <div className="flex gap-1 -ml-1.5">
                           {[1,2,3,4,5].map(n => (
-                            <button key={n} onClick={() => setFormData(prev => ({ ...prev, ecommerce: { ...prev.ecommerce, reviews: prev.ecommerce.reviews.map(x => x.id === r.id ? { ...x, rating: n } : x) } }))} className={`text-2xl transition ${n <= r.rating ? 'text-yellow-400' : 'text-gray-600'}`}>★</button>
+                            <button
+                              key={n}
+                              type="button"
+                              aria-label={`${n} star${n > 1 ? 's' : ''}`}
+                              onClick={() => setFormData(prev => ({ ...prev, ecommerce: { ...prev.ecommerce, reviews: prev.ecommerce.reviews.map(x => x.id === r.id ? { ...x, rating: n } : x) } }))}
+                              className={`w-11 h-11 flex items-center justify-center rounded-lg text-2xl transition active:bg-white/10 ${n <= r.rating ? 'text-yellow-400' : 'text-gray-600'}`}
+                            >★</button>
                           ))}
                         </div>
                       </div>
@@ -972,7 +1140,7 @@ export default function FounderPage() {
                   <p className="text-gray-400 text-xs md:text-sm mt-0.5">Up to 4 custom questions — shown after the 2 standard ones</p>
                 </div>
                 {(formData.faq || []).length < 4 && (
-                  <button onClick={() => addArrayItem('faq', { type: 'connections', customQuestion: '', answer: '' })} className="px-4 md:px-6 py-2 md:py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
+                  <button onClick={() => addArrayItem('faq', { type: 'connections', customQuestion: '', answer: '' })} className="flex-shrink-0 px-4 md:px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">+ Add</button>
                 )}
               </div>
               <div className="space-y-3">
@@ -992,11 +1160,11 @@ export default function FounderPage() {
                   <div key={item.id} className="bg-black/20 rounded-xl p-4 md:p-6 border border-gray-700 space-y-3 md:space-y-4">
                     <div className="flex justify-between items-start">
                       <h3 className="text-white text-sm md:text-base font-semibold">FAQ {index + 1}</h3>
-                      <button onClick={() => deleteArrayItem('faq', item.id)} className="text-red-400 hover:text-red-300 text-sm">🗑️</button>
+                      <DeleteButton onClick={() => deleteArrayItem('faq', item.id)} label={`Delete FAQ ${index + 1}`} />
                     </div>
                     <div>
                       <label className="block text-xs md:text-sm font-medium text-white mb-1.5">Question</label>
-                      <select value={item.type} onChange={e => updateArray('faq', item.id, 'type', e.target.value)} className="w-full px-3 md:px-4 py-2.5 md:py-3 bg-black/40 border border-gray-700 rounded-lg text-sm text-white focus:border-brand-pink focus:ring-1 focus:ring-brand-pink outline-none transition">
+                      <select value={item.type} onChange={e => updateArray('faq', item.id, 'type', e.target.value)} className={FIELD}>
                         {FAQ_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
                       </select>
                     </div>
@@ -1010,22 +1178,48 @@ export default function FounderPage() {
             </div>
           )}
 
-          {/* Mobile save */}
-          <div className="md:hidden mt-6 pt-4 border-t border-gray-700">
-            <button onClick={() => handleAction('save')} disabled={saving} className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">
-              {saving ? 'Saving...' : 'Save Draft'}
-            </button>
-          </div>
-
           {/* Desktop nav */}
-          <div className="hidden md:flex justify-between mt-8 pt-6 border-t border-gray-700">
-            <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">← Prev</button>
-            <button onClick={() => handleAction('save')} disabled={saving} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition">{saving ? 'Saving...' : 'Save Draft'}</button>
+          <div className="hidden lg:flex justify-between mt-8 pt-6 border-t border-gray-700">
+            <button onClick={() => goToTab(tabs[tabs.indexOf(activeTab) - 1])} disabled={activeTab === tabs[0]} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition disabled:opacity-50">← Prev</button>
+            <button onClick={() => handleAction('save')} disabled={saving} className="px-6 py-3 bg-white/10 hover:bg-white/20 text-white rounded-lg text-sm font-semibold transition flex items-center gap-2">
+              {saving ? 'Saving...' : 'Save Draft'}
+              {dirty && !saving && <span className="w-2 h-2 rounded-full bg-brand-pink" aria-label="Unsaved changes" />}
+            </button>
             {activeTab === tabs[tabs.length - 1]
               ? <button onClick={() => handleAction('publish', true)} disabled={saving} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition disabled:opacity-50">🚀 Publish</button>
-              : <button onClick={() => setActiveTab(tabs[tabs.indexOf(activeTab) + 1])} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Next →</button>
+              : <button onClick={() => goToTab(tabs[tabs.indexOf(activeTab) + 1])} className="px-6 py-3 bg-white text-black rounded-lg text-sm font-semibold hover:bg-gray-200 transition">Next →</button>
             }
           </div>
+        </div>
+      </div>
+
+      {/* Mobile action bar: Save/Preview/Publish were previously buried at the
+          bottom of the form, so they were unreachable without scrolling past
+          every field. Sits above the app's bottom tab bar. */}
+      <div className="lg:hidden fixed bottom-20 left-0 right-0 z-20 px-3">
+        <div className="flex items-center gap-2 rounded-2xl bg-[#141414]/95 backdrop-blur-md border border-gray-800 p-2 shadow-2xl">
+          <button
+            onClick={() => handleAction('save')}
+            disabled={saving}
+            className="relative flex-1 h-12 rounded-xl bg-white/10 active:bg-white/20 text-white text-sm font-semibold transition disabled:opacity-50"
+          >
+            {saving ? 'Saving...' : 'Save'}
+            {dirty && !saving && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-brand-pink" aria-label="Unsaved changes" />}
+          </button>
+          <button
+            onClick={handlePreview}
+            disabled={saving}
+            className="flex-1 h-12 rounded-xl bg-white/10 active:bg-white/20 text-white text-sm font-semibold transition disabled:opacity-50"
+          >
+            👁️ Preview
+          </button>
+          <button
+            onClick={() => handleAction('publish', true)}
+            disabled={saving}
+            className="flex-1 h-12 rounded-xl bg-white text-black text-sm font-semibold active:bg-gray-200 transition disabled:opacity-50"
+          >
+            🚀 Publish
+          </button>
         </div>
       </div>
     </Layout>

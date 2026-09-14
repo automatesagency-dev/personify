@@ -52,7 +52,7 @@ export default function ColorPicker({ label, value, onChange }) {
       <button
         type="button"
         onClick={() => setShowAdvanced(!showAdvanced)}
-        className="text-sm text-blue-400 hover:text-blue-300 transition flex items-center gap-2 mb-3"
+        className="text-sm text-blue-400 hover:text-blue-300 transition flex items-center gap-2 mb-1 -ml-1 px-1 py-2.5"
       >
         {showAdvanced ? '▼' : '▶'} Advanced Color Selector
       </button>
@@ -78,7 +78,7 @@ export default function ColorPicker({ label, value, onChange }) {
                   }
                 }}
                 placeholder="#000000"
-                className="w-full px-3 py-2 bg-black/40 border border-gray-600 rounded text-white text-sm font-mono uppercase"
+                className="w-full px-3 py-3 bg-black/40 border border-gray-600 rounded text-white text-base md:text-sm font-mono uppercase"
               />
             </div>
           </div>
