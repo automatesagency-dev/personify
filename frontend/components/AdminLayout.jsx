@@ -1,5 +1,7 @@
 'use client'
 
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -55,99 +57,168 @@ const NAV = [
   },
 ];
 
+const initials = (name) => {
+  if (!name) return 'AD';
+  return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+};
+
+// Shared sidebar body — rendered twice: as the desktop rail and inside the
+// mobile drawer. Keeping it in one place means the nav can't drift apart.
+function SidebarBody({ user, activeSection, onSelect, badges, onLogout }) {
+  return (
+    <>
+      {/* Logo */}
+      <div className="px-5 py-4 border-b border-white/[0.07]">
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
+            <span className="text-[11px] font-bold text-black">P</span>
+          </div>
+          <div>
+            <p className="text-white font-semibold text-[13px] leading-tight">Personify</p>
+            <p className="text-gray-600 text-[10px] leading-tight">Admin Console</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 p-3 overflow-y-auto">
+        <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider px-2 mb-2 mt-1">Main Menu</p>
+        <div className="space-y-0.5">
+          {NAV.map(item => {
+            const isActive = activeSection === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onSelect(item.id)}
+                className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-colors group ${
+                  isActive ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/[0.05] hover:text-white'
+                }`}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={isActive ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'}>
+                    <Icon paths={item.paths} />
+                  </span>
+                  <span className="font-medium">{item.label}</span>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                  {badges[item.id] > 0 && (
+                    <span className="bg-white/15 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
+                      {badges[item.id]}
+                    </span>
+                  )}
+                  {isActive && (
+                    <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                    </svg>
+                  )}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* User */}
+      <div className="p-3 border-t border-white/[0.07]">
+        <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.05]">
+          <div className="w-7 h-7 bg-gradient-to-br from-brand-pink to-purple-600 rounded-full flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
+            {initials(user?.name || user?.email)}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-white text-[12px] font-medium truncate">{user?.name || 'Admin'}</p>
+            <p className="text-gray-600 text-[10px] truncate">{user?.email}</p>
+          </div>
+          <button
+            onClick={onLogout}
+            className="text-gray-700 hover:text-white transition flex-shrink-0"
+            title="Logout"
+          >
+            <Icon paths={['M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1']} />
+          </button>
+        </div>
+      </div>
+    </>
+  );
+}
+
 export default function AdminLayout({ children, activeSection, onSectionChange, badges = {} }) {
   const { user, logout } = useAuth();
   const router = useRouter();
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
-  const initials = (name) => {
-    if (!name) return 'AD';
-    return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  const handleLogout = () => { logout(); router.push('/'); };
+
+  const activeLabel = NAV.find(n => n.id === activeSection)?.label || 'Admin';
+
+  // Lock body scroll while the mobile drawer is open so the page behind it
+  // doesn't scroll under the finger.
+  useEffect(() => {
+    if (!drawerOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = prev; };
+  }, [drawerOpen]);
+
+  const select = (id) => {
+    onSectionChange(id);
+    setDrawerOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] flex">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-[230px] flex-shrink-0 border-r border-white/[0.07] flex flex-col h-screen sticky top-0">
-
-        {/* Logo */}
-        <div className="px-5 py-4 border-b border-white/[0.07]">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-white flex items-center justify-center flex-shrink-0">
-              <span className="text-[11px] font-bold text-black">P</span>
-            </div>
-            <div>
-              <p className="text-white font-semibold text-[13px] leading-tight">Personify</p>
-              <p className="text-gray-600 text-[10px] leading-tight">Admin Console</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 p-3 overflow-y-auto">
-          <p className="text-[10px] font-semibold text-gray-700 uppercase tracking-wider px-2 mb-2 mt-1">Main Menu</p>
-          <div className="space-y-0.5">
-            {NAV.map(item => {
-              const isActive = activeSection === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onSectionChange(item.id)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-[13px] transition-colors group ${
-                    isActive ? 'bg-white/10 text-white' : 'text-gray-500 hover:bg-white/[0.05] hover:text-white'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <span className={isActive ? 'opacity-100' : 'opacity-50 group-hover:opacity-80'}>
-                      <Icon paths={item.paths} />
-                    </span>
-                    <span className="font-medium">{item.label}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {badges[item.id] > 0 && (
-                      <span className="bg-white/15 text-white text-[10px] font-bold rounded-full min-w-[18px] h-[18px] flex items-center justify-center px-1">
-                        {badges[item.id]}
-                      </span>
-                    )}
-                    {isActive && (
-                      <svg className="w-3 h-3 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
-                      </svg>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-        </nav>
-
-        {/* User */}
-        <div className="p-3 border-t border-white/[0.07]">
-          <div className="flex items-center gap-2.5 px-3 py-2.5 rounded-xl bg-white/[0.05]">
-            <div className="w-7 h-7 bg-gradient-to-br from-brand-pink to-purple-600 rounded-full flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
-              {initials(user?.name || user?.email)}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-[12px] font-medium truncate">{user?.name || 'Admin'}</p>
-              <p className="text-gray-600 text-[10px] truncate">{user?.email}</p>
-            </div>
-            <button
-              onClick={() => { logout(); router.push('/'); }}
-              className="text-gray-700 hover:text-white transition flex-shrink-0"
-              title="Logout"
-            >
-              <Icon paths={['M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1']} />
-            </button>
-          </div>
-        </div>
+      {/* ── Desktop sidebar ── */}
+      <aside className="hidden lg:flex w-[230px] flex-shrink-0 border-r border-white/[0.07] flex-col h-screen sticky top-0">
+        <SidebarBody user={user} activeSection={activeSection} onSelect={select} badges={badges} onLogout={handleLogout} />
       </aside>
+
+      {/* ── Mobile drawer ── */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.div
+            key="admin-drawer-backdrop"
+            className="lg:hidden fixed inset-0 bg-black/60 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setDrawerOpen(false)}
+          />
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {drawerOpen && (
+          <motion.aside
+            key="admin-drawer"
+            className="lg:hidden fixed top-0 left-0 bottom-0 z-50 w-[260px] max-w-[85vw] bg-[#0a0a0a] border-r border-white/[0.07] flex flex-col"
+            initial={{ x: '-100%' }}
+            animate={{ x: 0 }}
+            exit={{ x: '-100%' }}
+            transition={{ type: 'spring', damping: 30, stiffness: 300 }}
+          >
+            <SidebarBody user={user} activeSection={activeSection} onSelect={select} badges={badges} onLogout={handleLogout} />
+          </motion.aside>
+        )}
+      </AnimatePresence>
 
       {/* ── Main content ── */}
       <div className="flex-1 min-w-0 flex flex-col">
 
         {/* Top bar */}
-        <header className="sticky top-0 z-20 bg-[#0a0a0a] border-b border-white/[0.07] h-[52px] px-6 flex items-center gap-4">
-          <div className="relative flex-1 max-w-xs">
+        <header className="sticky top-0 z-20 bg-[#0a0a0a] border-b border-white/[0.07] h-[52px] px-4 sm:px-6 flex items-center gap-3 sm:gap-4">
+          {/* Hamburger (mobile only) */}
+          <button
+            onClick={() => setDrawerOpen(true)}
+            aria-label="Open admin menu"
+            className="lg:hidden w-8 h-8 -ml-1 flex items-center justify-center rounded-lg text-gray-400 hover:text-white hover:bg-white/[0.06] transition flex-shrink-0"
+          >
+            <Icon paths={['M4 6h16M4 12h16M4 18h16']} className="w-5 h-5" />
+          </button>
+
+          {/* Current section (mobile only — replaces the search box) */}
+          <p className="lg:hidden text-white text-sm font-semibold truncate">{activeLabel}</p>
+
+          {/* Search (desktop only — it has no backing implementation yet) */}
+          <div className="relative hidden lg:block flex-1 max-w-xs">
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -158,7 +229,7 @@ export default function AdminLayout({ children, activeSection, onSectionChange, 
             />
           </div>
 
-          <div className="ml-auto flex items-center gap-3">
+          <div className="ml-auto flex items-center gap-3 flex-shrink-0">
             <button className="relative w-8 h-8 bg-white/[0.04] border border-white/[0.07] rounded-lg flex items-center justify-center text-gray-500 hover:text-white transition">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -166,11 +237,11 @@ export default function AdminLayout({ children, activeSection, onSectionChange, 
               <span className="absolute top-1 right-1 w-1.5 h-1.5 bg-brand-pink rounded-full" />
             </button>
 
-            <div className="flex items-center gap-2.5 pl-3 border-l border-white/[0.07]">
+            <div className="flex items-center gap-2.5 sm:pl-3 sm:border-l sm:border-white/[0.07]">
               <div className="w-7 h-7 bg-gradient-to-br from-brand-pink to-purple-600 rounded-full flex items-center justify-center text-white text-[10px] font-semibold flex-shrink-0">
                 {initials(user?.name || user?.email)}
               </div>
-              <div>
+              <div className="hidden sm:block">
                 <p className="text-white text-[12px] font-semibold leading-tight">{user?.name || 'Admin'}</p>
                 <p className="text-gray-600 text-[10px] leading-tight">Super Admin</p>
               </div>
@@ -178,8 +249,8 @@ export default function AdminLayout({ children, activeSection, onSectionChange, 
           </div>
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
+        {/* Page content — padding lives here so every section is spaced alike */}
+        <main className="flex-1 min-w-0 p-4 sm:p-6">
           {children}
         </main>
       </div>
